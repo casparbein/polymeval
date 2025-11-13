@@ -1,0 +1,6 @@
+name: hifieval
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - hifieval

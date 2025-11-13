@@ -1,0 +1,6 @@
+name: rdeval
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - rdeval

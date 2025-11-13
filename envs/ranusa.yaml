@@ -1,0 +1,6 @@
+name: ranusa
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - rasusa

@@ -1,0 +1,6 @@
+name: pbmarkdup
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - pbmarkdup
