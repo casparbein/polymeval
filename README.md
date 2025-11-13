@@ -6,6 +6,9 @@ Furthermore, certain samples are prone to contain secondary metabolites even aft
 In such cases, long-range Polymerase Chain Reaction (PCR) or Multiple Displacement (MDA) amplification have proven helpful to generate enough input material for downstream HiFi library preparation and sequencing. 
 However, depending on the polymerase used for amplification, certain biases can affect the amplified product, notably GC drop outs uneven coverage. Using polymeval one can uncover such biases. 
 
+<img width="774" height="903" alt="grafik" src="https://github.com/user-attachments/assets/79e5298f-08db-433a-9ca2-1d0b2de6e726" />
+
+
 ## Pipeline Setup
 This is how the pipeline operates in standard mode (on each input sample):
 1. (optional) read summary stats (with seqkit, rdeval and bbmap)
