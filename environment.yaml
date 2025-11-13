@@ -1,0 +1,9 @@
+name: polymeval
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - snakemake
+  - snakemake-executor-plugin-slurm
+  - snakedeploy
+  - ruamel.yaml
