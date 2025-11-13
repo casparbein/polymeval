@@ -1,0 +1,285 @@
+import get_downsample_rates_outlier
+import re
+
+configfile: "DEF.yaml"
+seqkit_path = config["path_to_seqkit"]
+samples = config["samples"]
+outlier = config["outlier"]
+sample_base_target  = config["sample_base_target"]
+compleasm_database = config["compleasm_db"]
+
+## Get minimum downsampling rate and dictionary:
+## variable "downsample_nucs" is used in the rasusa downsampling rule
+readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates_outlier.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+
+## Get combinations for combined assemblies
+downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates_outlier.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target)
+
+## Create dictionaty that will be used in some rules to fetch downsampling amount etc.
+combo_dict = get_downsample_rates_outlier.form_combinations(downsample_read_dict, downsample_read_frac)
+
+## How much will be downsampled
+combination_ranges = list(range(1, len(samples)+1))
+downsample_parts = [get_downsample_rates_outlier.suffix_dict[number] for number in combination_ranges]
+
+## names of the assemblies that will be created
+out_assembly_names = [value for value in combo_dict.values()]
+#print(out_assembly_names)
+
+## Input dictionary for downstream assembly rules
+turned_combo_dict = {v: ["raw_reads/" + f for f in k.split(" ")] for k,v in combo_dict.items()}
+
+#print(turned_combo_dict)
+
+## Wildcard constraints
+wildcard_constraints:
+    sample = r"|".join(samples),
+    out= r'|'.join([x for x in out_assembly_names]),
+
+
+## Gather the target output files (This defines which parts of the pipeline will be run), must be redefined here because of changed input/output names
+def gather_targets():
+    all_target = []
+    
+    ## Optional output
+    if config["hifieval"]:
+        all_target.extend(expand("hifieval/{out}.summary.tsv", out = out_assembly_names)),
+
+    if config["kmc"]:
+        all_target.extend(expand("genomescope/{out}/linear_plot.png", out = out_assembly_names)),
+        
+    ## Default output (always turned on)
+    all_target.append("out/stats/seqkit_all.tsv"),
+    all_target.extend(expand("assemblies/{out}.fa.fai", out = out_assembly_names)),
+    all_target.append("out/stats/all.summary_plot.pdf"),
+    all_target.extend(expand("compleasm/{out}_summary.rf.txt", out = out_assembly_names)),
+    all_target.extend(expand("merqury/{out}_slf/{out}_slf.qv", out = out_assembly_names)),
+
+    return all_target
+
+all_target_files = gather_targets()
+
+rule all:
+    input:
+        all_target_files
+
+## Import Module for "standard" analysis
+module standard:
+    snakefile:
+        "Snakefile_standard"
+
+## downsampling rule
+include: "rules/rasusa.smk"
+include: "rules/plotting_combine.smk"
+
+## import rules and redefine input if necessary
+if config["readstats"]:
+    use rule rdeval_dump from standard as combine_rdeval_dump with:
+        input:
+            "raw_reads/{sample}-{amount}.fastq.gz",
+        output:
+            "out/stats/{sample}-{amount}.rdeval_dump.tsv",
+        log:
+            "logs/rdeval_dump/{sample}-{amount}.log",
+
+    # use rule get_readlen_hist from standard as combine_get_readlen_hist with:
+    #     input:
+    #         "raw_reads/{sample}-{amount}.fastq.gz",
+    #     output:
+    #         all_hist = "out/stats/{sample}-{amount}.readlen.hist.txt",
+    #         gc_hist = "out/stats/{sample}-{amount}.readlen.gc_hist.txt",
+    #     params:
+    #         out_base = "out/stats/{sample}-{amount}.readlen",
+    #     log:
+    #         "logs/get_readlen_hist/{sample}-{amount}.log",
+
+    use rule nt_qc_hist from standard as combine_nt_qc_hist with:
+        input:
+            "raw_reads/{sample}-{amount}.fastq.gz",
+        output:
+            out = temp("raw_reads/{sample}-{amount}.tmp.fastq.gz"),
+            qchist = "out/stats/{sample}-{amount}.qchist.txt",
+        log:
+            "logs/nt_qc_hist/{sample}-{amount}.log",
+    
+if config["hifieval"]:
+    use rule hifieval_align_raw from standard as combine_hifieval_align_raw with:
+        input:
+            target="assemblies/{out}.fa",
+            query=lambda wildcards: turned_combo_dict[wildcards.out],
+        output:
+            "alignments/{out}.raw.paf",
+        log:
+            "logs/hifieval_align_raw/{out}.log",
+
+    use rule hifieval_align_ec from standard as combine_hifieval_align_ec with:
+        input:
+            target="assemblies/{out}.fa",  # can be either genome index or genome fasta
+            query="assemblies/{out}.ec.fa",
+        output:
+            "alignments/{out}.ec.paf",
+        log:
+            "logs/hifieval_align_ec/{out}.log",
+    
+    use rule hifieval_compare from standard as combine_hifieval_compare with:
+        input:
+            raw ="alignments/{out}.raw.paf", 
+            ec ="alignments/{out}.ec.paf", 
+        output:
+            metric = "hifieval/{out}.metric.eval.tsv",
+            rdl_eval = "hifieval/{out}.rdlvl.eval.tsv",
+            summary = "hifieval/{out}.summary.tsv",
+        params:
+            out_base = "hifieval/{out}",
+        log:
+            "logs/hifieval_compare/{out}.log",
+
+if config["kmc"]:
+    rule combine_kmc_count:
+        input:
+            lambda wildcards: turned_combo_dict[wildcards.out],
+        output:
+            suf = "kmc/{out}.res.kmc_suf",
+            pre = "kmc/{out}.res.kmc_pre",
+        params:
+            tmp_dir = "kmc/{out}_tmp_dir/",
+            out_base = "kmc/{out}.res",
+            memory=40,
+        threads: 5
+        resources:
+            mem_mb = 40000,
+        log:
+            "logs/kmc_count/{out}.log",
+        envmodules:
+            "kmc/3.2.4"
+        shell:
+            """
+            echo {input} | tr ' ' '\n' > {params.out_base}_files.txt;
+            mkdir -p {params.tmp_dir};
+            kmc \
+            -v \
+            -k25 \
+            -ci1 \
+            -cs5000 \
+            -t{threads} \
+            -m{params.memory} \
+            @{params.out_base}_files.txt \
+            {params.out_base} \
+            {params.tmp_dir} \
+            --opt-out-size \
+            2> {log}
+            """
+    
+    use rule kmc_dump_hist from standard as combine_kmc_dump_hist with:
+        input:
+            suf = "kmc/{out}.res.kmc_suf",
+            pre = "kmc/{out}.res.kmc_pre",
+        output:
+            "out/stats/{out}.kmc_hist.txt",
+        params:
+            db = "kmc/{out}.res",
+            memory=40,
+        log:
+            "logs/kmc_dump_hist/{out}.log",    
+
+    use rule genomescope from standard as combine_genomescope with:
+        input:
+            hist="out/stats/{out}.kmc_hist.txt",
+        output:
+            multiext(
+                "genomescope/{out}/",
+                "linear_plot.png",
+                "log_plot.png",
+                "model.txt",
+                "progress.txt",
+                "SIMULATED_testing.tsv",
+                "summary.txt",
+                "transformed_linear_plot.png",
+                "transformed_log_plot.png",
+            ),
+        log:
+            "logs/genomescope/{out}.log",
+
+#Default rules
+use rule seqkit_stats from standard as combine_seqkit_stats with:
+    input:
+        fastx=expand("raw_reads/{sample}-{amount}.fastq.gz", sample = samples, amount = downsample_parts),
+
+use rule meryl_count from standard as combine_meryl_count with:
+    input:
+        fasta=lambda wildcards: turned_combo_dict[wildcards.out],
+    output:
+        directory("meryl/{out}_reads.meryl"),
+    log:
+        "logs/meryl_count/{out}.log",
+
+use rule run_merqury from standard as combine_run_merqury with:
+    input:
+        db="meryl/{out}_reads.meryl",
+        asm="assemblies/{out}.fa",
+    output:
+        "merqury/{out}_slf/{out}_slf.qv",
+    params:
+        output_dir="merqury/{out}_slf",
+        out_prefix="{out}_slf"
+    log:
+        "logs/run_merqury/{out}.log",
+
+use rule hifiasm from standard as combine_hifiasm with:
+    input:
+        fasta=lambda wildcards: turned_combo_dict[wildcards.out],
+    output:
+        "assemblies/{out}.p_ctg.gfa",
+        temp("assemblies/{out}.r_utg.gfa"),
+        temp("assemblies/{out}.p_utg.gfa"),
+        temp("assemblies/{out}.a_ctg.gfa"),
+        temp("assemblies/{out}.a_ctg.lowQ.bed"),
+        temp("assemblies/{out}.a_ctg.noseq.gfa"),
+        temp("assemblies/{out}.p_ctg.lowQ.bed"),
+        temp("assemblies/{out}.p_ctg.noseq.gfa"),
+        temp("assemblies/{out}.p_utg.lowQ.bed"),
+        temp("assemblies/{out}.p_utg.noseq.gfa"),
+        temp("assemblies/{out}.r_utg.lowQ.bed"),
+        temp("assemblies/{out}.r_utg.noseq.gfa"),
+        temp("assemblies/{out}.ec.bin"),
+        temp("assemblies/{out}.ovlp.reverse.bin"),
+        temp("assemblies/{out}.ovlp.source.bin"),
+    log:
+        "logs/hifiasm/{out}.log",
+
+use rule get_fasta from standard as combine_get_fasta with:
+    input:
+        "assemblies/{out}.p_ctg.gfa"
+    output:
+        "assemblies/{out}.fa"
+    log:
+        "logs/get_fasta/{out}.log"
+
+use rule samtools_faidx from standard as combine_samtools_faidx with:
+    input:
+        "assemblies/{out}.fa",
+    output:
+        "assemblies/{out}.fa.fai",
+    log:
+        "logs/faidx/{out}.log",
+
+use rule run_compleasm from standard as combine_run_compleasm with:
+    input:
+        "assemblies/{out}.fa"
+    output:
+        "compleasm/{out}_compleasm/summary.txt",
+        temp(directory(f"compleasm/{{out}}_compleasm/{config['compleasm_db']}/hmmer_output")),
+    params:
+        outname = "compleasm/{out}_compleasm",
+        database = config["compleasm_db"],
+        database_path = "/sgn/software/orthodb/odb12_latest/"
+    log:
+        "logs/run_compleasm/{out}.log"
+
+use rule reformat_compleasm from standard as combine_reformat_compleasm with:
+    input:
+        "compleasm/{out}_compleasm/summary.txt"
+    output:
+        "compleasm/{out}_summary.rf.txt"
+    log:
+        "logs/reformat_compleasm/{out}.log"

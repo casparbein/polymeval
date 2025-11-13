@@ -1,0 +1,69 @@
+import get_downsample_rates
+import re
+
+configfile: "DEF.yaml"
+seqkit_path = config["path_to_seqkit"]
+samples = config["samples"]
+compleasm_database = config["compleasm_db"]
+
+wildcard_constraints:
+    sample = r"|".join(samples)
+
+## Get minimum downsampling rate and dictionary:
+## variable "downsample_nucs" is used in the rasusa downsampling rule
+readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+
+samples = downsample_samples
+
+## Import Module for "standard" analysis
+module standard:
+    snakefile:
+        "Snakefile_standard"
+
+use rule * from standard exclude final_output_stats,read_output_stats as downsampled_*
+
+## downsampling rule
+include: "rules/rasusa.smk"
+include: "rules/plotting_down.smk"
+
+## import rules and redefine input if necessary
+if config["readstats"]:
+    use rule rdeval_dump from standard as downsampled_rdeval_dump with:
+        input:
+            "raw_reads/{sample}.downsampled.fastq.gz",
+    # use rule get_readlen_hist from standard as downsampled_get_readlen_hist with:
+    #     input:
+    #         "raw_reads/{sample}.downsampled.fastq.gz",
+    use rule nt_qc_hist from standard as downsampled_nt_qc_hist with:
+        input:
+            "raw_reads/{sample}.downsampled.fastq.gz",
+    
+if config["hifieval"]:
+    use rule hifieval_align_raw from standard as downsampled_hifieval_align_raw with:
+        input:
+            target="assemblies/{sample}.fa",
+            query="raw_reads/{sample}.downsampled.fastq.gz",
+
+if config["kmc"]:
+    use rule kmc_count from standard as downsampled_kmc_count with:
+        input:
+            "raw_reads/{sample}.downsampled.fastq.gz",
+
+use rule seqkit_stats from standard as downsampled_seqkit_stats with:
+    input:
+        fastx=expand("raw_reads/{sample}.downsampled.fastq.gz", sample = samples),
+
+use rule meryl_count from standard as downsampled_meryl_count with:
+    input:
+        fasta="raw_reads/{sample}.downsampled.fastq.gz",
+
+use rule hifiasm from standard as downsampled_hifiasm with:
+    input:
+        fasta = "raw_reads/{sample}.downsampled.fastq.gz",
+
+# Define a new default target that collects both the targets from the dna_seq module as well as
+# the new plot.
+rule all:
+    input:
+        rules.downsampled_all.input,
+    #default_target: True

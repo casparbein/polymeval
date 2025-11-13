@@ -1,0 +1,73 @@
+import re
+
+configfile: "DEF.yaml"
+samples = config["samples"]
+
+compleasm_database = config["compleasm_db"]
+wildcard_constraints:
+    #sample ="[A-Za-z0-9_]+"
+    sample = r"|".join(samples),
+
+## Gather the target output files (This defines which parts of the pipeline will be run)
+def gather_targets():
+    all_target = []
+    
+    ## Optional output
+    if config["hifieval"]:
+        all_target.extend(expand("hifieval/{sample}.summary.tsv", sample = samples)),
+    #if config["quadron"]:
+    #    all_target.extend(expand("out/stats/{sample}_quadron.txt", sample = samples)),
+    if config["kmc"]:
+        all_target.extend(expand("kmc/{sample}_diff.kmc_pre", sample = samples)),
+        all_target.extend(expand("genomescope/{sample}/linear_plot.png", sample = samples)),
+        all_target.append("kmc/kmc_union.kmc_pre"),
+        all_target.append("kmc/kmc_intersection.kmc_pre"),
+
+    ## semi-Default output (but can be turned off)
+    if config["readstats"]:
+        all_target.extend(expand("out/stats/{sample}.qchist.txt", sample = samples)),
+        all_target.extend(expand("out/stats/{sample}.rdeval_dump.tsv", sample = samples)),
+        #all_target.extend(expand("out/stats/{sample}.readlen.hist.txt", sample = samples)),
+        all_target.append("out/stats/qv_plot.pdf"),
+        all_target.append("out/stats/standard_hist_plot_readeval.pdf"),
+        all_target.append("out/stats/gc_hist_hist.pdf"),
+        all_target.append("out/stats/rdeval_like.pdf"),
+        
+    ## Default output (always turned on)
+    all_target.append("out/stats/seqkit_all.tsv"),
+    all_target.extend(expand("assemblies/{sample}.fa.fai", sample = samples)),
+    all_target.append("out/stats/all.summary_plot.pdf"),
+    all_target.extend(expand("compleasm/{sample}_summary.rf.txt", sample = samples)),
+    all_target.extend(expand("merqury/{sample}_slf/{sample}_slf.qv", sample = samples)),
+
+    return all_target
+
+
+all_target_files = gather_targets()
+
+## Import rules
+## Default output
+#include: "rules/get_readlen_hist.smk"
+include: "rules/rdeval_dump.smk"
+include: "rules/nt_qc_hist.smk"
+include: "rules/seqkit_stats.smk"
+include: "rules/hifiasm.smk"
+include: "rules/compleasm.smk"
+include: "rules/merqury.smk"
+include: "rules/plotting.smk"
+
+## Optional output
+if config["hifieval"]:
+    include: "rules/hifieval.smk"
+if config["remove_dups"]:
+    include: "rules/mark_dups.smk"
+#if config["quadron"]:
+#    include: "rules/quadron.smk"
+if config["kmc"]:
+    include: "rules/genomescope.smk"
+    include: "rules/kmc_count.smk"
+
+
+rule all:
+    input:
+        all_target_files,
