@@ -1,0 +1,13 @@
+executor: slurm
+jobs: 500
+slurm-delete-logfiles-older-than: 0
+slurm-keep-successful-logs: False
+use-conda: True
+use-singularity: True
+apptainer-args: " --no-mount hostfs --pwd /scripts -B ./assemblies:/scripts/assemblies -B ./out/stats:/scripts/output "
+restart-times: 3
+rerun-incomplete: True
+printshellcmds: True
+default-resources:
+    slurm_partition: "batch"
+    runtime: 1200
