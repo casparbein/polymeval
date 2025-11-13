@@ -72,6 +72,8 @@ def run_snakemake(snake_file,
     if not local_run:
         config_file = get_cluster_configfile_path()
         cmd += ['--profile', config_file]
+    else:
+        cmd += ['--cores', 4, '--max-threads', 4, '--resources mem_mb=30000']
 
     cmd += ['--directory', snakemake_dir]
 
