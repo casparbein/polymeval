@@ -1,5 +1,5 @@
 # polymeval
-POLYMerase EVALuation (**polymeval**) is a Snakemake pipeline to evaluate polymerase-amplified HiFi read sets.
+POLYMerase EVALuation (**polymeval**) is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) pipeline to evaluate polymerase-amplified HiFi read sets.
 For quite some samples, it is challenging to extract sufficient amounts of DNA to prepare PacBio High-Fidelity (HiFi) sequencing libraries. Examples include tissue biopsies, small-bodied organisms, or ethanol-preserved specimens where the DNA can be severely fragmented and long fragments might be rare.
 Furthermore, certain samples are prone to contain secondary metabolites even after library preparation that potentially inhibit the DNA-polymerase that sequences the reads.
 
@@ -11,15 +11,15 @@ However, depending on the polymerase used for amplification, certain biases can 
 
 ## Pipeline Setup
 This is how the pipeline operates in standard mode (on each input sample):
-1. (optional) read summary stats (with seqkit, rdeval and bbmap)
-2. (optional) read k-mer statistics/histogram (with kmc and genomescope)
-3. assembly (with hifiasm)
-4. assembly error-rate, quality and k-mer completeness (with merqury)
-5. assembly orthologue completness (with compleasm)
-6. (optional) read error estimation (with hifieval)
+1. (optional) read summary stats (with [seqkit](https://github.com/shenwei356/seqkit), [rdeval](https://github.com/vgl-hub/rdeval) and [bbmap](https://bbmap.org/))
+2. (optional) read k-mer statistics/histogram (with [kmc](https://github.com/refresh-bio/KMC) and [genomescope](https://github.com/schatzlab/genomescope))
+3. assembly (with [hifiasm](https://github.com/chhylp123/hifiasm))
+4. assembly error-rate, quality and k-mer completeness (with [merqury](https://github.com/marbl/merqury))
+5. assembly orthologue completness (with [compleasm](https://github.com/huangnengCSU/compleasm))
+6. (optional) read error estimation (with [hifieval](https://github.com/magspho/hifieval))
 
 Since the number of sequenced nucleotides per polymerase read set might differ considerably, polymeval has a "downsample" mode:
-1. downsample each sample to the smallest coverage of all samples (with rasusa)
+1. downsample each sample to the smallest coverage of all samples (with [rasusa](https://github.com/mbhall88/rasusa))
 2. as in standard mode
 
 Given that each polymerase used in amplification might have unique biases, combining different polymerase read sets might alleviate single-polymerase weaknesses.
@@ -41,7 +41,7 @@ python3 polymeval/polymeval.py -h
 ```
 
 Compleasm, a reimplementation of BUSCO, is part of the pipeline. It is highly recommended to download the necessary databases once and store them somewhere accessible on the cluster.
-For the test case (see below), we need the saccharomycetes_odb12 database (download compleasm as specified on the [github](https://github.com/huangnengCSU/compleasm):
+For the test case (see below), we need the saccharomycetes_odb12 database (download compleasm as specified on the [github](https://github.com/huangnengCSU/compleasm)):
 ```
 conda create -n compleasm -c conda-forge -c bioconda compleasm
 conda activate compleasm
