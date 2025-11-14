@@ -16,11 +16,9 @@ rule run_compleasm:
         "logs/run_compleasm/{sample}.log"
     conda:
         "../envs/compleasm.yaml"
-    envmodules:
-        "compleasm/0.2.7"
     shell:
         """
-        compleasm.py \
+        compleasm \
         run \
         -a {input} \
         -o {params.outname} \
