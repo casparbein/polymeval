@@ -1,4 +1,4 @@
-import get_downsample_rates_outlier
+import get_downsample_rates
 import re
 
 configfile: "DEF.yaml"
@@ -10,17 +10,17 @@ compleasm_database = config["compleasm_db"]
 
 ## Get minimum downsampling rate and dictionary:
 ## variable "downsample_nucs" is used in the rasusa downsampling rule
-readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates_outlier.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
 
 ## Get combinations for combined assemblies
-downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates_outlier.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target)
+downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target)
 
 ## Create dictionaty that will be used in some rules to fetch downsampling amount etc.
-combo_dict = get_downsample_rates_outlier.form_combinations(downsample_read_dict, downsample_read_frac)
+combo_dict = get_downsample_rates.form_combinations(downsample_read_dict, downsample_read_frac)
 
 ## How much will be downsampled
 combination_ranges = list(range(1, len(samples)+1))
-downsample_parts = [get_downsample_rates_outlier.suffix_dict[number] for number in combination_ranges]
+downsample_parts = [get_downsample_rates.suffix_dict[number] for number in combination_ranges]
 
 ## names of the assemblies that will be created
 out_assembly_names = [value for value in combo_dict.values()]
@@ -230,6 +230,7 @@ use rule hifiasm from standard as combine_hifiasm with:
         fasta=lambda wildcards: turned_combo_dict[wildcards.out],
     output:
         "assemblies/{out}.p_ctg.gfa",
+        "assemblies/{out}.ec.fa" if config["hifieval"] else [],
         temp("assemblies/{out}.r_utg.gfa"),
         temp("assemblies/{out}.p_utg.gfa"),
         temp("assemblies/{out}.a_ctg.gfa"),
@@ -246,6 +247,8 @@ use rule hifiasm from standard as combine_hifiasm with:
         temp("assemblies/{out}.ovlp.source.bin"),
     log:
         "logs/hifiasm/{out}.log",
+    params:
+        extra="--primary -l 3 --write-ec " if config["hifieval"] else " --primary -l 3  ",
 
 use rule get_fasta from standard as combine_get_fasta with:
     input:
