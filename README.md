@@ -10,7 +10,7 @@ However, depending on the polymerase used for amplification, certain biases can 
 
 
 ## Pipeline Setup
-This is how the pipeline operates in standard mode (on each input sample):
+This is how the pipeline operates in **standard mode** (on each input sample):
 1. (optional) read summary stats (with [seqkit](https://github.com/shenwei356/seqkit), [rdeval](https://github.com/vgl-hub/rdeval) and [bbmap](https://bbmap.org/))
 2. (optional) read k-mer statistics/histogram (with [kmc](https://github.com/refresh-bio/KMC) and [genomescope](https://github.com/schatzlab/genomescope))
 3. assembly (with [hifiasm](https://github.com/chhylp123/hifiasm))
@@ -18,14 +18,14 @@ This is how the pipeline operates in standard mode (on each input sample):
 5. assembly orthologue completness (with [compleasm](https://github.com/huangnengCSU/compleasm))
 6. (optional) read error estimation (with [hifieval](https://github.com/magspho/hifieval))
 
-Since the number of sequenced nucleotides per polymerase read set might differ considerably, polymeval has a "downsample" mode:
+Since the number of sequenced nucleotides per polymerase read set might differ considerably, polymeval has a **downsample mode**:
 1. downsample each sample to the smallest coverage of all samples (with [rasusa](https://github.com/mbhall88/rasusa))
 2. as in standard mode
 
 Given that each polymerase used in amplification might have unique biases, combining different polymerase read sets might alleviate single-polymerase weaknesses.
-This is how polymeval works in "combine" mode:
+This is how polymeval works in **combine mode**:
 1. Select up to five samples that should be combined
-2. downsample to the smallest coverage of all selected samples (and to 0.5, 0.4, 0.33, 0.2x of that depending on the number of combinations)
+2. downsample to the smallest coverage of all selected samples (and to 0.5, 0.4, 0.33, 0.2x of that depending on the number of combinations, with [rasusa](https://github.com/mbhall88/rasusa))
 3. as in standard mode
 
 All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format)
