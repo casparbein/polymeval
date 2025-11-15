@@ -430,13 +430,18 @@ merqury_asm_sum <- function(path, top_10)
         axis.text.y= element_text(size = 10),
         axis.title= element_text(size = 11))
   
-  out_plot <- (er / qv /comp) +
+  out_plot1 <- (er / qv /comp) +
   plot_layout(guides = "collect",
               axes = "collect") & theme(legend.position = "none")
               
+  out_plot2 <- (er / qv /comp) +
+  plot_layout(guides = "collect",
+              axes = "collect")
+              
   out_list <- list()
-  out_list[[1]] <- out_plot
+  out_list[[1]] <- out_plot1
   out_list[[2]] <- merqury_all
+  out_list[[3]] <- out_plot2
   
   return(out_list)
 }
@@ -472,7 +477,7 @@ final_plot <- (
 final_plot <- (
   n50_plot[[2]] /
   compleasm_plot[[2]] /
-  merqury_out[[1]]) +
+  merqury_out[[3]]) +
    plot_layout(guides = "collect", heights = c(3,2,2)) + 
   plot_annotation(tag_levels = 'A')
 }
