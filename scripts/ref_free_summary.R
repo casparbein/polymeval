@@ -151,9 +151,11 @@ n50_summary <- function(path) {
                  
   ## get contig N50 values
   n50_info <- chrom_df %>%
-    mutate(n50_proxy = abs(n_val - 50)) %>%
+    mutate(n50_proxy = n_val - 50) %>%
     group_by(Assembly) %>%
-    filter(n50_proxy  == min(n50_proxy, na.rm = T))
+    filter(n50_proxy > 0) %>%
+    filter(n50_proxy  == min(n50_proxy, na.rm = T)) %>%
+    ungroup()
                  
                  
   ## get break points for plot
