@@ -23,12 +23,12 @@ rdeval_like_out = snakemake@output[["rdeval_like"]]
 
 ## set colors for names
 input_names <- c(input_names)
-#input_names <- unlist(strsplit(input_names, split = ","))
-if (!is.null(input_names)){ #input_names[1] != ""
-  labels <- input_names
+input_names <- unlist(strsplit(input_names, split = ","))
+if (!is.null(input_names)){
+  labels <- sort(input_names)
   if (in_colors != "") {
-  col_dict <- read_delim(in_colors, stringsAsFactors = FALSE, col_names = FALSE)
-  custom_colors <- setNames(col_dict$color, col_dict$name)
+  col_dict <- read_delim(in_colors, col_names = FALSE)
+  custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
   palette_colors <- safe
   custom_colors <- setNames(palette_colors, labels)
