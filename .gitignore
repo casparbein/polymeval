@@ -1,2 +1,3 @@
 .snakemake
 .cache
+__pycache__
