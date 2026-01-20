@@ -84,7 +84,7 @@ rule kmc_union:
         "kmc/3.2.4"
     shell:
         """
-        python3 /beegfs/home/bbein/polymerase_snakemake_wrapper/prepare_kmc.py \
+        python3 ../scripts/prepare_kmc.py \
         -i {input.kmc} \
         -o {output.script} \
         -u;
@@ -114,7 +114,7 @@ rule kmc_isec:
         "kmc/3.2.4"
     shell:
         """
-        python3 /beegfs/home/bbein/polymerase_snakemake_wrapper/prepare_kmc.py \
+        python3 ../scripts/prepare_kmc.py \
         -i {input.kmc} \
         -o {output.script};
         kmc_tools \
@@ -144,7 +144,7 @@ rule kmc_diff:
         "kmc/3.2.4"
     shell:
         """
-        python3 /beegfs/home/bbein/polymerase_snakemake_wrapper/prepare_kmc.py \
+        python3 ../scripts/prepare_kmc.py \
         -i {input.kmc} \
         -r {params.sample};
         kmc_tools \
@@ -152,5 +152,3 @@ rule kmc_diff:
         {output.script} \
         2> {log}
         """
-
-# rule kmc_stats:
