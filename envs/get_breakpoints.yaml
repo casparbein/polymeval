@@ -1,0 +1,16 @@
+channels:
+ - conda-forge
+ - bioconda
+ - defaults
+dependencies:
+ - bioconductor-genomeinfodb
+ - bioconductor-genomicranges
+ - bioconductor-s4vectors
+ - r-base=4.4.3
+ - r-tidyverse=2.0.0
+ - r-patchwork=1.3.2
+ - r-ggplot2=3.5.2
+ - r-scales=1.4.0
+ - r-forcats=1.0.0
+ - r-RColorBrewer=1.1-3
+ - r-data.table=1.17.8

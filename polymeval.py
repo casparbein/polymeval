@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-#from shutil import copyfile
 from ruamel.yaml import load_all, YAML, comments
 from ruamel.yaml.scalarstring import SingleQuotedScalarString, DoubleQuotedScalarString
 import subprocess
@@ -20,6 +19,16 @@ def symlink_all_rds(src_path, dst_path, down_list = []):
         if rds.endswith("fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
             src_file = os.path.join(os.path.realpath(src_path), rds)
             dst_file = os.path.join(dst_path, rds)
+            if not os.path.islink(dst_file):
+                os.symlink(src_file, dst_file)
+
+def symlink_all_asm(src_path, dst_path): 
+    os.makedirs(dst_path, exist_ok=True)   
+
+    for asm in os.listdir(src_path):
+        if asm.endswith("fa"):
+            src_file = os.path.join(os.path.realpath(src_path), asm)
+            dst_file = os.path.join(dst_path, asm)
             if not os.path.islink(dst_file):
                 os.symlink(src_file, dst_file)
 
@@ -73,6 +82,7 @@ def run_snakemake(snake_file,
         config_file = get_cluster_configfile_path()
         cmd += ['--profile', config_file]
     else:
+        ## Add these arguments to CLI so users can set them
         cmd += ['--cores', '4', '--max-threads', '4', '--resources', 'mem_mb=30000']
 
     cmd += ['--directory', snakemake_dir]
@@ -155,6 +165,18 @@ def argument_parser():
     """
     )
 
+    run_mode.add_argument(
+    "-r",
+    "--reference", 
+    action="store_true",
+    dest="reference",
+    help=
+    """Evaluate read sets based on a reference assembly. Per-read assemblies also have to be provided, those can be created by 
+    any of the other polymeval modes. This mode will evaluate raw reads and per-polymerase assemblies based on a reference, and
+    is therefore supposed to be executed downstream of standard.
+    """
+    )
+
     app.add_argument(
     "-i", 
     "--input_reads",
@@ -165,7 +187,32 @@ def argument_parser():
     '''Path to directory with input reads. It is strongly recommended to give the 
     reads meaningful names (those names will be propagated down to the output files). 
     Also, including '.' or '-' characters in the name is not supported 
-    (Example: sample1.1.fastq.gz or sample1-1.fastq.gz does not work, but sample1.fastq.gz does)
+    (Example: sample1.1.fastq.gz or sample1-1.fastq.gz does not work, but sample1.fastq.gz does).
+    ''')
+
+    app.add_argument(
+    "-ia", 
+    "--input_assemblies",
+    action="store",
+    dest="in_assemblies",
+    type=str,
+    help=
+    '''For 'reference' mode: Path to directory with input assemblies. Naming as with input reads, and names have to match.
+    Normally, these assemblies will have been created with --standard, --combine or --downsample and the naming therefore
+    will work out naturally. For the best experience, pandepth should be installed on the system and accessible in path.
+    The path to pandepth can also be passed through --pandepth_path.
+    ''')
+
+    app.add_argument(
+    "-rsq", 
+    "--reference_sequence",
+    action="store",
+    dest="reference_seq",
+    default="",
+    type=str,
+    help=
+    '''Path to reference sequence (Normally a reference quality assembly) to which the different datasets should be compared,
+    in fasta format.
     ''')
 
     app.add_argument(
@@ -200,7 +247,7 @@ def argument_parser():
     dest="colors",
     type=str,
     help=
-    '''A tsv file listing sample names in column 1 and 
+    '''Absolute path to a tsv file listing sample names in column 1 and 
     desired colors (in hexadecimal code or R notation) in column2. Can be used to add colors to the output plots.
     If not provided, will automatically create a color scale in R.
     ''')
@@ -216,7 +263,7 @@ def argument_parser():
 
     ## Define exactly what the output files would be here
     app.add_argument(
-    "-r", 
+    "-rd", 
     "--readstats",
     action="store_true",
     dest="readstats",
@@ -232,6 +279,25 @@ def argument_parser():
     dest="kmc",
     help=
     '''Turn on KMC kmer counting. Genomescope will be run on resulting kmer histograms.
+    ''')
+
+    app.add_argument(
+    "-pa", 
+    "--pandepth",
+    action="store_true",
+    dest="pandepth",
+    help=
+    '''Turn on Pandepth depth mapping. Most reference mode analyses will need this.
+    ''')
+
+    app.add_argument(
+    "-pp", 
+    "--pandepth_path",
+    action="store",
+    dest="pandepth_path",
+    default = "",
+    help=
+    '''In case pandepth is installed but not in the user's $PATH, provide absolute path to pandepth.
     ''')
 
     app.add_argument(
@@ -392,17 +458,23 @@ def main():
         print("Polymeval will be run in downsample mode (reads will be downsampled first)")
     elif args.combine:
         print("Polymeval will be run in combine mode (reads will be downsampled and then combined)")
+    elif args.combine:
+        print("Polymeval will be run in reference mode (reads and assemblies will be compared to a reference assembly)")
 
     ## Create the YAML structure as a python dictionary.
     config = {
         "compleasm_db": "mollusca_odb12",
         "min_frac": 3,
         "kmc": False,
-        "quadron": False,
         "readstats": False,
         "hifieval": False,
         "remove_dups" : False,
-        "colors": ""
+        "colors": "",
+        "pandepth": False,
+        "reference_seq": "",
+        "exons": [],
+        "repeats": [],
+        "pandepth_path": [],
     }
 
     ## Additional parameters:
@@ -440,12 +512,24 @@ def main():
     if args.readstats:
         config["readstats"] = True
 
+    if args.pandepth:
+        config["pandepth"] = True
+
+    if args.pandepth_path != "":
+        config["pandepth_path"] = SingleQuotedScalarString(args.pandepth_path)
+
+    if args.reference_seq != "":
+        config["reference_seq"] = SingleQuotedScalarString(args.reference_seq)
+
+    if args.colors != "":
+        config["colors"] = SingleQuotedScalarString(args.colors)
+
     ## Set up directory;
     dest_path = os.path.join(os.getcwd(), args.directory_name)
     if not os.path.exists(dest_path):
         os.makedirs(dest_path, exist_ok=True)  
 
-    if not args.standard:
+    if not args.standard and not args.reference:
         readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(args.seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
 
         if (args.combine and args.samples):
@@ -462,6 +546,20 @@ def main():
             in_reads = os.listdir(path_for_link_rds)
             in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in downsample_samples]
             config["samples"] =  format_list(in_reads_list)
+        
+    elif args.reference:
+        path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+        symlink_all_rds(args.in_reads, path_for_link_rds, [])
+        path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
+        symlink_all_asm(args.in_assemblies, path_for_link_asm)
+        in_reads = os.listdir(path_for_link_rds)
+        in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
+        in_assemblies = os.listdir(path_for_link_asm)
+        in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa")]
+        if sorted(in_reads_list) == sorted(in_assemblies_list):
+            config["samples"] =  format_list(in_reads_list)
+        else:
+            sys.exit("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
     
     else:
         if args.samples:
@@ -493,6 +591,18 @@ def main():
         if not args.samples:
             sys.exit("If combine mode should be run, please specify a which samples should be used for combinations")
         snakefile = "Snakefile_combine"
+    
+    elif args.reference:
+        if not args.in_reads or not args.in_assemblies:
+            sys.exit("No reads or assemblies missing! Please specify both with --input_reads and --input_assemblies")
+        if args.reference_seq == "":
+            sys.exit("A reference genome sequence has to be provided to --reference_seq in order to run the analysis.")
+        if not args.pandepth:
+            print("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
+        if args.pandepth_path == "":
+            print("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
+        snakefile = "Snakefile_reference"
+
 
     ## Add DEF file to created directory
     # Write to the specified YAML file

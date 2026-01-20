@@ -1,0 +1,8 @@
+name: find_chimeras
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - pysam
+    - tqdm
+    - pyfastx

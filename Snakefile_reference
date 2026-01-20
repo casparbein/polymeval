@@ -1,0 +1,67 @@
+import re
+
+configfile: "DEF.yaml"
+samples = config["samples"]
+
+## Global files used for analysis
+reference_seq = config["reference_seq"]
+exon_bed = config["exons"]
+repeat_bed = config["repeats"]
+
+wildcard_constraints:
+    sample = r"|".join(samples),
+
+## Gather the target output files (This defines which parts of the pipeline will be run)
+def gather_targets():
+    all_target = []
+    
+    ## Optional output
+    if config["pandepth"]:
+        all_target.append("out/plots/overall_depth_matrix.pdf"),
+        all_target.append("out/plots/dropout_summary.pdf"),
+        all_target.append("out/plots/GC_boxes.pdf"),
+        all_target.append("out/plots/GC_mean.pdf"),
+        all_target.append("out/plots/GC_median.pdf"),
+        all_target.append("out/plots/GC_iqr.pdf"),
+        all_target.append("out/plots/LCI_bar.pdf"),
+        all_target.append("out/plots/summary_plot.pdf"),
+
+        if config["exons"] != []:
+            all_target.append("out/plots/exon_gc.pdf"),
+
+        if config["repeats"] != []:
+            all_target.append("out/plots/repeat_gc.pdf"),
+
+    ## Default output (always turned on): Chimera plotting and Contig breaks (add overlap with non-B DNA later)
+    all_target.append("out/files/breakpoints.bed"),
+    all_target.append("out/plots/breakpoint_matrix.pdf"),
+    all_target.append("out/plots/chimeras.pdf"),
+
+    return all_target
+
+
+all_target_files = gather_targets()
+
+## Import rules
+## Default output
+include: "rules/minimap2_bam_sorted.smk"
+include: "rules/minimap2_paf.smk"
+include: "rules/get_breakpoints.smk"
+include: "rules/find_chimeras.smk"
+include: "rules/plot_chimeras.smk"
+
+# ## Optional output
+if config["pandepth"]:
+    include: "rules/pandepth_genome_small_window.smk"
+    include: "rules/plot_depth_correlation.smk"
+    include: "rules/plot_gc.smk"
+    include: "rules/plot_summary.smk"
+    if config["exons"] != []:
+        include: "rules/plot_gc_bed.smk"
+    if config["repeats"] != []:
+        include: "rules/plot_gc_bed.smk"
+
+
+rule all:
+    input:
+        all_target_files,
