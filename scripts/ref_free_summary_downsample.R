@@ -319,8 +319,11 @@ output_hifieval_readstats <- function(path)
                  values_to = "fraction") 
   
   ## plot
-  hifieval_plot <- ggplot(hifieval_df_sum, aes(polymerase, fraction, fill = polymerase)) +
-    geom_col(position = "dodge2") +
+  hifieval_plot <- ggplot(hifieval_df_sum %>%
+                              filter(correction_class %in% c("corrected_bases", "undercorrected_bases")),
+                              aes(polymerase, fraction, fill = polymerase)) +
+    geom_col() +
+    #geom_col(position = "dodge2") +
     scale_y_continuous(labels = comma) +
     scale_fill_manual(values = custom_colors) +
     theme_bw() +
