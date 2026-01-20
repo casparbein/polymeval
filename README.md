@@ -10,6 +10,7 @@ However, depending on the polymerase used for amplification, certain biases can 
 
 
 ## Pipeline Setup
+### Standard mode
 This is how the pipeline operates in **standard mode** (on each input sample):
 1. (optional) read summary stats (with [seqkit](https://github.com/shenwei356/seqkit), [rdeval](https://github.com/vgl-hub/rdeval) and [bbmap](https://bbmap.org/))
 2. (optional) read k-mer statistics/histogram (with [kmc](https://github.com/refresh-bio/KMC) and [genomescope](https://github.com/schatzlab/genomescope))
@@ -18,17 +19,30 @@ This is how the pipeline operates in **standard mode** (on each input sample):
 5. assembly orthologue completness (with [compleasm](https://github.com/huangnengCSU/compleasm))
 6. (optional) read error estimation (with [hifieval](https://github.com/magspho/hifieval))
 
+### Downsample Mode
 Since the number of sequenced nucleotides per polymerase read set might differ considerably, polymeval has a **downsample mode**:
 1. downsample each sample to the smallest coverage of all samples (with [rasusa](https://github.com/mbhall88/rasusa))
 2. as in standard mode
 
+### Combine Mode
 Given that each polymerase used in amplification might have unique biases, combining different polymerase read sets might alleviate single-polymerase weaknesses.
 This is how polymeval works in **combine mode**:
-1. Select up to five samples that should be combined
+1. select up to five samples that should be combined
 2. downsample to the smallest coverage of all selected samples (and to 0.5, 0.4, 0.33, 0.2x of that depending on the number of combinations, with [rasusa](https://github.com/mbhall88/rasusa))
 3. as in standard mode
 
-All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format)
+### Reference Mode
+In case one of the above (most probably standard) has been run, it can be informative to compare the resulting assemblies to a 'gold standard reference'.
+This way, dataset-specific contig breaks and their underlying causes can be investigated. For this, polymeval has a **reference mode**:
+1. select a reference genome
+2. map reads of each sample to reference (with [minimap2](https://github.com/lh3/minimap2) and [samtools](https://samtools.github.io/))
+3. map dataset-specific assemblies to reference (with minimap2, creating paf output files)
+4. determine the amount of chimeric reads in the dataset (reading samtools-flags from bam files in R)
+5. identify contig breaks relative to reference (with an R script using the PAF-reading function from [SVbyEye](https://github.com/daewoooo/SVbyEye))
+6. (optional) determine coverage against reference (with [PanDepth](https://github.com/HuiyangYu/PanDepth))
+7. (optional) create summary plots displaying how coverage, GC content and contig breaks are related (R scripts)
+
+All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format) and, for reference mode, reference and dataset specific assemblies (in .fa format).
 
 ## Installation
 Polymeval uses the snakemake pipeline language to string together different tools. Snakemake will take care of installing all necessary dependencies through conda or mamba.
@@ -40,7 +54,9 @@ conda activate polymeval
 python3 polymeval/polymeval.py -h
 ```
 
-Compleasm, a reimplementation of BUSCO, is part of the pipeline. It is highly recommended to download the necessary databases once and store them somewhere accessible on the cluster.
+### potential dependencies
+
+-> Compleasm, a reimplementation of BUSCO, is part of the pipeline. It is highly recommended to download the necessary databases once and store them somewhere accessible on the cluster.
 For the test case (see below), we need the saccharomycetes_odb12 database (download compleasm as specified on the [github](https://github.com/huangnengCSU/compleasm)):
 ```bash
 conda create -n compleasm -c conda-forge -c bioconda compleasm
@@ -50,8 +66,12 @@ compleasm download -L compleasm_libs --odb odb12 saccharomycetes_odb12
 ## The library path is now ~/compleasm_libs
 ```
 
-One optional step is to use KMC to count k-mers. Since KMC is not available through conda, if you want to include this step, you have to download and install [KMC](https://github.com/refresh-bio/KMC) yourself. 
+-> One optional step is to use KMC to count k-mers. Since KMC is not available through conda, if you want to include this step, you have to download and install [KMC](https://github.com/refresh-bio/KMC) yourself. 
 Otherwise, just skip this step.
+
+-> For most of the analysis done in reference mode, PanDepth has to be installed on the system (anyway highly recommended because it is very fast).
+There exists a pre-compiled binary that one only has to download and unzip, otherwise it can be downloaded and installed from github. 
+Instructions can be found here: [PanDepth](https://github.com/HuiyangYu/PanDepth). Once installed, the user can provide the absolute path to PanDepth through polymeval (`--pandepth_path`).
 
 Polymeval is implemented with the slurm scheduling system. If you do not use slurm, you can run the pipeline locally using `--local_run`, but some of the jobs create large files and need cosiderable amounts of both RAM and storage space.
 
