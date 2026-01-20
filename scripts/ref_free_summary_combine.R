@@ -6,14 +6,9 @@ library(RColorBrewer)
 library(scales)
 library(patchwork)
 
-labels <- c("BiozymB7","DeCodeHiFi","Equinox","InvitrogenPlatinum","KODXtreme","PacBioHiFiA","PacBioHiFiB","Taqara","longAmpTaq","repliQa")
-## Get number of colors for number of labels
-palette_colors <- brewer.pal(length(labels), "Paired")
-
-## Assign colors to labels
-custom_colors <- setNames(palette_colors, labels)
-custom_colors
-
+safe <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+  
 ## Input for plotting/sumstats
 input_path_faidx = snakemake@params[["faidx_path"]]
 input_path_compleasm = snakemake@params[["compleasm_path"]]
@@ -30,34 +25,16 @@ output_final_figure = snakemake@output[["final_plot"]]
 out_hifieval_table = snakemake@output[["hifieval_table"]]
 out_merqury_table = snakemake@output[["merqury_table"]]
 
-#input_path_faidx <- args[1]
-#input_path_compleasm <- args[2]
-#compleasm_database_name <- args[3]
-#input_path_seqkit_stats <- args[4]
-#input_path_merqury <- args[5]
-#input_path_hifieval <- args[6]
-#input_names <- args[7]
-#in_colors <- args[8]
-#output_ng_table <- args[9]
-#output_compleasm_table <- args[10]
-#output_final_figure <- args[11]
-#out_hifieval_table <- args[12]
-#out_merqury_table <- args[13]
-
-## Check whether colors are present (Format is name, color):
-#col_dict <- read_delim(in_colors, stringsAsFactors = FALSE, col_names = FALSE)
-#custom_colors <- setNames(col_dict$color, col_dict$name)
-
 ## set colors for names
 input_names <- c(input_names)
-#input_names <- unlist(strsplit(input_names, split = ","))
+input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){ #input_names[1] != ""
   labels <- input_names
   if (in_colors != "") {
   col_dict <- read_delim(in_colors, stringsAsFactors = FALSE, col_names = FALSE)
   custom_colors <- setNames(col_dict$color, col_dict$name)
   } else {
-  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  palette_colors <- safe
   custom_colors <- setNames(palette_colors, labels)
 }
 }

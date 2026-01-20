@@ -5,13 +5,9 @@ library(RColorBrewer)
 library(scales)
 library(patchwork)
 
-labels <- c("BiozymB7","DeCodeHiFi","Equinox","InvitrogenPlatinum","KODXtreme","PacBioHiFiA","PacBioHiFiB","Taqara","longAmpTaq","repliQa", "All Libs combined")
-
-## Get number of colors for number of labels
-palette_colors <- brewer.pal(length(labels), "Paired")
-
-## Assign colors to labels
-custom_colors <- setNames(palette_colors, labels)
+## Safe (for colorblind people) Color Palette
+safe <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
 
 ## Input for plotting/sumstats
 input_path_all = snakemake@params[["stats_path"]]
@@ -34,7 +30,7 @@ if (!is.null(input_names)){ #input_names[1] != ""
   col_dict <- read_delim(in_colors, stringsAsFactors = FALSE, col_names = FALSE)
   custom_colors <- setNames(col_dict$color, col_dict$name)
   } else {
-  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  palette_colors <- safe
   custom_colors <- setNames(palette_colors, labels)
 }
 }
