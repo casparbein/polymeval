@@ -31,7 +31,7 @@ input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
   labels <- sort(input_names)
-  if (in_colors != "") {
+  if (!is.null(in_colors)) {
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
@@ -281,18 +281,19 @@ contig_break_matrix <- function(path, contig_break_path) {
     select(chr, Start, End, ends_with("MeanDepth"),)
   
   dropout_names <- dropouts_flt %>% 
-    select(ends_with("MeanDepth")) %>%names()
+    select(ends_with("MeanDepth")) %>% names()
     
   dropout_names_order <- dropout_names[custom_sort(dropout_names, labels)]
-  
+
   combs <- combn(dropout_names_order, 2, simplify = FALSE)
-  
   
   plots <- map(combs, ~ {
     col1 <- sym(.x[1])
     col2 <- sym(.x[2])
-    tile_color <- custom_colors[which(names(custom_colors) == str_split_i(.x[1], "_", 1))]
-    other_color <- custom_colors[which(names(custom_colors) == str_split_i(.x[2], "_", 1))]
+    print(col1)
+    print(col2)
+    tile_color <- custom_colors[which(names(custom_colors) == gsub("_MeanDepth$", "", .x[1]))]#str_split_i(.x[1], "_", 1))]
+    other_color <- custom_colors[which(names(custom_colors) == gsub("_MeanDepth$", "", .x[2]))]#str_split_i(.x[2], "_", 1))]
     (merged_breaks_small %>% 
         select(chr, Start, End, !!col1, !!col2) %>%
         filter(!!col2 < 0.1 & !!col1 > 0.1) %>%
@@ -401,7 +402,7 @@ contig_break_matrix <- function(path, contig_break_path) {
   
     gc_df <- merged_breaks_big_long %>%
       filter(polymerase == current_break) %>%
-      mutate(polymerase_lib = str_split_i(Depth_polymerase, "_", 1)) %>%
+      mutate(polymerase_lib = gsub("_MeanDepth", "", Depth_polymerase)) %>%#str_split_i(Depth_polymerase, "_", 1)) %>%
       group_by(polymerase_lib, centered) %>%
       summarise(centered = max(centered),
                 Mean_GC = median(Mean_GC, na.rm =T),
@@ -434,7 +435,7 @@ contig_break_matrix <- function(path, contig_break_path) {
     
     coverage_df <- merged_breaks_big_long %>%
       filter(polymerase == current_break) %>%
-      mutate(polymerase_lib = str_split_i(Depth_polymerase, "_", 1)) %>%
+      mutate(polymerase_lib = gsub("_MeanDepth", "", Depth_polymerase)) %>% #str_split_i(Depth_polymerase, "_", 1)) %>%
       group_by(polymerase_lib, centered) %>%
       summarise(centered = max(centered),
                 MeanDepth_mean = median(MeanDepth_mean,na.rm = T),

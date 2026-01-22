@@ -28,7 +28,7 @@ input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
   labels <- sort(input_names)
-  if (in_colors != "") {
+  if (!is.null(in_colors)) {
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
@@ -367,6 +367,18 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
       
       ## Context window:
       context_window <- min(biggest_scaffold$length/500, biggest_scaffold$length/(2*context_fraction_num))
+      
+      ## Avoid too small windows. Minimum size should be 50,000
+      if (context_window < 50000) {
+        context_window <- 50000
+      }
+      
+      print("-------------------------")
+      print("context_window")
+      print(context_window)
+      print("-------------------------")
+      
+      
       max_drops <- length(unique(All_blocks$assembly)) * 2.5
       
       ## Find a representative region (size ~ 1 Mb with all drop outs)
@@ -378,8 +390,7 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
                                 All_blocks$t.name == t.name)
           window_samples <- All_blocks$assembly[valid_rows]
           length(unique(window_samples)) + 0.5 * length(unique(window_samples)) >= length(unique(All_blocks$assembly)) & 
-            length(window_samples) <= max_drops &
-            length(window_samples) >= length(unique(All_blocks$assembly))
+            length(window_samples) <= max_drops #& length(window_samples) >= length(unique(All_blocks$assembly))
         })%>%
         ungroup() %>%
         mutate(
