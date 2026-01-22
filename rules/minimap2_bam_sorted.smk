@@ -5,7 +5,7 @@ rule minimap2_bam_sorted:
         query="raw_reads/{sample}.fastq.gz",
     output:
         "alignments/{sample}.sorted.bam",
-        idx = "alignments/{sample}.sorted.bam.bai"
+        idx = "alignments/{sample}.sorted.bam.csi"
     log:
         "logs/minimap2_bam_sorted/{sample}.log",
     params:
