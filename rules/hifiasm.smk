@@ -28,7 +28,7 @@ rule hifiasm:
         extra="--primary -l 3 --write-ec " if config["hifieval"] else " --primary -l 3  ",
     threads: 50
     resources:
-        mem_mb=100000,
+        mem_mb=200000,
     wrapper:
         "v5.10.0/bio/hifiasm"
 
