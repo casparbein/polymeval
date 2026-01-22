@@ -25,7 +25,7 @@ input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
   labels <- sort(input_names)
-  if (in_colors != "") {
+  if (!is.null(in_colors)) {
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
@@ -208,7 +208,7 @@ contig_break_bed <- function(paf_file,
                             min_contig_size = 10000,
                             min_map_q = 50,
                             min_aln_len = 1000,
-                            lookup = 10
+                            lookup = 20
 )
 {
   
@@ -254,17 +254,23 @@ contig_break_bed <- function(paf_file,
            (min_after - max_before < 5000))
     ) %>%
     filter(!to_filter) %>%
+    ## new
+    group_by(t.name) %>%
+    mutate(overlap = lag(end, default = 1)/start,
+         new_start = ifelse(overlap <= 1.01, start, lag(start, default = 0)),
+         new_end = end) %>%
+    group_by(t.name, new_start) %>%
+    summarise(new_end = max(end)) %>%
     mutate(
-      break_start = end - 2000,
-      break_end = end + 2000
+      break_start = new_end - 2000,
+      break_end = new_end + 2000
     ) %>%
-    select(-to_filter_tmp, -to_filter, -max_before, -min_after) %>%
+    #select(-to_filter_tmp, -to_filter, -max_before, -min_after) %>%
     filter(n() > 1) %>%
     ungroup()
   
-  
   contig_bed <- contig_breaks %>%
-    select(-start, -end) %>% #relocate(contig) -q.name
+    select(-new_start, -new_end) %>% #relocate(contig) -q.name
     mutate(polymerase = asm) %>%
     dplyr::rename(chr = t.name,
                   start = break_start,
