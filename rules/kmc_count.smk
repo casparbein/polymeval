@@ -75,16 +75,17 @@ rule kmc_union:
     threads:
         10
     resources:
-        mem_mb  = 40000
+        mem_mb=40000,
     params:
-        memory=40
+        memory=40,
+        kmc_script_path = config["kmc_prep"] #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_union/log",
     envmodules:
         "kmc/3.2.4"
     shell:
         """
-        python3 ../scripts/prepare_kmc.py \
+        python3 {params.kmc_script_path} \
         -i {input.kmc} \
         -o {output.script} \
         -u;
@@ -107,14 +108,15 @@ rule kmc_isec:
     resources:
         mem_mb  = 40000
     params:
-        memory=40
+        memory=40,
+        kmc_script_path = config["kmc_prep"], #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_isec/log",
     envmodules:
         "kmc/3.2.4"
     shell:
         """
-        python3 ../scripts/prepare_kmc.py \
+        python3 {params.kmc_script_path} \
         -i {input.kmc} \
         -o {output.script};
         kmc_tools \
@@ -137,14 +139,15 @@ rule kmc_diff:
         mem_mb  = 40000
     params:
         sample = "{sample}",
-        memory=40
+        memory=40,
+        kmc_script_path = config["kmc_prep"], #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_diff/{sample}.log",
     envmodules:
         "kmc/3.2.4"
     shell:
         """
-        python3 ../scripts/prepare_kmc.py \
+        python3 {params.kmc_script_path} \
         -i {input.kmc} \
         -r {params.sample};
         kmc_tools \

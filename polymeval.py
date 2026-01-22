@@ -40,6 +40,10 @@ def get_cluster_configfile_path(name="config.yaml"):
     cluster_configfile =  os.path.join(base_dir, "prof")
     return cluster_configfile
 
+def get_kmc_prep_path(name="prepare_kmc.py"):
+    kmc_prep_file =  os.path.join(base_dir, "scripts", name)
+    return kmc_prep_file
+
 def format_list(in_list):
     format_list = comments.CommentedSeq(in_list)
     format_list.fa.set_flow_style()
@@ -245,6 +249,7 @@ def argument_parser():
     "--colors",
     action="store",
     dest="colors",
+    default="",
     type=str,
     help=
     '''Absolute path to a tsv file listing sample names in column 1 and 
@@ -469,7 +474,7 @@ def main():
         "readstats": False,
         "hifieval": False,
         "remove_dups" : False,
-        "colors": "",
+        "colors": [],
         "pandepth": False,
         "reference_seq": "",
         "exons": [],
@@ -505,6 +510,7 @@ def main():
 
     if args.kmc:
         config["kmc"] = True
+        config["kmc_prep"] = get_kmc_prep_path()
     
     if args.hifieval:
         config["hifieval"] = True
