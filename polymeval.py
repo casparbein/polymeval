@@ -26,7 +26,7 @@ def symlink_all_asm(src_path, dst_path):
     os.makedirs(dst_path, exist_ok=True)   
 
     for asm in os.listdir(src_path):
-        if asm.endswith("fa"):
+        if asm.endswith(".fa") and not asm.endswith(".ec.fa"):
             src_file = os.path.join(os.path.realpath(src_path), asm)
             dst_file = os.path.join(dst_path, asm)
             if not os.path.islink(dst_file):
@@ -561,7 +561,7 @@ def main():
         in_reads = os.listdir(path_for_link_rds)
         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
         in_assemblies = os.listdir(path_for_link_asm)
-        in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa")]
+        in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
         if sorted(in_reads_list) == sorted(in_assemblies_list):
             config["samples"] =  format_list(in_reads_list)
         else:
