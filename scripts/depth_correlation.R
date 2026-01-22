@@ -378,10 +378,13 @@ contig_break_matrix <- function(path, contig_break_path) {
                   values_to = "MeanDepth") %>%
     ungroup() %>%
     group_by(polymerase, norm_start, Depth_polymerase) %>%
-    mutate(MeanDepth_mean = mean(MeanDepth),
-           MeanDepth_sd = sd(MeanDepth),
-           Mean_GC = mean(`GC(%)`),
-           SD_GC = sd(`GC(%)`),
+    mutate(MeanDepth_median = median(MeanDepth),
+           MeanDepth_q25 = quantile(MeanDepth, probs = 0.25, na.rm = TRUE), #sd(MeanDepth),
+           MeanDepth_q75 = quantile(MeanDepth, probs = 0.75, na.rm = TRUE),
+           Median_GC = median(`GC(%)`),
+           GC_q25 = quantile(`GC(%)`, probs = 0.25, na.rm = TRUE), #sd(MeanDepth),
+           GC_q75 = quantile(`GC(%)`, probs = 0.75, na.rm = TRUE),
+           #SD_GC = sd(`GC(%)`),
            centered = norm_start - 12000) %>%
     ungroup() %>%
     group_by(polymerase) %>%
@@ -405,13 +408,15 @@ contig_break_matrix <- function(path, contig_break_path) {
       mutate(polymerase_lib = gsub("_MeanDepth", "", Depth_polymerase)) %>%#str_split_i(Depth_polymerase, "_", 1)) %>%
       group_by(polymerase_lib, centered) %>%
       summarise(centered = max(centered),
-                Mean_GC = median(Mean_GC, na.rm =T),
-                SD_GC = median(SD_GC, na.rm = T))
+                Median_GC = median(Median_GC, na.rm =T),
+                #SD_GC = median(SD_GC, na.rm = T),
+                GC_q25 = median(GC_q25, probs = 0.25, na.rm = TRUE), #sd(MeanDepth),
+                GC_q75 = median(GC_q75, probs = 0.75, na.rm = TRUE))
     
-    ggplot(gc_df, aes(centered,Mean_GC)) +
+    ggplot(gc_df, aes(centered,Median_GC)) +
       geom_line(color = "black", linewidth = 0.75) +
-      geom_ribbon(aes(ymin = ifelse(Mean_GC - SD_GC < 10, 10, Mean_GC - SD_GC), 
-                     ymax = ifelse(Mean_GC + SD_GC > 70, 70, Mean_GC + SD_GC)), color = "grey",
+      geom_ribbon(aes(ymin = ifelse(GC_q25 < 10, 10, GC_q25), 
+                     ymax = ifelse(GC_q75 > 75, 75, GC_q75)), color = "grey",
                   alpha  = 0.1) +
       theme_void() +
       theme(
@@ -438,14 +443,17 @@ contig_break_matrix <- function(path, contig_break_path) {
       mutate(polymerase_lib = gsub("_MeanDepth", "", Depth_polymerase)) %>% #str_split_i(Depth_polymerase, "_", 1)) %>%
       group_by(polymerase_lib, centered) %>%
       summarise(centered = max(centered),
-                MeanDepth_mean = median(MeanDepth_mean,na.rm = T),
-                SD_mean = median(MeanDepth_sd, na.rm = T))
+                MeanDepth_median = median(MeanDepth_median,na.rm = T),
+                MeanDepth_q25 = median(MeanDepth_q25, na.rm = TRUE), #sd(MeanDepth),
+                MeanDepth_q75 =  median(MeanDepth_q75, na.rm = TRUE)#,
+                #SD_mean = median(MeanDepth_sd, na.rm = T),
+                )
   
     ggplot(coverage_df, 
-                    aes(centered,MeanDepth_mean)) +
+                    aes(centered,MeanDepth_median)) +
       geom_line(aes(color = polymerase_lib), linewidth = 0.75) +
-      geom_ribbon(aes(ymin = ifelse(MeanDepth_mean - SD_mean <0, 0, MeanDepth_mean - SD_mean), 
-                      ymax = MeanDepth_mean + SD_mean, fill = polymerase_lib), 
+      geom_ribbon(aes(ymin = ifelse(MeanDepth_q25 <0, 0, MeanDepth_q25), 
+                      ymax = ifelse(MeanDepth_q75 > 2.0, 2.0,MeanDepth_q75), fill = polymerase_lib), 
                   alpha  = 0.1) +
       scale_color_manual(values = custom_colors,
                          aesthetics = c("color", "fill")) +

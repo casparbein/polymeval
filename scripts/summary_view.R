@@ -254,7 +254,7 @@ contig_break_blocks <- function(paf_file,
                                 min_contig_size = 10000,
                                 min_map_q = 50,
                                 min_aln_len = 1000,
-                                lookup = 10)
+                                lookup = 300)
 {
   
   paf.table <- readPaf(
