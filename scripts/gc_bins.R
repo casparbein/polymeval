@@ -124,60 +124,61 @@ gc_plot_detailed <- function(in_data)
   return(gc_box_plot)
 }
 
-dens_plot_detailed <- function(in_data)
+dens_plot_detailed <- function(in_data, max_density)
 {
 
-  gc_box_plot <- ggplot(in_data, 
-                          aes(factor(roundGC), NormDepth)) +
-    coord_cartesian(ylim = c(0, 3.0), expand = F) + 
-    geom_boxplot(aes(fill = asm), lwd = 0.05, outlier.shape = NA, alpha = 0.5) +
-    theme_bw() +
-    theme(legend.position = "none") + 
-    xlab('GC content') +
-    ylab('Norm. Depth') + 
-    scale_x_discrete(breaks= c(0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)) +
-    scale_color_manual(values = custom_colors,
-                           aesthetics = c("fill"))
+  # gc_box_plot <- ggplot(in_data, 
+  #                         aes(factor(roundGC), NormDepth)) +
+  #   coord_cartesian(ylim = c(0, 3.0), expand = F) + 
+  #   geom_boxplot(aes(fill = asm), lwd = 0.05, outlier.shape = NA, alpha = 0.5) +
+  #   theme_bw() +
+  #   theme(legend.position = "none") + 
+  #   xlab('GC content') +
+  #   ylab('Norm. Depth') + 
+  #   scale_x_discrete(breaks= c(0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)) +
+  #   scale_color_manual(values = custom_colors,
+  #                          aesthetics = c("fill"))
   
-  densNorm <- ggplot(in_data,
-                      aes(NormDepth)) + 
-    geom_density(aes(fill = asm), color = "black",  adjust = 3) +
-    #theme_void() +
-    theme(
-  axis.text.y = element_blank(),
-  axis.title.y = element_blank(),
-  axis.ticks.y = element_blank(),
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  panel.background = element_blank(),
-  legend.position = "none",
-  ) + 
-    geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T),
-               linetype = "dashed") +
-    geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T) + 
-                 round(sd(in_data$NormDepth, na.rm = T),3), 
-               linetype = "dashed") +
-    geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T) - 
-                 round(sd(in_data$NormDepth, na.rm = T),3), 
-               linetype = "dashed") +
-    coord_flip(xlim = c(0, 3.0), ylim = c(0, 1.0), expand = F) +
-    xlab("") +
-    geom_area(
-      aes(x = stage(NormDepth, after_stat = oob_censor(x, c(mean(in_data$NormDepth, na.rm = T) - 
-                                                              round(sd(in_data$NormDepth, na.rm = T),3),
-                                                            mean(in_data$NormDepth, na.rm = T) + 
-                                                              round(sd(in_data$NormDepth, na.rm = T),3))))),
-      stat = "density",
-      adjust = 3,
-      color = "grey", alpha = 0.2
-    ) +
-    scale_color_manual(values = custom_colors,
-                           aesthetics = c("fill"))
+  # densNorm <- ggplot(in_data,
+  #                     aes(NormDepth)) + 
+  #   geom_density(aes(fill = asm), color = "black",  adjust = 3) +
+  #   #theme_void() +
+  #   theme(
+  # axis.text.y = element_blank(),
+  # axis.title.y = element_blank(),
+  # axis.ticks.y = element_blank(),
+  # panel.grid.major = element_blank(),
+  # panel.grid.minor = element_blank(),
+  # panel.background = element_blank(),
+  # legend.position = "none",
+  # ) + 
+  #   geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T),
+  #              linetype = "dashed") +
+  #   geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T) + 
+  #                round(sd(in_data$NormDepth, na.rm = T),3), 
+  #              linetype = "dashed") +
+  #   geom_vline(xintercept = mean(in_data$NormDepth, na.rm = T) - 
+  #                round(sd(in_data$NormDepth, na.rm = T),3), 
+  #              linetype = "dashed") +
+  #   coord_flip(xlim = c(0, 3.0), ylim = c(0, 1.0), expand = F) +
+  #   xlab("") +
+  #   geom_area(
+  #     aes(x = stage(NormDepth, after_stat = oob_censor(x, c(mean(in_data$NormDepth, na.rm = T) - 
+  #                                                             round(sd(in_data$NormDepth, na.rm = T),3),
+  #                                                           mean(in_data$NormDepth, na.rm = T) + 
+  #                                                             round(sd(in_data$NormDepth, na.rm = T),3))))),
+  #     stat = "density",
+  #     adjust = 3,
+  #     color = "grey", alpha = 0.2
+  #   ) +
+  #   scale_color_manual(values = custom_colors,
+  #                          aesthetics = c("fill"))
                            
                            
-  densNorm_q25 <- ggplot(in_data,
+  densNorm_q25 <- ggplot(in_data %>%
+                        filter(NormDepth < 10),
                       aes(NormDepth)) + 
-    geom_density(aes(fill = asm), color = "black",  adjust = 3) +
+    geom_density(aes(fill = asm), color = "black", adjust = 3) +
             theme(
           axis.text.y = element_blank(),
           axis.title.y = element_blank(),
@@ -193,7 +194,7 @@ dens_plot_detailed <- function(in_data)
                linetype = "dashed") +
     geom_vline(xintercept = quantile(in_data$NormDepth, 0.75, na.rm = T), 
                linetype = "dashed") +
-    coord_flip(xlim = c(0, 3.0), ylim = c(0, 1.0), expand = F) +
+    coord_flip(xlim = c(0, 3.0), ylim = c(0, max_density*1.1), expand = F) +
     xlab("") +
     geom_area(
       aes(x = stage(NormDepth, after_stat = oob_censor(x, 
@@ -218,8 +219,6 @@ load_all_pandepth <- function(path) {
   in_files <- Sys.glob(tmp_path)
   pandepth_list <- list()
   lci_list <- list()
-  
-  print(in_files)
   
   ## read files
   for (i in seq_along(in_files)) {
@@ -292,8 +291,8 @@ load_all_pandepth <- function(path) {
 
   #window_factor <- max(10^round(log10(longest_chr$chr_length)) / 10000, 1)
   ## window size = 200, number of windows desired = 500
-  window_factor1 <- max(10^round(log10(longest_chr$chr_length)) / 200 / 100, 1)
-  window_factor2 <- max(10^round(log10(longest_chr$chr_length)) / 200 / 20, 1)
+  window_factor1 <- max(10^round(log10(longest_chr$chr_length)) / 200 / 200, 1)
+  window_factor2 <- max(10^round(log10(longest_chr$chr_length)) / 200 / 40, 1)
   
   iqr_data_line <- pandepth_list_long %>%
     filter(`#Chr` == longest_chr$`#Chr`) %>%
@@ -421,11 +420,15 @@ load_all_pandepth <- function(path) {
     coord_cartesian(xlim = c(0, 0.95), expand = F) +
     theme_bw()
   
-  
-  
   sample_names <- unique(pandepth_list_long$asm)
   print(sample_names)
   str(pandepth_list_long)
+
+  ## get maximum density for density plot display:
+  max_dens_df <- pandepth_list_long %>%
+    filter(NormDepth < 10)
+  max_density <- max(sapply(sample_names, function(g) max(density(max_dens_df$NormDepth[max_dens_df$asm == g])$y)))
+
   gc_plots <- map(sample_names, ~{
     df <- pandepth_list_long %>%
       filter(asm == .x)
@@ -435,7 +438,7 @@ load_all_pandepth <- function(path) {
   dens_plots <- map(sample_names, ~{
     df <- pandepth_list_long %>%
       filter(asm == .x)
-    out_plot <- dens_plot_detailed(df)
+    out_plot <- dens_plot_detailed(df, max_density)
   })
   
   all_out1 <- wrap_plots(gc_plots, nrow = length(sample_names), axes = "collect", guides = "collect")
