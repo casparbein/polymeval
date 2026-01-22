@@ -85,7 +85,7 @@ rule kmc_union:
         "kmc/3.2.4"
     shell:
         """
-        python3 {params.kmc_script_path} \
+        python3 {params.kmc_script_path}/ \
         -i {input.kmc} \
         -o {output.script} \
         -u;
@@ -116,7 +116,7 @@ rule kmc_isec:
         "kmc/3.2.4"
     shell:
         """
-        python3 {params.kmc_script_path} \
+        python3 {params.kmc_script_path}/ \
         -i {input.kmc} \
         -o {output.script};
         kmc_tools \
@@ -147,7 +147,7 @@ rule kmc_diff:
         "kmc/3.2.4"
     shell:
         """
-        python3 {params.kmc_script_path} \
+        python3 {params.kmc_script_path}/ \
         -i {input.kmc} \
         -r {params.sample};
         kmc_tools \

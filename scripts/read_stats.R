@@ -26,7 +26,7 @@ input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
   labels <- sort(input_names)
-  if (in_colors != "") {
+  if (!is.null(in_colors)) {
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
