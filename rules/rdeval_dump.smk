@@ -3,7 +3,7 @@ rule rdeval_dump:
     input:
         "raw_reads/{sample}.fastq.gz",
     output:
-        "out/stats/{sample}.rdeval_dump.tsv",
+        temp("out/stats/{sample}.rdeval_dump.tsv"),
     threads:
         5
     resources:

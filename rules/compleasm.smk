@@ -4,6 +4,8 @@ rule run_compleasm:
     output:
         "compleasm/{sample}_compleasm/summary.txt",
         temp(directory(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/hmmer_output")),
+        temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fa"),
+        temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff")
     threads:
         10
     resources:

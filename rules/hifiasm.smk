@@ -7,7 +7,7 @@ rule hifiasm:
         fasta="raw_reads/{sample}.fastq.gz",
     output:
         "assemblies/{sample}.p_ctg.gfa",
-        "assemblies/{sample}.ec.fa" if config["hifieval"] else [], ## Error-corrected reads for hifieval
+        temp("assemblies/{sample}.ec.fa") if config["hifieval"] else [], ## Error-corrected reads for hifieval
         temp("assemblies/{sample}.r_utg.gfa"),
         temp("assemblies/{sample}.p_utg.gfa"),
         temp("assemblies/{sample}.a_ctg.gfa"),

@@ -3,7 +3,7 @@ rule meryl_count:
     input:
         fasta="raw_reads/{sample}.fastq.gz",
     output:
-        directory("meryl/{sample}_reads.meryl"),
+        temp(directory("meryl/{sample}_reads.meryl")),
     log:
         "logs/meryl_count/{sample}.log",
     params:
@@ -22,6 +22,7 @@ rule run_merqury:
         asm="assemblies/{sample}.fa",
     output:
         "merqury/{sample}_slf/{sample}_slf.qv",
+        temp(directory("merqury/{sample}_slf/{sample}.meryl")),
     threads:
         20
     resources:
