@@ -142,7 +142,7 @@ n50_summary <- function(path) {
                                 
                  
   ## get break points for plot
-  break_list <- get_breaks(min(n50_info$length), max(n50_info$length))
+  break_list <- get_breaks(10000, 1.5*max(n50_info$length))#get_breaks(min(n50_info$length), max(n50_info$length))
   
   ## create N50 plot
   n50_graph_plot <- ggplot(chrom_df, aes(n_val, length, color = Assembly)) + #,size = Assembly 

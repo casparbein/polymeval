@@ -75,6 +75,20 @@ get_breaks <- function(min, max, steps = c(1,2.5,5)) {
   return(break_list)
 }
 
+## find linear breakpoints
+get_breaks_lin <- function(min, max, steps = 10) {
+  breaks <- pretty(c(min, max), n = steps)
+  labels <- format_labels(breaks)
+  
+  
+  break_list <- list()
+  break_list[[1]] <- breaks
+  break_list[[2]] <- labels
+  
+  return(break_list)
+}
+
+
 ## contig N50 plots for all polymerases
 ## load chrom size plots
 prepare_n50 <- function(chrom_file_path = "", asm = "") {
@@ -135,11 +149,11 @@ n50_summary <- function(path) {
                  
                  
   ## get break points for plot
-  break_list <- get_breaks(min(n50_info$length), max(n50_info$length))
+  break_list <- break_list <- get_breaks(10000, 1.5*max(n50_info$length)) #get_breaks(min(n50_info$length), max(n50_info$length))
   
   ## create N50 plot
   n50_graph_plot <- ggplot(chrom_df, aes(n_val, length, color = Assembly)) + #,size = Assembly 
-    geom_step(size = 0.75) +
+    geom_step(size = 0.5) +
     theme_bw() +
     theme(axis.text= element_text(size = 15),
           axis.title= element_text(size = 18)) + 
@@ -258,7 +272,7 @@ seqkit_renamed <- seqkit %>%
   mutate(polymerase = str_split_i(str_replace(file, file_pattern, ""), "/", 2))
   
 print(seqkit_renamed)  
-seqkit_breaks <- get_breaks(min(seqkit_renamed$sum_len), max(seqkit_renamed$sum_len), steps = c(5,10))
+seqkit_breaks <- get_breaks_lin(0, max(seqkit_renamed$sum_len)*1.1)
 
 seqkit_sequenced_gigas <- ggplot(seqkit_renamed, aes(polymerase, sum_len)) +
   geom_col(aes(fill = polymerase)) +
