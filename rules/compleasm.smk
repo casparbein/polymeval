@@ -4,8 +4,8 @@ rule run_compleasm:
     output:
         "compleasm/{sample}_compleasm/summary.txt",
         temp(directory(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/hmmer_output")),
-        temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fa"),
-        temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff")
+        #temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fasta"),
+        #temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff")
     threads:
         10
     resources:
@@ -33,12 +33,14 @@ rule run_compleasm:
 ## reformat stats so they can be read in easily in R
 rule reformat_compleasm:
     input:
-        "compleasm/{sample}_compleasm/summary.txt"
+        summary = "compleasm/{sample}_compleasm/summary.txt",
+        #temp1 = f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fasta",
+        #temp2 = f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff"
     output:
         "compleasm/{sample}_summary.rf.txt"
     log:
         "logs/reformat_compleasm/{sample}.log"
     shell:
         """
-        cat {input} | sed -e 's/:/\t/g' -e 's/%, /\t/g' | head -n6 | tail -n5 > {output} 2> {log}
+        cat {input.summary} | sed -e 's/:/\t/g' -e 's/%, /\t/g' | head -n6 | tail -n5 > {output} 2> {log}
         """

@@ -45,7 +45,7 @@ rule hifieval_compare:
     output:
         metric = "hifieval/{sample}.metric.eval.tsv",
         rdl_eval = "hifieval/{sample}.rdlvl.eval.tsv",
-        summary = "hifieval/{sample}.summary.tsv",
+        summary = temp("hifieval/{sample}.summary.tsv"),
     params:
         out_base = "hifieval/{sample}",
     threads:
