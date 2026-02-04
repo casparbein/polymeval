@@ -5,7 +5,7 @@ rule hifieval_align_raw:
         target="assemblies/{sample}.fa",  # can be either genome index or genome fasta
         query="raw_reads/{sample}.fastq.gz",
     output:
-        "alignments/{sample}.raw.paf",
+        temp("alignments/{sample}.raw.paf"),
     log:
         "logs/hifieval_align_raw/{sample}.log",
     params:
@@ -24,7 +24,7 @@ rule hifieval_align_ec:
         target="assemblies/{sample}.fa",  # can be either genome index or genome fasta
         query="assemblies/{sample}.ec.fa",
     output:
-        "alignments/{sample}.ec.paf",
+        temp("alignments/{sample}.ec.paf"),
     log:
         "logs/hifieval_align_ec/{sample}.log",
     params:
