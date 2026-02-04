@@ -61,8 +61,6 @@ if config["hifieval"]:
     include: "rules/hifieval.smk"
 if config["remove_dups"]:
     include: "rules/mark_dups.smk"
-#if config["quadron"]:
-#    include: "rules/quadron.smk"
 if config["kmc"]:
     include: "rules/genomescope.smk"
     include: "rules/kmc_count.smk"
