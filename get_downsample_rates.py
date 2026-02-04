@@ -30,6 +30,34 @@ def parse_args():
     action="store_true",
     dest="restrict",
     help="Whether to restrict downsampling to a minimum, for example, if the minimum number of input nts is less than 1/2 the maximum, take the next higher number as target")
+
+    app.add_argument(
+    "--pairwise-single",
+    action="store_true",
+    dest="pairwise_single",
+    help="Enable mode to use up to 8 inputs, downsample to 'single' level, but form pairwise combinations")
+
+    app.add_argument(
+    "-m", 
+    "--min_frac",
+    action="store",
+    dest="min_frac",
+    default=5,
+    help="Minimum fraction of max sample for a sample to be included")
+
+    app.add_argument(
+    "-bt", 
+    "--base_target",
+    action="store",
+    dest="base_target",
+    help="sample base target (to what amount should be downsampled)")
+
+    app.add_argument(
+    "-ol", 
+    "--outlier",
+    action="store",
+    dest="outlier",
+    help="Sample(s) that might now match the sample base target")
        
     args = app.parse_args()
 
@@ -72,7 +100,7 @@ def read_seq_stats(path, restrict,min_frac):
                 nucs = int(stat_line[4])
                 readset_dict[name] = nucs
                 all_sample_list.append(name)
-    
+
     ## Get minimum read set            
     min_read_set = min(readset_dict, key=readset_dict.get)
     max_read_set = max(readset_dict, key=readset_dict.get)
@@ -94,12 +122,14 @@ def read_seq_stats(path, restrict,min_frac):
     downsample_nucs = min_read_set_size
     return readset_dict, samples, removed_samples, downsample_nucs
 
-def create_combination_downsamples(readset_dict, read_sets, outlier, minimum):
+def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pairwise_single=False):
     number_combos = len(read_sets)
+    print(number_combos)
 
     ## Cases than cannot be handled
-    if number_combos > 5:
-        sys.exit("You can at most combine five read sets, otherwise the number of possible combinations gets too large")
+    max_combos = 8 if pairwise_single else 5
+    if number_combos > max_combos:
+        sys.exit(f"You can at most combine {max_combos} read sets")
 
     if number_combos < 2:
         sys.exit("There are fewer than one read sets available, please inset at least two read sets to be combined/downsampled")
@@ -119,110 +149,54 @@ def create_combination_downsamples(readset_dict, read_sets, outlier, minimum):
     
     downsample_nucs = []
     downsample_dict = {}
+    downsample_read_dict = defaultdict(list)
+    downsample_read_frac = defaultdict(list)
 
-    ## Cases that can be handled
-    if number_combos == 2:
-        half_nucs = int(new_min_read_set_size / 2)
+    ## Dynamic generation of levels
+    nuc_list = []
+    turned_nuc_dict = {}
 
-        nuc_list = [new_min_read_set_size, half_nucs]
-        nuc_dict = {"single" : new_min_read_set_size, "half": half_nucs}
-        turned_nuc_dict = {new_min_read_set_size: "single" ,half_nucs: "half"}
-        downsample_read_dict = defaultdict(list)
-        downsample_read_frac = defaultdict(list)
-
-        for number in nuc_list:
-            downsample_nucs.append(number)
-            downsample_dict[turned_nuc_dict[number]] = number
-
-        ## downsample operations:
-        for read_set in new_readset_dict.keys():
-            for number in nuc_list:
-                if int(new_readset_dict[read_set]) < int(number):
-                    continue
-                else:
-                    downsample_read_dict[read_set].append(number)
-                    downsample_read_frac[read_set].append(turned_nuc_dict[number])
-
-    elif number_combos == 3:
-        half_nucs = int(new_min_read_set_size / 2)
-        third_nucs = int(new_min_read_set_size / 3)
-
-        nuc_list = [new_min_read_set_size, half_nucs, third_nucs]
-        nuc_dict = {"single" : new_min_read_set_size, "half": half_nucs, "third": third_nucs}
-        turned_nuc_dict = {new_min_read_set_size: "single" ,half_nucs: "half", third_nucs: "third"}
-        downsample_read_dict = defaultdict(list)
-        downsample_read_frac = defaultdict(list)
-
-        for number in nuc_list:
-            downsample_nucs.append(number)
-            downsample_dict[turned_nuc_dict[number]] = number
-
-        ## downsample operations:
-        for read_set in new_readset_dict.keys():
-            for number in nuc_list:
-                if int(new_readset_dict[read_set]) < int(number):
-                    continue
-                else:
-                    downsample_read_dict[read_set].append(number)
-                    downsample_read_frac[read_set].append(turned_nuc_dict[number])
+    ## Standard mode: divisors go from 1 to n
+    ## Pairwise mode: Divisors go from 1 to 2 (1/2)
     
-    elif number_combos == 4:
-        half_nucs = int(new_min_read_set_size / 2)
-        third_nucs = int(new_min_read_set_size / 3)
-        fourth_nucs = int(new_min_read_set_size / 4)
-
-        nuc_list = [new_min_read_set_size, half_nucs, third_nucs, fourth_nucs]
-        nuc_dict = {"single" : new_min_read_set_size, "half": half_nucs, "third": third_nucs, "fourth": fourth_nucs}
-        turned_nuc_dict = {new_min_read_set_size: "single" ,half_nucs: "half", third_nucs: "third", fourth_nucs: "fourth"}
-        downsample_read_dict = defaultdict(list)
-        downsample_read_frac = defaultdict(list)
-
-        for number in nuc_list:
-            downsample_nucs.append(number)
-            downsample_dict[turned_nuc_dict[number]] = number
-
-        ## downsample operations:
-        for read_set in new_readset_dict.keys():
-            for number in nuc_list:
-                if int(new_readset_dict[read_set]) < int(number):
-                    continue
-                else:
-                    downsample_read_dict[read_set].append(number)
-                    downsample_read_frac[read_set].append(turned_nuc_dict[number])
+    divisors = range(1, number_combos + 1)
+    if pairwise_single:
+        divisors = range(1,2)
     
-    elif number_combos == 5:
-        half_nucs = int(new_min_read_set_size / 2)
-        third_nucs = int(new_min_read_set_size / 3)
-        fourth_nucs = int(new_min_read_set_size / 4)
-        fifth_nucs = int(new_min_read_set_size / 5)
+    for div in divisors:
+        if div == 1:
+            n_nucs = new_min_read_set_size
+        else:
+            n_nucs = int(new_min_read_set_size / div)
+        
+        suffix = suffix_dict[div]
+        nuc_list.append(n_nucs)
+        downsample_dict[suffix] = n_nucs
+        turned_nuc_dict[n_nucs] = suffix
+        downsample_nucs.append(n_nucs)
 
-        nuc_list = [new_min_read_set_size, half_nucs, third_nucs, fourth_nucs, fifth_nucs]
-        nuc_dict = {"single" : new_min_read_set_size, "half": half_nucs, "third": third_nucs, "fourth": fourth_nucs, "fifth": fifth_nucs}
-        turned_nuc_dict = {new_min_read_set_size: "single" ,half_nucs: "half", third_nucs: "third", fourth_nucs: "fourth", fifth_nucs: "fifth"}
-        downsample_read_dict = defaultdict(list)
-        downsample_read_frac = defaultdict(list)
-
+    ## downsample operations:
+    for read_set in new_readset_dict.keys():
         for number in nuc_list:
-            downsample_nucs.append(number)
-            downsample_dict[turned_nuc_dict[number]] = number
-
-        ## downsample operations:
-        for read_set in new_readset_dict.keys():
-            for number in nuc_list:
-                if int(new_readset_dict[read_set]) < int(number):
-                    continue
-                else:
-                    downsample_read_dict[read_set].append(number)
-                    downsample_read_frac[read_set].append(turned_nuc_dict[number])
+            if int(new_readset_dict[read_set]) < int(number):
+                continue
+            else:
+                downsample_read_dict[read_set].append(number)
+                downsample_read_frac[read_set].append(turned_nuc_dict[number])
 
     return downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict
 
 
-def form_combinations(downsample_dict, downsample_read_frac):
+def form_combinations(downsample_dict, downsample_read_frac, pairwise_single=False):
     file_names = [key for key in set(downsample_dict.keys())]
     
     combination_ranges = list(range(1, len(file_names)+1))
-    suffixes = [suffix_dict[number] for number in combination_ranges]
+
+    ## In pairwise combos, only use single-suffix
+    if pairwise_single:
+        suffixes = ["single"]
+    else:
+        suffixes = [suffix_dict[number] for number in combination_ranges]
 
     all_combos = {}
 
@@ -230,6 +204,11 @@ def form_combinations(downsample_dict, downsample_read_frac):
         #subset_files = [f"{f}.downsampled.{sf}.fastq.gz" for f in file_names]
         subset_files = [f"{f}-{sf}" for f in file_names if sf in downsample_read_frac[f]]
         n = combination_group_sizes[sf]
+
+        ## For pairwise combinations
+        if pairwise_single and sf == "single":
+            n = 2
+
         if n == 1:
             for subset_file in sorted(subset_files):
                 combo =  subset_file + ".fastq.gz"
