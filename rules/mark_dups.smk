@@ -9,7 +9,7 @@ rule mark_dups:
     resources:
         mem_mb = 100000
     params:
-        dupreads="raw_reads/{sample}.indups.fastq.gz", ## Change to fastqs
+        dupreads="raw_reads/{sample}.indups.fastq", ## Change to fastqs
     conda:
         "../envs/pbmarkdup.yaml",
     log:
