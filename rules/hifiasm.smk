@@ -25,7 +25,7 @@ rule hifiasm:
     log:
         "logs/hifiasm/{sample}.log",
     params:
-        extra="--primary -l 3 --write-ec " if config["hifieval"] else " --primary -l 3  ",
+        extra=f"--primary -l 3 --write-ec --hg-size {config['hg_size']}" if config["hifieval"] and config["hg_size"] else " --primary -l 3  --write-ec " if config["hifieval"] and not config["hg_size"] else  f" --primary -l 3 --hg-size {config['hg_size']}" if not config["hifieval"] and config["hg_size"] else "--primary -l 3",
     threads: 50
     resources:
         mem_mb=200000,
