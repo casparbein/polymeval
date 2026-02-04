@@ -13,23 +13,23 @@ compleasm_database = config["compleasm_db"]
 readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
 
 ## Get combinations for combined assemblies
-downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target)
+downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target, config["combo_pairwise"])
 
 ## Create dictionaty that will be used in some rules to fetch downsampling amount etc.
-combo_dict = get_downsample_rates.form_combinations(downsample_read_dict, downsample_read_frac)
+combo_dict = get_downsample_rates.form_combinations(downsample_read_dict, downsample_read_frac, config["combo_pairwise"])
 
 ## How much will be downsampled
-combination_ranges = list(range(1, len(samples)+1))
+if config["combo_pairwise"]:
+    combination_ranges = list(range(1, 2))
+else:
+    combination_ranges = list(range(1, len(samples)+1))
 downsample_parts = [get_downsample_rates.suffix_dict[number] for number in combination_ranges]
 
 ## names of the assemblies that will be created
 out_assembly_names = [value for value in combo_dict.values()]
-#print(out_assembly_names)
 
 ## Input dictionary for downstream assembly rules
 turned_combo_dict = {v: ["raw_reads/" + f for f in k.split(" ")] for k,v in combo_dict.items()}
-
-#print(turned_combo_dict)
 
 ## Wildcard constraints
 wildcard_constraints:
@@ -281,7 +281,7 @@ use rule run_compleasm from standard as combine_run_compleasm with:
 
 use rule reformat_compleasm from standard as combine_reformat_compleasm with:
     input:
-        "compleasm/{out}_compleasm/summary.txt"
+        summary = "compleasm/{out}_compleasm/summary.txt"
     output:
         "compleasm/{out}_summary.rf.txt"
     log:
