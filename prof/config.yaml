@@ -1,7 +1,7 @@
 executor: slurm
 jobs: 500
 slurm-delete-logfiles-older-than: 0
-slurm-keep-successful-logs: False
+slurm-keep-successful-logs: True
 use-conda: True
 use-singularity: True
 apptainer-args: " --no-mount hostfs --pwd /scripts -B ./assemblies:/scripts/assemblies -B ./out/stats:/scripts/output "
