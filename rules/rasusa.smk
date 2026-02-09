@@ -10,14 +10,15 @@ rule run_rasusa:
     log:
         "logs/run_ranusa/{sample}.log"
     params:
-        downsample_nts = downsample_nucs
+        downsample_nts = downsample_nucs,
+        seed = config["seed"]
     conda:
         "../envs/ranusa.yaml"
     shell:
         """
         rasusa \
         reads \
-        -s 100 \
+        -s {params.seed} \
         -b {params.downsample_nts} \
         {input} \
         -o {output}
@@ -35,14 +36,15 @@ rule run_rasusa_combinations:
     log:
         "logs/run_ranusa/{sample}-{amount}.log"
     params:
-        downsample_nts = lambda wildcards: downsample_dict[wildcards.amount]
+        downsample_nts = lambda wildcards: downsample_dict[wildcards.amount],
+        seed = config["seed"]
     conda:
         "../envs/ranusa.yaml"
     shell:
         """
         rasusa \
         reads \
-        -s 100 \
+        -s {params.seed} \
         -b {params.downsample_nts} \
         {input} \
         -o {output}
