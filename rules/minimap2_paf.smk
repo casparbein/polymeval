@@ -15,4 +15,4 @@ rule minimap2_paf:
         mem_mb = 100000
     threads: 20
     wrapper:
-        "v7.6.0/bio/minimap2/aligner"
+        "v9.0.1/bio/minimap2/aligner"

@@ -16,5 +16,5 @@ rule minimap2_bam_sorted:
         mem_mb = 200000
     threads: 50
     wrapper:
-       # "v7.6.0/bio/minimap2/aligner"
-        "https://github.com/snakemake/snakemake-wrappers/raw/release-please--branches--master/bio/minimap2/aligner"
+       "9.0.1/bio/minimap2/aligner"
+    #"https://github.com/snakemake/snakemake-wrappers/raw/release-please--branches--master/bio/minimap2/aligner"
