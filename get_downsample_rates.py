@@ -35,7 +35,7 @@ def parse_args():
     "--pairwise-single",
     action="store_true",
     dest="pairwise_single",
-    help="Enable mode to use up to 8 inputs, downsample to 'single' level, but form pairwise combinations")
+    help="Enable mode to use up to 10 inputs, downsample to 'single' level, but form pairwise combinations")
 
     app.add_argument(
     "-m", 
@@ -92,7 +92,6 @@ def read_seq_stats(path, restrict,min_frac):
                 continue
             else:
                 stat_line = line.strip().split('\t')
-                #print("/" in stat_line[0])
                 if "/" in stat_line[0]:
                     name = stat_line[0].split('/')[1].split('.')[0]
                 else:
@@ -124,10 +123,19 @@ def read_seq_stats(path, restrict,min_frac):
 
 def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pairwise_single=False):
     number_combos = len(read_sets)
-    print(number_combos)
+    print('{} combinations will be run with {}'.format(number_combos, read_sets))
+
+    if pairwise_single:
+        print("Only pairwise combinations will be run")
+
+    if outlier:
+        print("{} is defined as an outlier read set".format(outlier))
+
+    if minimum:
+        print("minimum downsampling target is {}".format(minimum))
 
     ## Cases than cannot be handled
-    max_combos = 8 if pairwise_single else 5
+    max_combos = 10 if pairwise_single else 5
     if number_combos > max_combos:
         sys.exit(f"You can at most combine {max_combos} read sets")
 
