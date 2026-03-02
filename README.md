@@ -51,6 +51,26 @@ This way, dataset-specific contig breaks and their underlying causes can be inve
 
 All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format) and, for reference mode, reference and dataset specific assemblies (in .fa format).
 
+### (for HG002) variant calling benchmarks
+Apart from genome assembly, amplified HiFi reads from clinical samples such as saliva or tissue biopsies can also be used to call variants (SNVs, InDels, SVs).
+Since there exist benchmarks for these, polymeval has a **variant calling benchmarking** mode. Given the gold standard sets are all HG002 (ref) variants in relation to earlier versions of the human genome (hg38, hg37), these benchmarks currently only work for amplified HG002 samples. The pipeline is modelled after the [PacBio pipeline](https://github.com/PacificBiosciences/HiFI-human-WGS-WDL), as it was applied in [Wang et al. 2025](https://www.medrxiv.org/content/10.1101/2025.07.25.25332067v1.full):
+1. reads are mapped to the reference with [minimap2](https://github.com/lh3/minimap2)
+2. SNVs/InDels are called with [deepavariant](https://github.com/google/deepvariant)
+3. These variant calls are then evaluated against existing GIAB benchmarks with [hap.py](https://github.com/Illumina/hap.py)
+4. (optional) larger structural variants are calles with [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
+5. (optional) these variant calls are then evaluated against existing benchmarks with [truvari](https://github.com/ACEnglish/truvari)
+
+The existing benchmarking datasets have to be downloaded first (see Variant Calling benchmarking mode below).
+As an example, this pipeline can be run on the data from [Wang et al. 2025](https://www.medrxiv.org/content/10.1101/2025.07.25.25332067v1.full):
+
+```bash
+## The NCBI IDs are SRR25653512, SRR31123920, SRR25653511. Using sra-toolkit
+mkdir human_variant_test
+cd human_variant_test
+prefetch SRR25653512 -X 100000000
+fasterq-dump SRR25653512 -e 10 -m 1000Mb
+```
+
 ## Installation
 Polymeval uses the snakemake pipeline language to string together different tools. Snakemake will take care of installing all necessary dependencies through conda or mamba.
 After cloning the repository, it is highly recommended to set up a new environment like so:
@@ -285,12 +305,35 @@ Bottom: Polymerase-specific median normalized coverage and 25%/75% quantiles (fi
 Normalized read coverage stratified by GC-content of non-overlapping, 200 bp windows. Right: Density of normalized coverage. Colors as in the above plot. 
 Grey density on top is reference-wide GC content density.<br/>
 
+### Variant calling benchmarking mode
 
+Important for variant calling benchmarking is to set up a directory where the relevant files are stored.
+Currently, the following files are required to run this benchmarking:<br/>
+[hg38 reference genome](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz) (index it with samtools index)<br/>
+[hg38 regions bed for happy](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed)<br/>
+[hg37 for structural variant calling](https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz)<br/>
+[hg37 regions bed for truvari](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.bed)<br/>
+[SNV/InDel vcf gold standard set of GIAB calls against hg38](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz)<br/>
+[SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.g)<br/>
 
+Save them somewhere, like:
+```bash
+mkdir human_benchmark_data
+cd human_benchmark_data
+wget https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz ## etc
+```
 
-
-
-
+Now, you just have to provide that path to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
+Run the pipeline on HG002-amplified reads (let's say they are stored in human_reads) like so:
+```bash
+python3 ~/polymeval/polymeval.py \
+--variant_calling_benchmarks \
+--benchmark_path human_benchmark_data \
+--directory_name test_human_vcf \
+--input_reads human_reads/ \
+--structural_variant_calling ## to benchmark structural variants \
+--dry_run
+```
 
 
 
