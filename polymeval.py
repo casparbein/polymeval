@@ -9,18 +9,25 @@ import get_downsample_rates
 ## Absolute paths on file system
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 
-def symlink_all_rds(src_path, dst_path, down_list = []): 
+def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False): 
     os.makedirs(dst_path, exist_ok=True)   
 
     for rds in os.listdir(src_path):
         if down_list == []:
             down_list = os.listdir(src_path)
-
-        if rds.endswith("fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
-            src_file = os.path.join(os.path.realpath(src_path), rds)
-            dst_file = os.path.join(dst_path, rds)
-            if not os.path.islink(dst_file):
-                os.symlink(src_file, dst_file)
+        
+        if reference_run:
+            if rds.endswith("fastq.gz") and not rds.endswith("dup.fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
+                src_file = os.path.join(os.path.realpath(src_path), rds)
+                dst_file = os.path.join(dst_path, rds)
+                if not os.path.islink(dst_file):
+                    os.symlink(src_file, dst_file)
+        else:
+            if rds.endswith("fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
+                src_file = os.path.join(os.path.realpath(src_path), rds)
+                dst_file = os.path.join(dst_path, rds)
+                if not os.path.islink(dst_file):
+                    os.symlink(src_file, dst_file)
 
 def symlink_all_asm(src_path, dst_path): 
     os.makedirs(dst_path, exist_ok=True)   
@@ -182,6 +189,17 @@ def argument_parser():
     )
 
     app.add_argument(
+    "-pw",
+    "--pairwise", 
+    action="store_true",
+    dest="pairwise",
+    help=
+    """For combine mode: If only pairwise combinations should be run (instead of the default: all combos). Allows up to 8 input samples
+    instead of 5 in default combine.
+    """
+    )
+
+    app.add_argument(
     "-i", 
     "--input_reads",
     action="store",
@@ -192,6 +210,17 @@ def argument_parser():
     reads meaningful names (those names will be propagated down to the output files). 
     Also, including '.' or '-' characters in the name is not supported 
     (Example: sample1.1.fastq.gz or sample1-1.fastq.gz does not work, but sample1.fastq.gz does).
+    ''')
+
+    app.add_argument(
+    "-du", 
+    "--remove_dups",
+    action="store_true",
+    dest="remove_dups",
+    help=
+    '''Whether PacBio's pbmarkdup should be run (Here, PCR dups are automatically marked and removed).
+    Input reads in the path passed to -i/--input_reads have to be named SAMPLE.dup.fastq.gz instead of 
+    just SAMPLE.fastq.gz. Only works in standard mode.
     ''')
 
     app.add_argument(
@@ -266,6 +295,16 @@ def argument_parser():
     '''Turn on hifieval
     ''')
 
+    app.add_argument(
+    "-hg", 
+    "--hg_size",
+    action="store",
+    dest="hg_size",
+    help=
+    '''Estimated size for homozygous genome length, for hifiasm's --hg-size.
+    Should be in k,m or g (for instance: 2g or 700m).
+    ''')
+
     ## Define exactly what the output files would be here
     app.add_argument(
     "-rd", 
@@ -313,6 +352,16 @@ def argument_parser():
     default=25,
     help=
     '''K-mer length used by meryl and KMC (if enabled). Default is 25.
+    ''')
+
+    app.add_argument(
+    "-se", 
+    "--seed",
+    action="store",
+    dest="rasusa_seed",
+    default=100,
+    help=
+    '''Seed for rasusa downsampling.
     ''')
 
     # app.add_argument(
@@ -449,6 +498,17 @@ def argument_parser():
     """
     )  
 
+    app.add_argument(
+    "-rtt",
+    "--rerun_triggers_mtime", 
+    action="store_true",
+    default=False,
+    dest="rerun_trigger",
+    help="""FOR DEVELOPMENT: If something in the polymeval code was changed, should reruns be done only on rules that have not yet produced proper output?
+    (Snakemake --rerun-triggers mtime flag)
+    """
+    )  
+
     args = app.parse_args()
     return args
 
@@ -473,6 +533,7 @@ def main():
         "kmc": False,
         "readstats": False,
         "hifieval": False,
+        "hg_size": [],
         "remove_dups" : False,
         "colors": [],
         "pandepth": False,
@@ -480,6 +541,7 @@ def main():
         "exons": [],
         "repeats": [],
         "pandepth_path": [],
+        "combo_pairwise" : False,
     }
 
     ## Additional parameters:
@@ -521,6 +583,9 @@ def main():
     if args.pandepth:
         config["pandepth"] = True
 
+    if args.remove_dups:
+        config["remove_dups"] = True
+
     if args.pandepth_path != "":
         config["pandepth_path"] = SingleQuotedScalarString(args.pandepth_path)
 
@@ -529,6 +594,16 @@ def main():
 
     if args.colors != "":
         config["colors"] = SingleQuotedScalarString(args.colors)
+
+    if args.hg_size != "":
+        config["hg_size"] = args.hg_size
+
+    if args.pairwise:
+        config["combo_pairwise"] = True
+
+    if args.rasusa_seed:
+        config["seed"] = int(args.rasusa_seed)
+
 
     ## Set up directory;
     dest_path = os.path.join(os.getcwd(), args.directory_name)
@@ -555,31 +630,41 @@ def main():
         
     elif args.reference:
         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-        symlink_all_rds(args.in_reads, path_for_link_rds, [])
+        print(path_for_link_rds)
+        symlink_all_rds(args.in_reads, path_for_link_rds, [], reference_run = True)
         path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
         symlink_all_asm(args.in_assemblies, path_for_link_asm)
         in_reads = os.listdir(path_for_link_rds)
+        print(in_reads)
         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
         in_assemblies = os.listdir(path_for_link_asm)
         in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
+        print(sorted(in_reads_list))
+        print(sorted(in_assemblies_list))
         if sorted(in_reads_list) == sorted(in_assemblies_list):
             config["samples"] =  format_list(in_reads_list)
         else:
             sys.exit("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
     
     else:
+        ## Case when remove dups should be turned on:
+        if config["remove_dups"]:
+            fastq_string = ".dup.fastq.gz"
+        else:
+            fastq_string = ".fastq.gz"
+
         if args.samples:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             samples = format_list(args.samples.split(','))
             symlink_all_rds(args.in_reads, path_for_link_rds, samples)
             in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in samples]
+            in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string) and f.replace(fastq_string, "") in samples]
             config["samples"] =  format_list(in_reads_list)
         else:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             symlink_all_rds(args.in_reads, path_for_link_rds, [])
             in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
+            in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
             config["samples"] =  format_list(in_reads_list)
 
 
@@ -658,7 +743,7 @@ def main():
                         dryrun = args.dry_run, 
                         snake_default = True,
                         conda_path = "",
-                        #rerun_triggers = args.rerun_trigger, 
+                        rerun_triggers = args.rerun_trigger, 
                         updated_rule = update_DEF,
                         local_run = args.local_run)
 
@@ -669,7 +754,7 @@ def main():
                         dryrun = not args.run_snakemake, 
                         snake_default = True,
                         conda_path = "",
-                        #rerun_triggers = args.rerun_trigger,
+                        rerun_triggers = args.rerun_trigger,
                         updated_rule = update_DEF,
                         local_run = args.local_run)
 
