@@ -209,7 +209,7 @@ use rule meryl_count from standard as combine_meryl_count with:
     input:
         fasta=lambda wildcards: turned_combo_dict[wildcards.out],
     output:
-        directory("meryl/{out}_reads.meryl"),
+        temp(directory("meryl/{out}_reads.meryl")),
     log:
         "logs/meryl_count/{out}.log",
 
@@ -219,6 +219,7 @@ use rule run_merqury from standard as combine_run_merqury with:
         asm="assemblies/{out}.fa",
     output:
         "merqury/{out}_slf/{out}_slf.qv",
+        temp(directory("merqury/{out}_slf/{out}.meryl")),
     params:
         output_dir="merqury/{out}_slf",
         out_prefix="{out}_slf"
