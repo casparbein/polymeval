@@ -252,7 +252,7 @@ python3 ~/poymeval/polymeval.py \
 --samples repliQa,Terra,LongAmp,Q5,LaTaq,Universe,WatchmakerEquinox,PrimeStar_Max, ## The ten samples that should be combined here
 ```
 
-## Reference mode
+### Reference mode
 
 When comparing different polymerases for amplification, in this context we are mostly concerned about assembly quality (contiguity and completeness). Nevertheless, it can be informative to ask why certain polymerases perform worse than others. In the Figure above, we see that Terra- and repliQa-amplified reads create the most contigous and complete yeast assemblies, while not showing many base errors in the reads.
 Let's see how this looks compared to a reference ([S288C_reference_genome_R64-5-1_20240529](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000146045.2/)).
