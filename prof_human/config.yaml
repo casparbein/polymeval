@@ -1,0 +1,13 @@
+executor: slurm
+jobs: 500
+slurm-delete-logfiles-older-than: 0
+slurm-keep-successful-logs: True
+use-conda: True
+use-singularity: True
+restart-times: 3
+rerun-incomplete: True
+printshellcmds: True
+default-resources:
+  slurm_partition: batch
+  runtime: 1200
+apptainer-args: -B ./alignments:/input -B /beegfs/projects/project-bbein/human_reads/all_ref_files_test/:/reference -B ./variants:/output
