@@ -282,7 +282,8 @@ Bottom: Polymerase-specific median normalized coverage and 25%/75% quantiles (fi
 
 
 <img width="394" height="913" alt="grafik" src="https://github.com/user-attachments/assets/b6719441-0508-42c3-bb61-759776a3d55b" /><br/>
-Normalized read coverage stratified by GC-content of non-overlapping, 200 bp windows. Left: Density of normalized coverage. Colors as in the above plot.<br/>
+Normalized read coverage stratified by GC-content of non-overlapping, 200 bp windows. Right: Density of normalized coverage. Colors as in the above plot. 
+Grey density on top is reference-wide GC content density.<br/>
 
 
 
