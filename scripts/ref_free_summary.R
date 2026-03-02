@@ -7,7 +7,7 @@ library(scales)
 library(patchwork)
 
 safe <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
-  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888", "black")
 
 ## Input for plotting/sumstats
 input_path_faidx = snakemake@params[["faidx_path"]]
@@ -333,7 +333,7 @@ output_hifieval_readstats <- function(path)
   
   ## plot
   hifieval_plot <- ggplot(hifieval_df_sum %>%
-                              filter(correction_class %in% c("corrected_bases", "undercorrected_bases")),
+                              filter(correction_class %in% c("corrected_bases")),
                               aes(polymerase, fraction, fill = polymerase)) +
     #geom_col(position = "dodge2") +
     geom_col() +
