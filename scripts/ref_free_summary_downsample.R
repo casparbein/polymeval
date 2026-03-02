@@ -319,7 +319,7 @@ output_hifieval_readstats <- function(path)
   
   ## plot
   hifieval_plot <- ggplot(hifieval_df_sum %>%
-                              filter(correction_class %in% c("corrected_bases")),
+                              filter(correction_class %in% c("corrected_bases", "undercorrected_bases")),
                               aes(polymerase, fraction, fill = polymerase)) +
     geom_col() +
     #geom_col(position = "dodge2") +
