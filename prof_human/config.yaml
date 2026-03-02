@@ -10,4 +10,4 @@ printshellcmds: True
 default-resources:
   slurm_partition: batch
   runtime: 1200
-apptainer-args: -B ./alignments:/input -B /beegfs/projects/project-bbein/human_reads/all_ref_files_test/:/reference -B ./variants:/output
+apptainer-args: -B ./alignments:/input -B reference_path/:/reference -B ./variants:/output
