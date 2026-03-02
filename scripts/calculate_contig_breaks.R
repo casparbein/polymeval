@@ -206,9 +206,9 @@ custom_sort <- function(x, order_vec) {
 contig_break_bed <- function(paf_file,
                             asm = "",
                             min_contig_size = 10000,
-                            min_map_q = 50,
-                            min_aln_len = 1000,
-                            lookup = 20
+                            min_map_q = 60,
+                            min_aln_len = 2000,
+                            lookup = 40
 )
 {
   
