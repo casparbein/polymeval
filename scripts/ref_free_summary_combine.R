@@ -34,10 +34,16 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
+  
   custom_colors <- setNames(palette_colors, labels)
 }
 }
+
 
 
 ## format labels for N50 plot
@@ -137,8 +143,8 @@ n50_summary <- function(path) {
   
   print(top_10)
   
-  chrom_df <- chrom_df %>%
-  filter(Assembly %in% top_10$Assembly)          
+  #chrom_df <- chrom_df %>%
+  #filter(Assembly %in% top_10$Assembly)          
                                 
                  
   ## get break points for plot
@@ -202,8 +208,8 @@ compleasm_summary <- function(path, compleasm_label, top_10) {
   
   #compl_list <- compl_list[lengths(compl_list) > 0]
   compl_all <- rbindlist(compl_list)
-  compl_all <- compl_all %>%
-  filter(polymerase %in% top_10$Assembly)
+  #compl_all <- compl_all %>%
+  #filter(polymerase %in% top_10$Assembly)
   
   compl_all$category <- factor(compl_all$BUSCO_class, levels = c("M","I","F","D","S"), ordered = TRUE)
   
@@ -289,8 +295,8 @@ output_hifieval_readstats <- function(path, top_10)
   hifieval_df <- rbindlist(hifieval_list)
 
 
-  hifieval_df <- hifieval_df %>%
-  filter(polymerase %in% top_10$Assembly)
+  #hifieval_df <- hifieval_df %>%
+  #filter(polymerase %in% top_10$Assembly)
   
   ## collapse df
   hifieval_df_sum <- hifieval_df %>%
@@ -310,7 +316,7 @@ output_hifieval_readstats <- function(path, top_10)
   
   ## plot
   hifieval_plot <- ggplot(hifieval_df_sum %>%
-                              filter(correction_class %in% c("corrected_bases", "undercorrected_bases")),
+                              filter(correction_class %in% c("corrected_bases")),
                               aes(polymerase, fraction, fill = polymerase)) +
     geom_col() +
     #geom_col(position = "dodge2") +
@@ -376,8 +382,8 @@ merqury_asm_sum <- function(path, top_10)
   left_join(mq_com, by = c("X1" = "X1")) %>%
   rename(polymerase = X1)
   
-  merqury_all <- merqury_all %>%
-  filter(polymerase %in% top_10$Assembly)
+  #merqury_all <- merqury_all %>%
+  #ilter(polymerase %in% top_10$Assembly)
     
   er <- ggplot(merqury_all, aes(polymerase, X5.x)) +
   geom_col(aes(fill = polymerase)) +
