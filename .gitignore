@@ -1,4 +1,4 @@
 .snakemake
 .cache
 __pycache__
-prof_human
+prof_human/config.yaml
