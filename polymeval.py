@@ -43,8 +43,26 @@ def get_snakefile_path(name="Snakefile"):
     snakefile = os.path.join(base_dir, name)
     return snakefile
 
-def get_cluster_configfile_path(name="config.yaml"):
-    cluster_configfile =  os.path.join(base_dir, "prof")
+def get_cluster_configfile_path(name="config.yaml", run_type="standard", bench_dir = None):
+    if run_type == "standard":
+        cluster_configfile =  os.path.join(base_dir, "prof")
+    elif run_type == "human":
+        cluster_configfile =  os.path.join(base_dir, "prof_human")
+
+        current_yaml = YAML()
+
+        with open(cluster_configfile + "/config.yaml", "r") as yaml_file:
+            current_def_file = current_yaml.load(yaml_file)
+            current_def_file["apptainer-args"] = f"-B ./alignments:/input -B {bench_dir}:/reference -B ./variants:/output"
+
+        with open(cluster_configfile + "/config.yaml", "w") as yaml_file_new:
+            yaml = YAML()
+            yaml.width = 4096
+            yaml.boolean_representation = ['False', 'True']
+            yamldefault_flow_style = False
+            yaml.preserve_quotes = True
+            yaml.dump(current_def_file, yaml_file_new)
+
     return cluster_configfile
 
 def get_kmc_prep_path(name="prepare_kmc.py"):
@@ -59,14 +77,16 @@ def format_list(in_list):
 def run_snakemake(snake_file, 
                   config_file, 
                   conda_path,
-                  directory_name="polymeval_test", 
+                  directory_name="polymeval_test",
+                  run_type = "standard", 
                   dryrun = True, 
                   snake_default = False, 
                   rerun_triggers = False, 
                   working_dir=os.getcwd(),
                   updated_rule = False,
                   use_conda = True,
-                  local_run = False):
+                  local_run = False,
+                  bench_dir = None):
     
     ## move to the working directory
     current_wd =  os.getcwd()
@@ -90,7 +110,7 @@ def run_snakemake(snake_file,
     cmd += ['--snakefile', snake_file]
     
     if not local_run:
-        config_file = get_cluster_configfile_path()
+        config_file = get_cluster_configfile_path("config.yaml", run_type, bench_dir)
         cmd += ['--profile', config_file]
     else:
         ## Add these arguments to CLI so users can set them
@@ -185,6 +205,19 @@ def argument_parser():
     """Evaluate read sets based on a reference assembly. Per-read assemblies also have to be provided, those can be created by 
     any of the other polymeval modes. This mode will evaluate raw reads and per-polymerase assemblies based on a reference, and
     is therefore supposed to be executed downstream of standard.
+    """
+    )
+
+    run_mode.add_argument(
+    "-v",
+    "--variant_calling_benchmarks", 
+    action="store_true",
+    dest="variant_calling",
+    help=
+    """IMPORTANT: Only works for human data sequenced from the HG002 sample.
+    Call variants of (amplified) HiFi reads against the hg38 (hg37 for structural variants) with deepvariant (sniffles) and
+    evaluate against benchmark sets with happy (truvari). If structural variant accuracy should also be evaluated, set 
+    --structural_variant_calling flag. All reference benchmark files must be in a path that can be set with --benchmark_path.
     """
     )
 
@@ -362,6 +395,26 @@ def argument_parser():
     default=100,
     help=
     '''Seed for rasusa downsampling.
+    ''')
+
+    app.add_argument(
+    "-bp", 
+    "--benchmark_path",
+    action="store",
+    dest="benchmark_path",
+    default=None,
+    help=
+    '''Absolute path to where benchmark files for human variant calling are stored.
+    ''')
+
+    app.add_argument(
+    "-svc", 
+    "--structural_variant_calling",
+    action="store_true",
+    dest="structural_variants",
+    default=False,
+    help=
+    '''Whether structural variants should be called and benchmarked with sniffles and truvari.
     ''')
 
     # app.add_argument(
@@ -604,13 +657,19 @@ def main():
     if args.rasusa_seed:
         config["seed"] = int(args.rasusa_seed)
 
+    if args.benchmark_path:
+        config["benchmark_path"] = args.benchmark_path
+
+    if args.structural_variants:
+        config["structural_variants"] = True
+
 
     ## Set up directory;
     dest_path = os.path.join(os.getcwd(), args.directory_name)
     if not os.path.exists(dest_path):
         os.makedirs(dest_path, exist_ok=True)  
 
-    if not args.standard and not args.reference:
+    if not args.standard and not args.reference and not args.variant_calling:
         readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(args.seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
 
         if (args.combine and args.samples):
@@ -630,22 +689,20 @@ def main():
         
     elif args.reference:
         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-        print(path_for_link_rds)
         symlink_all_rds(args.in_reads, path_for_link_rds, [], reference_run = True)
         path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
         symlink_all_asm(args.in_assemblies, path_for_link_asm)
         in_reads = os.listdir(path_for_link_rds)
-        print(in_reads)
         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
         in_assemblies = os.listdir(path_for_link_asm)
         in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
-        print(sorted(in_reads_list))
-        print(sorted(in_assemblies_list))
         if sorted(in_reads_list) == sorted(in_assemblies_list):
             config["samples"] =  format_list(in_reads_list)
         else:
             sys.exit("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
-    
+
+    #elif args.variant_calling:
+
     else:
         ## Case when remove dups should be turned on:
         if config["remove_dups"]:
@@ -671,17 +728,23 @@ def main():
     ## Which snakefile to use:
     if args.standard:
         snakefile = "Snakefile_standard"
+        run_type = "standard"
+        bench_dir = None
 
     elif args.downsample:
         ## Change so that user can combine downsampling target
         if not args.seqkit_path:
             sys.exit("If downsampling mode should be run, please specify a seqkit in-file")
         snakefile = "Snakefile_downsample"
+        run_type = "standard"
+        bench_dir = None
 
     elif args.combine:
         if not args.samples:
             sys.exit("If combine mode should be run, please specify a which samples should be used for combinations")
         snakefile = "Snakefile_combine"
+        run_type = "standard"
+        bench_dir = None
     
     elif args.reference:
         if not args.in_reads or not args.in_assemblies:
@@ -693,6 +756,17 @@ def main():
         if args.pandepth_path == "":
             print("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
         snakefile = "Snakefile_reference"
+        run_type = "standard"
+        bench_dir = None
+    
+    elif args.variant_calling:
+        if not args.benchmark_path:
+            sys.exit("No path to benchmark files given. You can set the path to benchmark files with --benchmark_path")
+        elif not os.path.exists(args.benchmark_path):
+            sys.exit("Path to benchmark files given by --benchmark_path does not exist. Check that the path was spelled correctly and exists")
+        snakefile = "Snakefile_human_vcf"
+        run_type = "human"
+        bench_dir = SingleQuotedScalarString(args.benchmark_path)
 
 
     ## Add DEF file to created directory
@@ -745,7 +819,9 @@ def main():
                         conda_path = "",
                         rerun_triggers = args.rerun_trigger, 
                         updated_rule = update_DEF,
-                        local_run = args.local_run)
+                        local_run = args.local_run,
+                        run_type = run_type,
+                        bench_dir = bench_dir)
 
     elif args.run_snakemake:
         run_snakemake(snake_file = snakefile, 
@@ -756,7 +832,9 @@ def main():
                         conda_path = "",
                         rerun_triggers = args.rerun_trigger,
                         updated_rule = update_DEF,
-                        local_run = args.local_run)
+                        local_run = args.local_run,
+                        run_type = run_type,
+                        bench_dir = bench_dir)
 
 
 if __name__ == "__main__":
