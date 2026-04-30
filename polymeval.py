@@ -11,7 +11,8 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 
 def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False): 
     os.makedirs(dst_path, exist_ok=True)   
-
+    src_path =  os.path.abspath(os.path.join(src_path, "."))
+    
     for rds in os.listdir(src_path):
         if down_list == []:
             down_list = os.listdir(src_path)
@@ -23,14 +24,16 @@ def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False):
                 if not os.path.islink(dst_file):
                     os.symlink(src_file, dst_file)
         else:
-            if rds.endswith("fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
+            if (rds.endswith("fastq.gz") or rds.endswith("fastq")) and (rds.split('.')[0] in down_list or rds in down_list):
                 src_file = os.path.join(os.path.realpath(src_path), rds)
                 dst_file = os.path.join(dst_path, rds)
                 if not os.path.islink(dst_file):
                     os.symlink(src_file, dst_file)
 
 def symlink_all_asm(src_path, dst_path): 
-    os.makedirs(dst_path, exist_ok=True)   
+    os.makedirs(dst_path, exist_ok=True) 
+
+    src_path =  os.path.abspath(os.path.join(src_path, "."))  
 
     for asm in os.listdir(src_path):
         if asm.endswith(".fa") and not asm.endswith(".ec.fa"):
@@ -595,6 +598,7 @@ def main():
         "repeats": [],
         "pandepth_path": [],
         "combo_pairwise" : False,
+        "gzipped": True
     }
 
     ## Additional parameters:
@@ -706,9 +710,9 @@ def main():
     else:
         ## Case when remove dups should be turned on:
         if config["remove_dups"]:
-            fastq_string = ".dup.fastq.gz"
+            fastq_string = [".dup.fastq.gz", ".dup.fastq"]
         else:
-            fastq_string = ".fastq.gz"
+            fastq_string = [".fastq.gz", ".fastq"] 
 
         if args.samples:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
@@ -721,6 +725,13 @@ def main():
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             symlink_all_rds(args.in_reads, path_for_link_rds, [])
             in_reads = os.listdir(path_for_link_rds)
+            gz_id = in_reads[0].split(".")[-1]
+            if gz_id == "gz":
+                fastq_string = fastq_string[0]
+                config["gzipped"] = True
+            else:
+                fastq_string = fastq_string[1]
+                config["gzipped"] = False
             in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
             config["samples"] =  format_list(in_reads_list)
 
