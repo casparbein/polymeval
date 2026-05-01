@@ -724,7 +724,7 @@ def main():
         else:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             symlink_all_rds(args.in_reads, path_for_link_rds, [])
-            in_reads = os.listdir(path_for_link_rds)
+            in_reads = [entry for entry in os.listdir(path_for_link_rds) if os.path.islink(os.path.join(path_for_link_rds, entry))] #in_reads = os.listdir(path_for_link_rds) 
             gz_id = in_reads[0].split(".")[-1]
             if gz_id == "gz":
                 fastq_string = fastq_string[0]
@@ -733,6 +733,7 @@ def main():
                 fastq_string = fastq_string[1]
                 config["gzipped"] = False
             in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
+            print(in_reads_list)
             config["samples"] =  format_list(in_reads_list)
 
 
