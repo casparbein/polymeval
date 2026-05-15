@@ -40,7 +40,7 @@ rule gzip_dedup:
     threads:
         40
     resources:
-        mem_mb = 20000
+        mem_mb = 200000
     conda:
         "../envs/pigz.yaml",
     log:
