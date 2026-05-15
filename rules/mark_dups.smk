@@ -1,7 +1,13 @@
+def get_input_reads(wildcards):
+    if config["gzipped"]:
+        return "raw_reads/{sample}.dup.fastq.gz"
+    else:
+        return "raw_reads/{sample}.dup.fastq"
+
 ## Optional
 rule mark_dups:
     input:
-        reads="raw_reads/{sample}.dup.fastq.gz",
+        reads=get_input_reads,#"raw_reads/{sample}.dup.fastq.gz",
     output:
         temp("raw_reads/{sample}.fastq"),
     threads:
@@ -32,12 +38,14 @@ rule gzip_dedup:
     output:
         "raw_reads/{sample}.fastq.gz",
     threads:
-        1
+        40
     resources:
         mem_mb = 20000
+    conda:
+        "../envs/pigz.yaml",
     log:
         "logs/gzip_dedup/{sample}.log",
     shell:
         """
-        gzip {input}
+        pigz -p {threads} {input}
         """
