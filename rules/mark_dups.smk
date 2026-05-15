@@ -40,12 +40,13 @@ rule gzip_dedup:
     threads:
         40
     resources:
-        mem_mb = 200000
+        mem_mb = 20000
     conda:
         "../envs/pigz.yaml",
     log:
         "logs/gzip_dedup/{sample}.log",
+    localrule: True
     shell:
         """
-        pigz -p {threads} {input}
+        pigz -f -p {threads} {input}
         """
