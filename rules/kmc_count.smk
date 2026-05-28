@@ -25,7 +25,7 @@ rule kmc_count:
         -v \
         -k25 \
         -ci1 \
-        -cs5000 \
+        -cs50000 \
         -t{threads} \
         -m{params.memory} \
         {input} \
@@ -59,7 +59,7 @@ rule kmc_dump_hist:
         transform \
         {params.db} \
         -ci0 \
-        -cx5000 \
+        -cs50000 \
         histogram \
         {output} \
         2> {log}

@@ -17,6 +17,6 @@ rule genomescope:
     log:
         "logs/genomescope/{sample}.log",
     params:
-        extra="--kmer_length 25 --testing -m 4000",
+        extra="--kmer_length 25 --testing -m 50000",
     wrapper:
         "v7.7.0/bio/genomescope"
