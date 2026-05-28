@@ -59,7 +59,6 @@ rule kmc_dump_hist:
         transform \
         {params.db} \
         -ci0 \
-        -cs50000 \
         histogram \
         {output} \
         2> {log}
