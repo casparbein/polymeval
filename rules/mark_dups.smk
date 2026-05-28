@@ -45,7 +45,6 @@ rule gzip_dedup:
         "../envs/pigz.yaml",
     log:
         "logs/gzip_dedup/{sample}.log",
-    localrule: True
     shell:
         """
         pigz -f -p {threads} {input}
