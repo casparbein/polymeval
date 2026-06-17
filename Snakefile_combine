@@ -249,7 +249,8 @@ use rule hifiasm from standard as combine_hifiasm with:
     log:
         "logs/hifiasm/{out}.log",
     params:
-        extra="--primary -l 3 --write-ec " if config["hifieval"] else " --primary -l 3  ",
+        #extra="--primary -l 3 --write-ec " if config["hifieval"] else " --primary -l 3  ",
+        extra=f"--primary -l 3 --write-ec --hg-size {config['hg_size']}" if config["hifieval"] and config["hg_size"] else " --primary -l 3  --write-ec " if config["hifieval"] and not config["hg_size"] else  f" --primary -l 3 --hg-size {config['hg_size']}" if not config["hifieval"] and config["hg_size"] else "--primary -l 3",
 
 use rule get_fasta from standard as combine_get_fasta with:
     input:
