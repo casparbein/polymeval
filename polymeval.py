@@ -459,6 +459,16 @@ def argument_parser():
     '''Whether structural variants should be called and benchmarked with sniffles and truvari.
     ''')
 
+    app.add_argument(
+    "-trc", 
+    "--tandem_repeat_calling",
+    action="store_true",
+    dest="tandem_repeats",
+    default=False,
+    help=
+    '''Whether tandem repeats should be called and benchmarked with trgt and truvari.
+    ''')
+
     # app.add_argument(
     # "-hm", 
     # "--hifiasm",
@@ -637,7 +647,9 @@ def main():
         "repeats": [],
         "pandepth_path": [],
         "combo_pairwise" : False,
-        "gzipped": True
+        "gzipped": True,
+        "structural_variants": False,
+        "tandem_repeats": False
     }
 
     ## Additional parameters:
@@ -689,7 +701,8 @@ def main():
         config["reference_seq"] = SingleQuotedScalarString(args.reference_seq)
 
     if args.colors != "":
-        config["colors"] = SingleQuotedScalarString(args.colors)
+        color_path = os.path.join(os.getcwd(), args.colors)
+        config["colors"] = SingleQuotedScalarString(color_path)
 
     if args.hg_size != "":
         config["hg_size"] = args.hg_size
@@ -705,6 +718,9 @@ def main():
 
     if args.structural_variants:
         config["structural_variants"] = True
+
+    if args.tandem_repeats:
+        config["tandem_repeats"] = True
 
 
     ## Set up directory;

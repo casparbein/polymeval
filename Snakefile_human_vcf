@@ -9,14 +9,16 @@ wildcard_constraints:
     sample = r"|".join(samples),
 
 ## benchmarking reference datasets
-reference_seq = config["benchmark_path"] + "GRCh38_no_alt_analysis_set.fa"
-reference_seq_idx = config["benchmark_path"] + "GRCh38_no_alt_analysis_set.fa.fai"
-reference_seq2 = config["benchmark_path"] + "hs37d5.fa"
-sv_ground_vcf = config["benchmark_path"] + "HG002_SVs_Tier1_v0.6.vcf.gz" 
-sv_ground_bed = config["benchmark_path"] + "HG002_SVs_Tier1_v0.6.bed"
-vcf_benchmark =  config["benchmark_path"] + "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
-vcf_truth_bed = config["benchmark_path"] + "HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
-
+reference_seq = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
+reference_seq_idx = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz.fai"
+reference_seq2 = config["benchmark_path"] + "/hs37d5.fa.gz"
+sv_ground_vcf = config["benchmark_path"] + "/HG002_SVs_Tier1_v0.6.vcf.gz" 
+sv_ground_bed = config["benchmark_path"] + "/HG002_SVs_Tier1_v0.6.bed"
+vcf_benchmark =  config["benchmark_path"] + "/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
+vcf_truth_bed = config["benchmark_path"] + "/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
+tandem_repeats_trgt = config["benchmark_path"] + "/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz"
+tandem_repeats_truvari = config["benchmark_path"] + "/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz"
+tandem_repeats_truvari_bed = config["benchmark_path"] + "/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz"
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():
@@ -25,6 +27,9 @@ def gather_targets():
     ## Optional output (sniffles)
     if config["structural_variants"]:
         all_target.extend(expand("benchmarks/{sample}_truvari_sv/summary.json", sample = samples)),
+    
+    if config["tandem_repeats"]:
+        all_target.extend(expand("benchmarks/{sample}_truvari_tr/refine.variant_summary.json", sample = samples)),
 
     ## Default output (always turned on)
     all_target.append(expand("benchmarks/happy/{sample}_happy/{sample}_results.summary.csv", sample = samples),),
@@ -45,6 +50,10 @@ include: "rules/happy.smk"
 if config["structural_variants"]:
     include: "rules/sniffles.smk"
     include: "rules/truvari.smk"
+
+if config["structural_variants"]:
+    include: "rules/trgt.smk"
+    include: "rules/truvari_tr.smk"
 
 rule all:
     input:
