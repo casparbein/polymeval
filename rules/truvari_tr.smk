@@ -38,7 +38,7 @@ rule run_truvari_tr_refine:
         index = "variants/{sample}_trgt.sorted.norm.vcf.gz.tbi",
         input_sum = "benchmarks/{sample}_truvari_tr/summary.json",
     output:
-        "benchmarks/{sample}_truvari_tr/phab_bench/summary.json"
+        "benchmarks/{sample}_truvari_tr/refine.variant_summary.json"
     threads:
         1
     resources:
