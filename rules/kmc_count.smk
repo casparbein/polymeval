@@ -16,8 +16,10 @@ rule kmc_count:
         memory=40
     log:
         "logs/kmc_count/{sample}.log",
-    envmodules:
-        "kmc/3.2.4"
+    #envmodules:
+    #    "kmc/3.2.4"
+    conda:
+        "../envs/kmc.yaml"
     shell:
         """
         mkdir -p {params.tmp_dir};
@@ -51,8 +53,10 @@ rule kmc_dump_hist:
         memory=40
     log:
         "logs/kmc_dump_hist/{sample}.log",
-    envmodules:
-        "kmc/3.2.4"
+    #envmodules:
+    #    "kmc/3.2.4"
+    conda:
+        "../envs/kmc.yaml"
     shell:
         """
         kmc_tools \
@@ -80,8 +84,10 @@ rule kmc_union:
         kmc_script_path = config["kmc_prep"] #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_union/log",
-    envmodules:
-        "kmc/3.2.4"
+    #envmodules:
+    #    "kmc/3.2.4"
+    conda:
+        "../envs/kmc.yaml"
     shell:
         """
         python3 {params.kmc_script_path} \
@@ -111,8 +117,10 @@ rule kmc_isec:
         kmc_script_path = config["kmc_prep"], #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_isec/log",
-    envmodules:
-        "kmc/3.2.4"
+    #envmodules:
+    #    "kmc/3.2.4"
+    conda:
+        "../envs/kmc.yaml"
     shell:
         """
         python3 {params.kmc_script_path} \
@@ -142,8 +150,10 @@ rule kmc_diff:
         kmc_script_path = config["kmc_prep"], #../scripts/prepare_kmc.py \
     log:
         "logs/kmc_diff/{sample}.log",
-    envmodules:
-        "kmc/3.2.4"
+    #envmodules:
+    #    "kmc/3.2.4"
+    conda:
+        "../envs/kmc.yaml"
     shell:
         """
         python3 {params.kmc_script_path} \
