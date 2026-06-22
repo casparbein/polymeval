@@ -335,8 +335,8 @@ python3 ~/polymeval/polymeval.py \
 --benchmark_path path/to/human_benchmark_data \
 --directory_name test_human_vcf \
 --input_reads human_reads/ \
---structural_variant_calling ## to benchmark structural variants \
---tandem_repeat_calling ## to benchmark tandem repeats \
+--structural_variant_calling \## to benchmark structural variants
+--tandem_repeat_calling \## to benchmark tandem repeats
 --dry_run
 ```
 
