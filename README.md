@@ -311,12 +311,14 @@ Grey density on top is reference-wide GC content density.<br/>
 
 Important for variant calling benchmarking is to set up a directory where the relevant files are stored.
 Currently, the following files are required to run this benchmarking:<br/>
-[hg38 reference genome](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz) (index it with samtools index)<br/>
+[hg38 reference genome](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip)<br/>
 [hg38 regions bed for happy](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed)<br/>
-[hg37 for structural variant calling](https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz)<br/>
+[hg37 for structural variant calling](https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip) <br/>
 [hg37 regions bed for truvari](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.bed)<br/>
 [SNV/InDel vcf gold standard set of GIAB calls against hg38](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz)<br/>
-[SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.g)<br/>
+[SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz)<br/>
+[Tandem Repeat gold standard set of GIAB TR calls against hg38 (vcf)](should be indexed with tabix -p vcf before) (https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz)
+[Tandem Repeat gold standard set of GIAB TR calls against hg38 (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz)
 
 Save them somewhere, like:
 ```bash
@@ -325,15 +327,16 @@ cd human_benchmark_data
 wget https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz ## etc
 ```
 
-Now, you just have to provide that path to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
+Now, you just have to provide that path (absolute) to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
 Run the pipeline on HG002-amplified reads (let's say they are stored in human_reads) like so:
 ```bash
 python3 ~/polymeval/polymeval.py \
 --variant_calling_benchmarks \
---benchmark_path human_benchmark_data \
+--benchmark_path path/to/human_benchmark_data \
 --directory_name test_human_vcf \
 --input_reads human_reads/ \
 --structural_variant_calling ## to benchmark structural variants \
+--tandem_repeat_calling ## to benchmark tandem repeats \
 --dry_run
 ```
 
