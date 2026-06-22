@@ -1,10 +1,19 @@
 import argparse
+import logging
 import sys
 import os
 from ruamel.yaml import load_all, YAML, comments
 from ruamel.yaml.scalarstring import SingleQuotedScalarString, DoubleQuotedScalarString
 import subprocess
+import filecmp
+import signal
+
+## import helper script
 import get_downsample_rates
+
+## Logging
+logger = logging.getLogger("polymeval")
+logging.basicConfig(level=logging.INFO, format="[%(levelname)-8s] %(message)s")
 
 ## Absolute paths on file system
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
@@ -130,9 +139,11 @@ def run_snakemake(snake_file,
     elif use_conda and conda_path:
         cmd += ['--use-conda', '--conda-prefix', conda_path]
     elif not use_conda and conda_path:
-        sys.exit("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
+        logger.critical("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
+        sys.exit(1)
+        #sys.exit("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
     elif not use_conda and not conda_path:
-        print("WARNING: --use-conda is deactivated and no conda path is found. Most likely the pipeline will fail, unless all tools are installed on the user's machine and availabe in $PATH")
+        logger.warning("WARNING: --use-conda is deactivated and no conda path is found. Most likely the pipeline will fail, unless all tools are installed on the user's machine and availabe in $PATH")
 
     if dryrun:
         cmd.append('--dry-run')
@@ -144,15 +155,43 @@ def run_snakemake(snake_file,
         default_snakemake_args = ["--rerun-incomplete", "--keep-going"]
         cmd += default_snakemake_args
 
-    print_cmd = " ".join(cmd)
-    print("The following command will be run for the polymeval pipeline: {}".format(print_cmd))
+    #print_cmd = " ".join(cmd)
+    #print("The following command will be run for the polymeval pipeline: {}".format(print_cmd))
 
     ## Run pipeline proper
+    #try:
+    #    result1 = subprocess.run(cmd, check=True)
+    #    print(result1.stdout)
+    #except subprocess.CalledProcessError as e:
+    #    print(f"Command failed with return code {e.returncode}")
+
+    print_cmd = " ".join(cmd)
+    logger.info("The following command will be run for the polymeval pipeline: %s", print_cmd)
+
+
+    result1 = subprocess.Popen(cmd,preexec_fn=os.setpgrp)
+    logger.info(result1.stdout)
+
     try:
-        result1 = subprocess.run(cmd, check=True)
-        print(result1.stdout)
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed with return code {e.returncode}")
+        # Wait for Snakemake to finish normally
+        result1.wait()
+    except KeyboardInterrupt:
+        # 2. Wrapper catches the Ctrl+C
+        logger.info("Intercepted Ctrl+C. Forwarding to Snakemake...")
+        
+        # 3. Send SIGINT specifically to the Snakemake process group
+        # We use the negative PID to signal the entire group (Snakemake + its workers)
+        os.killpg(result1.pid, signal.SIGINT)
+        
+        logger.info("Waiting for Snakemake to finish Slurm/cleanup (up to several minutes)...")
+        
+        # 4. Stay here until Snakemake exits. 
+        # We ignore further KeyboardInterrupts during this specific wait.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        result1.wait()
+        
+        logger.info(f"Snakemake has exited (Code: {result1.returncode}).")
+
 
 DESCRIPTION = '''
 '''
@@ -574,13 +613,13 @@ def main():
 
     ## Which mode to run
     if args.standard:
-        print("Polymeval will be run in standard mode (raw input reads)")
+        logger.info("Polymeval will be run in standard mode (raw input reads)")
     elif args.downsample:
-        print("Polymeval will be run in downsample mode (reads will be downsampled first)")
+        logger.info("Polymeval will be run in downsample mode (reads will be downsampled first)")
     elif args.combine:
-        print("Polymeval will be run in combine mode (reads will be downsampled and then combined)")
+        logger.info("Polymeval will be run in combine mode (reads will be downsampled and then combined)")
     elif args.combine:
-        print("Polymeval will be run in reference mode (reads and assemblies will be compared to a reference assembly)")
+        logger.info("Polymeval will be run in reference mode (reads and assemblies will be compared to a reference assembly)")
 
     ## Create the YAML structure as a python dictionary.
     config = {
@@ -703,8 +742,8 @@ def main():
         if sorted(in_reads_list) == sorted(in_assemblies_list):
             config["samples"] =  format_list(in_reads_list)
         else:
-            sys.exit("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
-
+            logger.critical("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
+            sys.exit(1)
     #elif args.variant_calling:
 
     else:
@@ -733,7 +772,7 @@ def main():
                 fastq_string = fastq_string[1]
                 config["gzipped"] = False
             in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
-            print(in_reads_list)
+            #print(in_reads_list)
             config["samples"] =  format_list(in_reads_list)
 
 
@@ -746,36 +785,42 @@ def main():
     elif args.downsample:
         ## Change so that user can combine downsampling target
         if not args.seqkit_path:
-            sys.exit("If downsampling mode should be run, please specify a seqkit in-file")
+            logger.critical("If downsampling mode should be run, please specify a seqkit in-file")
+            sys.exit(1)
         snakefile = "Snakefile_downsample"
         run_type = "standard"
         bench_dir = None
 
     elif args.combine:
         if not args.samples:
-            sys.exit("If combine mode should be run, please specify a which samples should be used for combinations")
+            logger.critical("If combine mode should be run, please specify a which samples should be used for combinations")
+            sys.exit(1)
         snakefile = "Snakefile_combine"
         run_type = "standard"
         bench_dir = None
     
     elif args.reference:
         if not args.in_reads or not args.in_assemblies:
-            sys.exit("No reads or assemblies missing! Please specify both with --input_reads and --input_assemblies")
+            logger.critical("No reads or assemblies missing! Please specify both with --input_reads and --input_assemblies")
+            sys.exit(1)
         if args.reference_seq == "":
-            sys.exit("A reference genome sequence has to be provided to --reference_seq in order to run the analysis.")
+            logger.critical("A reference genome sequence has to be provided to --reference_seq in order to run the analysis.")
+            sys.exit(1)
         if not args.pandepth:
-            print("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
+            logger.warning("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
         if args.pandepth_path == "":
-            print("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
+            logger.warning("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
         snakefile = "Snakefile_reference"
         run_type = "standard"
         bench_dir = None
     
     elif args.variant_calling:
         if not args.benchmark_path:
-            sys.exit("No path to benchmark files given. You can set the path to benchmark files with --benchmark_path")
+            logger.critical("No path to benchmark files given. You can set the path to benchmark files with --benchmark_path")
+            sys.exit(1)
         elif not os.path.exists(args.benchmark_path):
-            sys.exit("Path to benchmark files given by --benchmark_path does not exist. Check that the path was spelled correctly and exists")
+            logger.critical("Path to benchmark files given by --benchmark_path does not exist. Check that the path was spelled correctly and exists")
+            sys.exit(1)
         snakefile = "Snakefile_human_vcf"
         run_type = "human"
         bench_dir = SingleQuotedScalarString(args.benchmark_path)
@@ -797,15 +842,14 @@ def main():
         with open(path_for_DEF, 'r') as file:
             current_def_file = current_yaml.load(file)
         if current_def_file == config:
-        #print(current_def_file == config)
-            print("Info: This command has been run before. The DEF.yaml file will be overwritten, but its contents will not change.")
+            logger.info("This command has been run before. The DEF.yaml file will be overwritten, but its contents will not change.")
 
         elif current_def_file != config and args.force_run == False:
-        #print(current_def_file == config)
-            sys.exit("DEF.yaml already exists in current working directory :{}, its content differs from your input commands. If you want to force a run in this working directory, enable -f/--force_run".format(path_for_DEF))
-    
+            logger.critical("DEF.yaml already exists in current working directory :{}, its content differs from your input commands. If you want to force a run in this working directory, enable -f/--force_run".format(path_for_DEF))
+            sys.exit(1)
+
         elif current_def_file != config and args.force_run:
-            print("""
+            logger.warning("""
     WARNING: There is an existing polymeval directory in the specified working directory: {}. 
     The commands with which it was initialized differ from the currently invoked commands, 
     but the run will be FORCED with the currently enabled commands.
@@ -820,7 +864,7 @@ def main():
         yaml.preserve_quotes = True
         yaml.dump(config, yaml_file)
 
-    print(f"YAML configuration written to DEF.yaml")
+    logger.info(f"YAML configuration written to DEF.yaml")
 
     if args.dry_run:
         run_snakemake(snake_file = snakefile, 
