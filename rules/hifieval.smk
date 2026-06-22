@@ -37,11 +37,30 @@ rule hifieval_align_ec:
     wrapper:
         "v7.6.0/bio/minimap2/aligner"
 
+## Normally optional: If read file contains empty reads (Revio demo from PacBio does), hifieval will choke on this:
+rule remove_empty:
+    input:
+        ec = "alignments/{sample}.ec.paf",
+        raw = "alignments/{sample}.raw.paf",
+    output:
+        ec = temp("alignments/{sample}.ec.clean.paf"),
+        raw = temp("alignments/{sample}.raw.clean.paf"),
+    log: 
+        "logs/remove_empty/{sample}.log",
+    threads: 1
+    resources:
+        mem_mb = 10000
+    shell:
+        """
+        awk '$5 != "*" {{print}}' {input.ec} > {output.ec};
+        awk '$5 != "*" {{print}}' {input.raw} > {output.raw};
+        """
+
 ## Run Hifieval
 rule hifieval_compare:
     input:
-        raw ="alignments/{sample}.raw.paf", 
-        ec ="alignments/{sample}.ec.paf", 
+        raw ="alignments/{sample}.raw.clean.paf", 
+        ec ="alignments/{sample}.ec.clean.paf", 
     output:
         metric = "hifieval/{sample}.metric.eval.tsv",
         rdl_eval = "hifieval/{sample}.rdlvl.eval.tsv",
