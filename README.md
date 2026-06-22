@@ -316,8 +316,8 @@ Currently, the following files are required to run this benchmarking:<br/>
 [hg37 for structural variant calling](https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip) <br/>
 [hg37 regions bed for truvari](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.bed)<br/>
 [SNV/InDel vcf gold standard set of GIAB calls against hg38](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz)<br/>
-[SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz)<br/>
-[Tandem Repeat gold standard set of GIAB TR calls against hg38 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz) (should be indexed with tabix -p vcf before)<br/>
+[SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
+[Tandem Repeat gold standard set of GIAB TR calls against hg38 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
 [Tandem Repeat gold standard set of GIAB TR calls against hg38 (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz)<br/>
 
 Save them somewhere, like:
