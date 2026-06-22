@@ -1,7 +1,15 @@
 import argparse
+import logging
 from collections import defaultdict
 from itertools import combinations
 import sys
+
+## Logging
+logger = logging.getLogger("downsample_rates")
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("[%(levelname)-8s] %(message)s"))
+logger.addHandler(handler)
+logger.propagate = False  # ← critical: stops messages bubbling up to root logger
 
 DESCRIPTION = ""
 
@@ -73,7 +81,7 @@ def adjust_min_max(readset_dict, restrict, min_frac):
     max_read_set = max(readset_dict, key=readset_dict.get)
 
     if restrict and readset_dict[min_read_set] < readset_dict[max_read_set] / min_frac:
-        print("WARNING: Minimum read set {} is smaller ({} nts) than 1/{} of the maximum {} ({} nts), setting minimum to the next suitable minimum".format(min_read_set, readset_dict[min_read_set], min_frac, max_read_set, readset_dict[max_read_set]))
+        logger.warning("WARNING: Minimum read set {} is smaller ({} nts) than 1/{} of the maximum {} ({} nts), setting minimum to the next suitable minimum".format(min_read_set, readset_dict[min_read_set], min_frac, max_read_set, readset_dict[max_read_set]))
 
         readset_dict.pop(min_read_set)
 
@@ -109,7 +117,7 @@ def read_seq_stats(path, restrict,min_frac):
     min_read_set_size = readset_dict[min_read_set]
 
     ## Print which read set is smallest
-    print('{} was found to be the smallest input read set with {} sequenced nucleotides'.format(min_read_set, min_read_set_size))
+    logger.info('{} was found to be the smallest input read set with {} sequenced nucleotides'.format(min_read_set, min_read_set_size))
 
     ## Write output to list and string for donwstream processing
     samples = [read_set for read_set in readset_dict.keys() if read_set != min_read_set]
@@ -123,24 +131,26 @@ def read_seq_stats(path, restrict,min_frac):
 
 def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pairwise_single=False):
     number_combos = len(read_sets)
-    print('{} combinations will be run with {}'.format(number_combos, read_sets))
+    logger.info('{} combinations will be run with {}'.format(number_combos, read_sets))
 
     if pairwise_single:
-        print("Only pairwise combinations will be run")
+        logger.info("Only pairwise combinations will be run")
 
     if outlier:
-        print("{} is defined as an outlier read set".format(outlier))
+        logger.info("{} is defined as an outlier read set".format(outlier))
 
     if minimum:
-        print("minimum downsampling target is {}".format(minimum))
+        logger.info("minimum downsampling target is {}".format(minimum))
 
     ## Cases than cannot be handled
     max_combos = 10 if pairwise_single else 5
     if number_combos > max_combos:
-        sys.exit(f"You can at most combine {max_combos} read sets")
+        logger.critical(f"You can at most combine {max_combos} read sets")
+        sys.exit(1)
 
     if number_combos < 2:
-        sys.exit("There are fewer than one read sets available, please inset at least two read sets to be combined/downsampled")
+        logger.critical("There are fewer than one read sets available, please inset at least two read sets to be combined/downsampled")
+        sys.exit(1)
 
     new_readset_dict = {key: readset_dict[key] for key in read_sets}
     new_min_read_set = min(new_readset_dict, key=new_readset_dict.get)
@@ -242,7 +252,7 @@ def main():
     if args.combinations:
         combinations = args.combinations.split(',')
     else:
-        print("No combinations are to be done, instead just downsample all reads to the mininum input")
+        logger.info("No combinations are to be done, instead just downsample all reads to the mininum input")
 
     readset_dict, samples, removed_samples, downsample_nucs = read_seq_stats(seqkit, restrict)
     
