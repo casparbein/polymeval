@@ -32,7 +32,7 @@ ENV PATH="/opt/pandepth/bin:${PATH}"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libz1g \
+        zlib1g \
         libstdc++6 \
         procps && \
     rm -rf /var/lib/apt/lists/* && \
