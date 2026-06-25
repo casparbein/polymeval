@@ -32,13 +32,6 @@ compleasm download -L compleasm_libs --odb odb12 saccharomycetes_odb12
 ## The library path is now ~/compleasm_libs
 ```
 
--> One optional step is to use KMC to count k-mers. Since KMC is not available through conda, if you want to include this step, you have to download and install [KMC](https://github.com/refresh-bio/KMC) yourself. 
-Otherwise, just skip this step.
-
--> For most of the analysis done in reference mode, PanDepth has to be installed on the system (anyway highly recommended because it is very fast).
-There exists a pre-compiled binary that one only has to download and unzip, otherwise it can be downloaded and installed from github. 
-Instructions can be found here: [PanDepth](https://github.com/HuiyangYu/PanDepth). Once installed, the user can provide the absolute path to PanDepth through polymeval (`--pandepth_path`).
-
 Polymeval is implemented with the slurm scheduling system. If you do not use slurm, you can run the pipeline locally using `--local_run`, but some of the jobs create large files and need cosiderable amounts of both RAM and storage space.
 
 
