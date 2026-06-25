@@ -18,9 +18,26 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)-8s] %(message)s")
 ## Absolute paths on file system
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 
+## Helper functions for mounting apptainer paths:
+def get_mount_point(path):
+    path = os.path.realpath(os.path.abspath(path))
+    while not os.path.ismount(path):
+        path = os.path.dirname(path)
+    return path
+
+def get_apptainer_bind_args(paths):
+    mount_points = set()
+    for path in paths:
+        if path and os.path.exists(path):
+            mp = get_mount_point(path)
+            if mp != '/':  # skip root
+                mount_points.add(mp)
+    return " ".join(f"-B {mp}:{mp}" for mp in mount_points)
+
+
 def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False): 
     os.makedirs(dst_path, exist_ok=True)   
-    src_path =  os.path.abspath(os.path.join(src_path, "."))
+    src_path =  os.path.abspath(src_path)
     
     for rds in os.listdir(src_path):
         if down_list == []:
@@ -42,7 +59,7 @@ def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False):
 def symlink_all_asm(src_path, dst_path): 
     os.makedirs(dst_path, exist_ok=True) 
 
-    src_path =  os.path.abspath(os.path.join(src_path, "."))  
+    src_path =  os.path.abspath(src_path) 
 
     for asm in os.listdir(src_path):
         if asm.endswith(".fa") and not asm.endswith(".ec.fa"):
@@ -55,26 +72,30 @@ def get_snakefile_path(name="Snakefile"):
     snakefile = os.path.join(base_dir, name)
     return snakefile
 
-def get_cluster_configfile_path(name="config.yaml", run_type="standard", bench_dir = None):
-    if run_type == "standard":
-        cluster_configfile =  os.path.join(base_dir, "prof")
-    elif run_type == "human":
-        cluster_configfile =  os.path.join(base_dir, "prof_human")
+# def get_cluster_configfile_path(name="config.yaml", run_type="standard", bench_dir = None):
+#     if run_type == "standard":
+#         cluster_configfile =  os.path.join(base_dir, "prof")
+#     elif run_type == "human":
+#         cluster_configfile =  os.path.join(base_dir, "prof_human")
 
-        current_yaml = YAML()
+#         current_yaml = YAML()
 
-        with open(cluster_configfile + "/config.yaml", "r") as yaml_file:
-            current_def_file = current_yaml.load(yaml_file)
-            current_def_file["apptainer-args"] = f"-B ./alignments:/input -B {bench_dir}:/reference -B ./variants:/output"
+#         with open(cluster_configfile + "/config.yaml", "r") as yaml_file:
+#             current_def_file = current_yaml.load(yaml_file)
+#             current_def_file["apptainer-args"] = f"-B ./alignments:/input -B {bench_dir}:/reference -B ./variants:/output"
 
-        with open(cluster_configfile + "/config.yaml", "w") as yaml_file_new:
-            yaml = YAML()
-            yaml.width = 4096
-            yaml.boolean_representation = ['False', 'True']
-            yamldefault_flow_style = False
-            yaml.preserve_quotes = True
-            yaml.dump(current_def_file, yaml_file_new)
+#         with open(cluster_configfile + "/config.yaml", "w") as yaml_file_new:
+#             yaml = YAML()
+#             yaml.width = 4096
+#             yaml.boolean_representation = ['False', 'True']
+#             yaml.default_flow_style = False
+#             yaml.preserve_quotes = True
+#             yaml.dump(current_def_file, yaml_file_new)
 
+#     return cluster_configfile
+
+def get_cluster_configfile_path(name="config.yaml"):
+    cluster_configfile =  os.path.join(base_dir, "prof")
     return cluster_configfile
 
 def get_kmc_prep_path(name="prepare_kmc.py"):
@@ -98,7 +119,8 @@ def run_snakemake(snake_file,
                   updated_rule = False,
                   use_conda = True,
                   local_run = False,
-                  bench_dir = None):
+                  use_apptainer = False,
+                  apptainer_args = None):
     
     ## move to the working directory
     current_wd =  os.getcwd()
@@ -110,9 +132,7 @@ def run_snakemake(snake_file,
     if not os.path.exists(snakemake_dir):
         os.makedirs(snakemake_dir)
     
-    #snake_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
-    #config_file = 
-
+    ## Change to snakemake dir as wd
     os.chdir(snakemake_dir)
     
     ## Run snakemake from the command line
@@ -122,16 +142,13 @@ def run_snakemake(snake_file,
     cmd += ['--snakefile', snake_file]
     
     if not local_run:
-        config_file = get_cluster_configfile_path("config.yaml", run_type, bench_dir)
+        config_file = get_cluster_configfile_path("config.yaml")
         cmd += ['--profile', config_file]
     else:
         ## Add these arguments to CLI so users can set them
         cmd += ['--cores', '4', '--max-threads', '4', '--resources', 'mem_mb=30000']
 
     cmd += ['--directory', snakemake_dir]
-
-    ## no lock to allow reruns
-    cmd += ['--nolock'] 
 
     if use_conda and not conda_path:
         conda_path = os.path.join(base_dir, ".snakemake/conda")
@@ -144,6 +161,16 @@ def run_snakemake(snake_file,
         #sys.exit("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
     elif not use_conda and not conda_path:
         logger.warning("WARNING: --use-conda is deactivated and no conda path is found. Most likely the pipeline will fail, unless all tools are installed on the user's machine and availabe in $PATH")
+
+    if use_apptainer:
+        apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
+        cmd += ['--use-apptainer', '--apptainer-prefix', apptainer_path]
+        if apptainer_args:
+            cmd += ['--apptainer-args', apptainer_args]
+
+    #if use_apptainer:
+    #    apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
+    #    cmd += ['--use-apptainer','--apptainer-prefix', apptainer_path, '--apptainer-args', f'"{apptainer_args}"']
 
     if dryrun:
         cmd.append('--dry-run')
@@ -194,6 +221,7 @@ def run_snakemake(snake_file,
 
 
 DESCRIPTION = '''
+polymeval - a snakemake pipeline to streamline benchmarking and comparing PacBio HiFi datasets amplified with different polymerases.
 '''
 
 def argument_parser():
@@ -356,7 +384,7 @@ def argument_parser():
     default="",
     type=str,
     help=
-    '''Absolute path to a tsv file listing sample names in column 1 and 
+    '''Path to a tsv file listing sample names in column 1 and 
     desired colors (in hexadecimal code or R notation) in column2. Can be used to add colors to the output plots.
     If not provided, will automatically create a color scale in R.
     ''')
@@ -446,7 +474,7 @@ def argument_parser():
     dest="benchmark_path",
     default=None,
     help=
-    '''Absolute path to where benchmark files for human variant calling are stored.
+    '''Path to where benchmark files for human variant calling are stored.
     ''')
 
     app.add_argument(
@@ -628,7 +656,7 @@ def main():
         logger.info("Polymeval will be run in downsample mode (reads will be downsampled first)")
     elif args.combine:
         logger.info("Polymeval will be run in combine mode (reads will be downsampled and then combined)")
-    elif args.combine:
+    elif args.reference:
         logger.info("Polymeval will be run in reference mode (reads and assemblies will be compared to a reference assembly)")
 
     ## Create the YAML structure as a python dictionary.
@@ -654,7 +682,10 @@ def main():
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:
-        config["path_to_seqkit"] =  os.path.abspath(args.seqkit_path)
+        seqkit_path = os.path.abspath(args.seqkit_path)
+        config["path_to_seqkit"] =  SingleQuotedScalarString(seqkit_path)
+    else:
+        seqkit_path = None
 
     if (args.combine or args.downsample) and args.outlier:
         config["outlier"] = SingleQuotedScalarString(args.outlier)
@@ -676,7 +707,10 @@ def main():
         config["compleasm_db"] = SingleQuotedScalarString(args.compleasm_db)
 
     if args.compleasm_db_path:
-        config["compleasm_db_path"] = SingleQuotedScalarString(args.compleasm_db_path)
+        compleasm_db_path = os.path.abspath(args.compleasm_db_path)
+        config["compleasm_db_path"] = SingleQuotedScalarString(compleasm_db_path)
+    else:
+        compleasm_db_path = None
 
     if args.kmc:
         config["kmc"] = True
@@ -695,14 +729,22 @@ def main():
         config["remove_dups"] = True
 
     if args.pandepth_path != "":
-        config["pandepth_path"] = SingleQuotedScalarString(args.pandepth_path)
+        pandepth_path = os.path.abspath(args.pandepth_path)
+        config["pandepth_path"] = SingleQuotedScalarString(pandepth_path)
+    else:
+        pandepth_path = None
 
     if args.reference_seq != "":
-        config["reference_seq"] = SingleQuotedScalarString(args.reference_seq)
+        reference_path = os.path.abspath(args.reference_seq)
+        config["reference_seq"] = SingleQuotedScalarString(reference_path)
+    else:
+        reference_path = None
 
     if args.colors != "":
-        color_path = os.path.join(os.getcwd(), args.colors)
+        color_path = os.path.abspath(args.colors)
         config["colors"] = SingleQuotedScalarString(color_path)
+    else:
+        color_path = None
 
     if args.hg_size != "":
         config["hg_size"] = args.hg_size
@@ -714,7 +756,10 @@ def main():
         config["seed"] = int(args.rasusa_seed)
 
     if args.benchmark_path:
-        config["benchmark_path"] = args.benchmark_path
+        benchmark_path = os.path.abspath(args.benchmark_path)
+        config["benchmark_path"] = SingleQuotedScalarString(benchmark_path)
+    else:
+        benchmark_path = None
 
     if args.structural_variants:
         config["structural_variants"] = True
@@ -722,6 +767,10 @@ def main():
     if args.tandem_repeats:
         config["tandem_repeats"] = True
 
+    ## get mounts for apptainer (if applicable):
+    #external_paths = [pandepth_path, benchmark_path, reference_path, seqkit_path, color_path]
+    #bind_args = get_apptainer_bind_args([p for p in external_paths if p])
+    #logger.info(bind_args)
 
     ## Set up directory;
     dest_path = os.path.join(os.getcwd(), args.directory_name)
@@ -780,6 +829,13 @@ def main():
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             symlink_all_rds(args.in_reads, path_for_link_rds, [])
             in_reads = [entry for entry in os.listdir(path_for_link_rds) if os.path.islink(os.path.join(path_for_link_rds, entry))] #in_reads = os.listdir(path_for_link_rds) 
+
+            ## Catch exceptions here
+            if not in_reads:
+                logger.critical(
+                    "No read files were found in %s. Check that --input_reads points to the correct directory and that files end in .fastq.gz or .fastq.", path_for_link_rds)
+                sys.exit(1)
+
             gz_id = in_reads[0].split(".")[-1]
             if gz_id == "gz":
                 fastq_string = fastq_string[0]
@@ -795,8 +851,6 @@ def main():
     ## Which snakefile to use:
     if args.standard:
         snakefile = "Snakefile_standard"
-        run_type = "standard"
-        bench_dir = None
 
     elif args.downsample:
         ## Change so that user can combine downsampling target
@@ -804,16 +858,12 @@ def main():
             logger.critical("If downsampling mode should be run, please specify a seqkit in-file")
             sys.exit(1)
         snakefile = "Snakefile_downsample"
-        run_type = "standard"
-        bench_dir = None
 
     elif args.combine:
         if not args.samples:
             logger.critical("If combine mode should be run, please specify a which samples should be used for combinations")
             sys.exit(1)
         snakefile = "Snakefile_combine"
-        run_type = "standard"
-        bench_dir = None
     
     elif args.reference:
         if not args.in_reads or not args.in_assemblies:
@@ -827,8 +877,6 @@ def main():
         if args.pandepth_path == "":
             logger.warning("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
         snakefile = "Snakefile_reference"
-        run_type = "standard"
-        bench_dir = None
     
     elif args.variant_calling:
         if not args.benchmark_path:
@@ -838,8 +886,6 @@ def main():
             logger.critical("Path to benchmark files given by --benchmark_path does not exist. Check that the path was spelled correctly and exists")
             sys.exit(1)
         snakefile = "Snakefile_human_vcf"
-        run_type = "human"
-        bench_dir = SingleQuotedScalarString(args.benchmark_path)
 
 
     ## Add DEF file to created directory
@@ -882,6 +928,22 @@ def main():
 
     logger.info(f"YAML configuration written to DEF.yaml")
 
+    ## Whether apptainer should be used:
+    if args.variant_calling or args.reference:
+        use_apptainer = True
+    else:
+        use_apptainer = False
+
+    ## get apptainer arguments
+    if args.variant_calling:
+        apptainer_args = f"-B ./alignments:/input -B {benchmark_path}:/reference -B ./variants:/output"
+    elif args.reference:
+        apptainer_args = get_apptainer_bind_args([
+            args.reference_seq,
+        ])
+    else:
+        apptainer_args = None
+
     if args.dry_run:
         run_snakemake(snake_file = snakefile, 
                         config_file = None, 
@@ -893,7 +955,9 @@ def main():
                         updated_rule = update_DEF,
                         local_run = args.local_run,
                         run_type = run_type,
-                        bench_dir = bench_dir)
+                        bench_dir = bench_dir,
+                        use_apptainer = use_apptainer,
+                        apptainer_args = apptainer_args)
 
     elif args.run_snakemake:
         run_snakemake(snake_file = snakefile, 
@@ -906,7 +970,9 @@ def main():
                         updated_rule = update_DEF,
                         local_run = args.local_run,
                         run_type = run_type,
-                        bench_dir = bench_dir)
+                        bench_dir = bench_dir,
+                        use_apptainer = use_apptainer,
+                        apptainer_args = apptainer_args)
 
 
 if __name__ == "__main__":
