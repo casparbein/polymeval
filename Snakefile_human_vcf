@@ -51,7 +51,7 @@ if config["structural_variants"]:
     include: "rules/sniffles.smk"
     include: "rules/truvari.smk"
 
-if config["structural_variants"]:
+if config["tandem_repeats"]:
     include: "rules/trgt.smk"
     include: "rules/truvari_tr.smk"
 
