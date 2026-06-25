@@ -1,6 +1,0 @@
-name: pandepth
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-    - pandepth=5.1.0
