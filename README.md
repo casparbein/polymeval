@@ -72,8 +72,8 @@ This way, dataset-specific contig breaks and their underlying causes can be inve
 3. map dataset-specific assemblies to reference (with minimap2, creating paf output files)
 4. determine the amount of chimeric reads in the dataset (reading samtools-flags from bam files in R). *Future implementation*: detect chimeric reads with [Breakinator](https://github.com/jheinz27/breakinator)
 5. identify contig breaks relative to reference (with an R script using the PAF-reading function from [SVbyEye](https://github.com/daewoooo/SVbyEye))
-6. (optional) determine coverage against reference (with [PanDepth](https://github.com/HuiyangYu/PanDepth))
-7. (optional) create summary plots displaying how coverage, GC content and contig breaks are related (R scripts)
+6. determine coverage against reference (with [PanDepth](https://github.com/HuiyangYu/PanDepth))
+7. create summary plots displaying how coverage, GC content and contig breaks are related (R scripts)
 
 All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format) and, for reference mode, reference and dataset specific assemblies (in .fa format).
 
@@ -320,7 +320,7 @@ cd human_benchmark_data
 wget https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz ## etc
 ```
 
-Now, you just have to provide that path (absolute) to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
+Now, you just have to provide that path to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
 Run the pipeline on HG002-amplified reads (let's say they are stored in human_reads) like so:
 ```bash
 python3 ~/polymeval/polymeval.py \
