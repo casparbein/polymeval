@@ -1,5 +1,5 @@
-#def hifieval_output(wilcards):
-#    if 
+samtools_wrapper = f"{wrapper_versions['samtools']}/bio/samtools/faidx"
+hifiasm_wrapper = f"{wrapper_versions['hifiasm']}/bio/hifiasm"
 
 ## Polymerase-specific assembly with hifiasm
 rule hifiasm:
@@ -30,7 +30,7 @@ rule hifiasm:
     resources:
         mem_mb=400000,
     wrapper:
-       f"{wrapper_versions['hifiasm']}/bio/hifiasm"
+       hifiasm_wrapper
 
 
 ## Get Fasta file from gfa
@@ -57,4 +57,4 @@ rule samtools_faidx:
     params:
         extra="",
     wrapper:
-        f"{wrapper_versions['samtools']}/bio/samtools/faidx"
+        samtools_wrapper

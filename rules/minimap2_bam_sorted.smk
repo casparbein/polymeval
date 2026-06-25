@@ -1,3 +1,5 @@
+minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+
 ## align raw reads with minimap2, sort, convert to bam and index
 rule minimap2_bam_sorted:
     input:
@@ -16,4 +18,4 @@ rule minimap2_bam_sorted:
         mem_mb = 200000
     threads: 50
     wrapper:
-       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+       minimap_wrapper

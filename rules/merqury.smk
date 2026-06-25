@@ -1,3 +1,5 @@
+meryl_wrapper =  f"{wrapper_versions['meryl']}/bio/meryl/count"
+
 ## Run meryl kmer counting for merqury 
 rule meryl_count:
     input:
@@ -13,7 +15,7 @@ rule meryl_count:
     resources:
         mem_mb=40000,
     wrapper:
-        f"{wrapper_versions['meryl']}/bio/meryl/count"
+        meryl_wrapper
 
 ## Run Merqury Assembly quality evaluation
 rule run_merqury:

@@ -676,7 +676,7 @@ def main():
         "combo_pairwise" : False,
         "gzipped": True,
         "structural_variants": False,
-        "tandem_repeats": False
+        "tandem_repeats": False,
         "wrapper_versions": {
             "meryl":"v9.4.2",
             "minimap":"v9.9.0",

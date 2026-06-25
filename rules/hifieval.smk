@@ -1,3 +1,5 @@
+minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+
 ## Approximation of read error stats with hifieval
 ## Align raw reads
 rule hifieval_align_raw:
@@ -16,7 +18,7 @@ rule hifieval_align_raw:
     resources:
         mem_mb = 100000
     wrapper:
-       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+       minimap_wrapper
 
 ## Aligned error corrected reads
 rule hifieval_align_ec:
@@ -35,7 +37,7 @@ rule hifieval_align_ec:
     resources:
         mem_mb = 100000
     wrapper:
-        f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+        minimap_wrapper
 
 ## Normally optional: If read file contains empty reads (Revio demo from PacBio does), hifieval will choke on this:
 rule remove_empty:

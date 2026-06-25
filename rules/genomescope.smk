@@ -1,3 +1,5 @@
+genomescope_wrapper = f"{wrapper_versions['genomescope']}/bio/genomescope"
+
 ## Genomescope 
 rule genomescope:
     input:
@@ -19,4 +21,4 @@ rule genomescope:
     params:
         extra="--kmer_length 25 --testing -m 50000",
     wrapper:
-        f"{wrapper_versions['genomescope']}/bio/genomescope"
+        genomescope_wrapper

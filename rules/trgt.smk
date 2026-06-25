@@ -1,3 +1,7 @@
+sort_wrapper = f"{wrapper_versions['bcftools']}/bio/bcftools/sort"
+norm_wrapper = f"{wrapper_versions['bcftools']}/bio/bcftools/norm"
+tabix_wrapper = f"{wrapper_versions['tabix']}/bio/tabix/index"
+
 rule prepare_bed_for_trgt:
     input:
         tandem_repeats_trgt, ##HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz
@@ -41,8 +45,6 @@ rule run_trgt:
         2> {log}
         """
 
-#bcftools norm -N -m-any repliQa_trgt.vcf.gz -O z -o comp.vcf.gz
-
 rule bcftools_sort:
     input:
         "variants/{sample}_trgt.vcf.gz",
@@ -58,7 +60,7 @@ rule bcftools_sort:
     resources:
         mem_mb=8000,
     wrapper:
-        f"{wrapper_versions['bcftools']}/bio/bcftools/sort"
+        sort_wrapper
 
 rule norm_vcf:
     input:
@@ -72,7 +74,7 @@ rule norm_vcf:
         extra=" -N -m-any ",  # optional
         #uncompressed_bcf=False,
     wrapper:
-        f"{wrapper_versions['bcftools']}/bio/bcftools/norm"
+        norm_wrapper
 
 ## Index VCF files
 rule tabix:
@@ -86,4 +88,4 @@ rule tabix:
         # pass arguments to tabix (e.g. index a vcf)
         "-p vcf",
     wrapper:
-        f"{wrapper_versions['tabix']}/bio/tabix/index"
+        tabix_wrapper

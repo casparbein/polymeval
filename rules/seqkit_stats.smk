@@ -1,3 +1,5 @@
+seqkit_wrapper = f"{wrapper_versions['seqkit']}/bio/seqkit"
+
 ## General summary stats for (deduplicated) read sets
 rule seqkit_stats:
     input:
@@ -11,4 +13,4 @@ rule seqkit_stats:
         extra="--all --tabular",
     threads: 10
     wrapper:
-         f"{wrapper_versions['seqkit']}/bio/seqkit"
+        seqkit_wrapper

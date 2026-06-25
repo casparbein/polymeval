@@ -1,3 +1,5 @@
+minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+
 ## Mapping against hg38 for SNVs/InDels
 rule minimap2_bam_sorted:
     input:
@@ -17,7 +19,7 @@ rule minimap2_bam_sorted:
     threads: 
         50
     wrapper:
-       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+       minimap_wrapper
 
 ## Mapping to hg37 for structural variants
 rule minimap2_bam_sorted_hg37:
@@ -38,4 +40,4 @@ rule minimap2_bam_sorted_hg37:
     threads: 
         50
     wrapper:
-       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+       minimap_wrapper

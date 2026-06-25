@@ -1,3 +1,5 @@
+bbtools_wrapper = f"{wrapper_versions['bbtools']}/bio/bbtools"
+
 ## Get read QC histogram with bbmap
 rule nt_qc_hist:
     input:
@@ -13,4 +15,4 @@ rule nt_qc_hist:
     resources:
         mem_mb=50000,
     wrapper:
-         f"{wrapper_versions['bbtools']}/bio/bbtools"
+        bbtools_wrapper 

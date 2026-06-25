@@ -1,3 +1,5 @@
+minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+
 ## map single_polymerase (or any other) assemblies
 rule minimap2_paf:
     input:
@@ -15,4 +17,4 @@ rule minimap2_paf:
         mem_mb = 100000
     threads: 20
     wrapper:
-        f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+        minimap_wrapper

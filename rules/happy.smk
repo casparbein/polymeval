@@ -1,3 +1,5 @@
+happy_wrapper = f"{wrapper_versions['happy']}/bio/hap.py/hap.py"
+
 ## Running happy on deepvariant data
 rule benchmark_variants:
     input:
@@ -24,4 +26,4 @@ rule benchmark_variants:
     resources:
         mem_mb = 600000
     wrapper: 
-        f"{wrapper_versions['happy']}/bio/hap.py/hap.py"
+        happy_wrapper
