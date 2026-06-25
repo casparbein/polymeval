@@ -111,7 +111,6 @@ def run_snakemake(snake_file,
                   config_file, 
                   conda_path,
                   directory_name="polymeval_test",
-                  run_type = "standard", 
                   dryrun = True, 
                   snake_default = False, 
                   rerun_triggers = False, 
@@ -954,8 +953,6 @@ def main():
                         rerun_triggers = args.rerun_trigger, 
                         updated_rule = update_DEF,
                         local_run = args.local_run,
-                        run_type = run_type,
-                        bench_dir = bench_dir,
                         use_apptainer = use_apptainer,
                         apptainer_args = apptainer_args)
 
@@ -969,8 +966,6 @@ def main():
                         rerun_triggers = args.rerun_trigger,
                         updated_rule = update_DEF,
                         local_run = args.local_run,
-                        run_type = run_type,
-                        bench_dir = bench_dir,
                         use_apptainer = use_apptainer,
                         apptainer_args = apptainer_args)
 
