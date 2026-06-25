@@ -2,6 +2,7 @@ import re
 
 configfile: "DEF.yaml"
 samples = config["samples"]
+wrapper_versions = config["wrapper_versions"]
 
 ## Global files used for analysis
 reference_seq = config["reference_seq"]

@@ -5,6 +5,7 @@ configfile: "DEF.yaml"
 seqkit_path = config["path_to_seqkit"]
 samples = config["samples"]
 compleasm_database = config["compleasm_db"]
+wrapper_versions = config["wrapper_versions"]
 
 wildcard_constraints:
     sample = r"|".join(samples)

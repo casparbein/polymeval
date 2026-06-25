@@ -2,6 +2,8 @@ import re
 
 configfile: "DEF.yaml"
 samples = config["samples"]
+wrapper_versions = config["wrapper_versions"]
+
 
 compleasm_database = config["compleasm_db"]
 wildcard_constraints:

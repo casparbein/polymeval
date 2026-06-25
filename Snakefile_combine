@@ -7,6 +7,8 @@ samples = config["samples"]
 outlier = config["outlier"]
 sample_base_target  = config["sample_base_target"]
 compleasm_database = config["compleasm_db"]
+wrapper_versions = config["wrapper_versions"]
+
 
 ## Get minimum downsampling rate and dictionary:
 ## variable "downsample_nucs" is used in the rasusa downsampling rule
