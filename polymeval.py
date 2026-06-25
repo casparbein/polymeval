@@ -334,8 +334,7 @@ def argument_parser():
     help=
     '''For 'reference' mode: Path to directory with input assemblies. Naming as with input reads, and names have to match.
     Normally, these assemblies will have been created with --standard, --combine or --downsample and the naming therefore
-    will work out naturally. For the best experience, pandepth should be installed on the system and accessible in path.
-    The path to pandepth can also be passed through --pandepth_path.
+    will work out naturally.
     ''')
 
     app.add_argument(
@@ -427,24 +426,24 @@ def argument_parser():
     '''Turn on KMC kmer counting. Genomescope will be run on resulting kmer histograms.
     ''')
 
-    app.add_argument(
-    "-pa", 
-    "--pandepth",
-    action="store_true",
-    dest="pandepth",
-    help=
-    '''Turn on Pandepth depth mapping. Most reference mode analyses will need this.
-    ''')
+    # app.add_argument(
+    # "-pa", 
+    # "--pandepth",
+    # action="store_true",
+    # dest="pandepth",
+    # help=
+    # '''Turn on Pandepth depth mapping. Most reference mode analyses will need this.
+    # ''')
 
-    app.add_argument(
-    "-pp", 
-    "--pandepth_path",
-    action="store",
-    dest="pandepth_path",
-    default = "",
-    help=
-    '''In case pandepth is installed but not in the user's $PATH, provide absolute path to pandepth.
-    ''')
+    # app.add_argument(
+    # "-pp", 
+    # "--pandepth_path",
+    # action="store",
+    # dest="pandepth_path",
+    # default = "",
+    # help=
+    # '''In case pandepth is installed but not in the user's $PATH, provide absolute path to pandepth.
+    # ''')
 
     app.add_argument(
     "-km", 
@@ -668,11 +667,9 @@ def main():
         "hg_size": [],
         "remove_dups" : False,
         "colors": [],
-        "pandepth": False,
         "reference_seq": "",
         "exons": [],
         "repeats": [],
-        "pandepth_path": [],
         "combo_pairwise" : False,
         "gzipped": True,
         "structural_variants": False,
@@ -733,17 +730,8 @@ def main():
     if args.readstats:
         config["readstats"] = True
 
-    if args.pandepth:
-        config["pandepth"] = True
-
     if args.remove_dups:
         config["remove_dups"] = True
-
-    if args.pandepth_path != "":
-        pandepth_path = os.path.abspath(args.pandepth_path)
-        config["pandepth_path"] = SingleQuotedScalarString(pandepth_path)
-    else:
-        pandepth_path = None
 
     if args.reference_seq != "":
         reference_path = os.path.abspath(args.reference_seq)
@@ -883,10 +871,10 @@ def main():
         if args.reference_seq == "":
             logger.critical("A reference genome sequence has to be provided to --reference_seq in order to run the analysis.")
             sys.exit(1)
-        if not args.pandepth:
-            logger.warning("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
-        if args.pandepth_path == "":
-            logger.warning("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
+        # if not args.pandepth:
+        #     logger.warning("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
+        # if args.pandepth_path == "":
+        #     logger.warning("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
         snakefile = "Snakefile_reference"
     
     elif args.variant_calling:

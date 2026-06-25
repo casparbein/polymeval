@@ -11,7 +11,6 @@ rule pandepth_genome_small_window:
         mem_mb = 50000
     params:
         out_prefix = 'out/files/{sample}_pandepth_all',
-        pandepth_path = config["pandepth_path"] 
     log:
         "logs/pandepth_genome_window/{sample}.log"
     container:
