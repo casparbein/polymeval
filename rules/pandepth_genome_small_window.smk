@@ -27,5 +27,5 @@ rule pandepth_genome_small_window:
         -r {input.ref} \
         -c \
         -o {params.out_prefix} \
-        -w 200 
+        -w 200
         """
