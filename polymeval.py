@@ -677,6 +677,18 @@ def main():
         "gzipped": True,
         "structural_variants": False,
         "tandem_repeats": False
+        "wrapper_versions": {
+            "meryl":"v9.4.2",
+            "minimap":"v9.9.0",
+            "bcftools":"v9.4.1",
+            "tabix": "v9.4.1",
+            "genomescope": "v9.4.2",
+            "happy": "v7.0.0",
+            "hifiasm": "v9.4.2",
+            "samtools": "v9.4.2",
+            "bbtools": "v9.6.0",
+            "seqkit": "v9.4.2",
+        }
     }
 
     ## Additional parameters:
