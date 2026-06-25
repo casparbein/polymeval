@@ -38,6 +38,7 @@ rule run_trgt:
         --threads {threads} \
         --genome {params.ref} \
         --output-prefix {params.out_prefix} \
+        2> {log}
         """
 
 #bcftools norm -N -m-any repliQa_trgt.vcf.gz -O z -o comp.vcf.gz
@@ -57,7 +58,7 @@ rule bcftools_sort:
     resources:
         mem_mb=8000,
     wrapper:
-        "v9.4.1/bio/bcftools/sort"
+        f"{wrapper_versions['bcftools']}/bio/bcftools/sort"
 
 rule norm_vcf:
     input:
@@ -71,7 +72,7 @@ rule norm_vcf:
         extra=" -N -m-any ",  # optional
         #uncompressed_bcf=False,
     wrapper:
-        "v9.4.1/bio/bcftools/norm"
+        f"{wrapper_versions['bcftools']}/bio/bcftools/norm"
 
 ## Index VCF files
 rule tabix:
@@ -85,4 +86,4 @@ rule tabix:
         # pass arguments to tabix (e.g. index a vcf)
         "-p vcf",
     wrapper:
-        "v9.4.1/bio/tabix/index"
+        f"{wrapper_versions['tabix']}/bio/tabix/index"

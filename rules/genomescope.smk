@@ -19,4 +19,4 @@ rule genomescope:
     params:
         extra="--kmer_length 25 --testing -m 50000",
     wrapper:
-        "v7.7.0/bio/genomescope"
+        f"{wrapper_versions['genomescope']}/bio/genomescope"

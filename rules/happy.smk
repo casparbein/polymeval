@@ -24,4 +24,4 @@ rule benchmark_variants:
     resources:
         mem_mb = 600000
     wrapper: 
-        "v7.0.0/bio/hap.py/hap.py"
+        f"{wrapper_versions['happy']}/bio/hap.py/hap.py"

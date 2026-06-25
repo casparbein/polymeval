@@ -11,7 +11,7 @@ rule plot_gc:
     threads:
         1
     resources:    
-        mem_mb = 100000
+        mem_mb = 400000
     params:
         pandepth_path = "out/files/",
         colors = config["colors"],

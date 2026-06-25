@@ -28,5 +28,6 @@ rule run_deepvariant:
         --output_vcf={params.out_vcf} \
         --output_gvcf={params.out_gvcf} \
         --num_shards={threads} \
-        --vcf_stats_report=true 
+        --vcf_stats_report=true \
+        2> {log}
         """

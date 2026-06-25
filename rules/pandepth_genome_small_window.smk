@@ -14,10 +14,8 @@ rule pandepth_genome_small_window:
         pandepth_path = config["pandepth_path"] 
     log:
         "logs/pandepth_genome_window/{sample}.log"
-    #conda:
-    #    "../envs/pandepth.yaml"
     container:
-        "docker://ghcr.io/casparbein/pandepth:2.26"
+        "docker://ghcr.io/hillerlab/pandepth:latest"
     shell:
         """
         pandepth \
@@ -27,5 +25,6 @@ rule pandepth_genome_small_window:
         -r {input.ref} \
         -c \
         -o {params.out_prefix} \
-        -w 200
+        -w 200 \
+        2> {log}
         """

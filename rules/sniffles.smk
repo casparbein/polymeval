@@ -19,5 +19,6 @@ rule run_sniffles2:
         --input {input.reads} \
         --reference {input.reference} \
         --vcf {output.vcf} \
-        --threads {threads}
+        --threads {threads} \
+        2> {log}
         """

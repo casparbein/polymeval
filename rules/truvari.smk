@@ -28,5 +28,6 @@ rule run_truvari_sv:
         --passonly \
         -r 1000 \
         -p 0.0 \
-        --sizemin 50
+        --sizemin 50 \
+        2> {log}
         """

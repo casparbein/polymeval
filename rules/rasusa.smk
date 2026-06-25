@@ -21,7 +21,8 @@ rule run_rasusa:
         -s {params.seed} \
         -b {params.downsample_nts} \
         {input} \
-        -o {output}
+        -o {output} \
+        2> {log}
         """
 
 rule run_rasusa_combinations:
@@ -47,5 +48,6 @@ rule run_rasusa_combinations:
         -s {params.seed} \
         -b {params.downsample_nts} \
         {input} \
-        -o {output}
+        -o {output} \
+        2> {log}
         """

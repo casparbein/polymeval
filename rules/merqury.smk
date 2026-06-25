@@ -13,7 +13,7 @@ rule meryl_count:
     resources:
         mem_mb=40000,
     wrapper:
-        "v7.6.0/bio/meryl/count"
+        f"{wrapper_versions['meryl']}/bio/meryl/count"
 
 ## Run Merqury Assembly quality evaluation
 rule run_merqury:
@@ -41,5 +41,6 @@ rule run_merqury:
         merqury.sh \
         ../../{input.db} \
         ../../{input.asm} \
-        {params.out_prefix};
+        {params.out_prefix} \
+        2> {log};
         """

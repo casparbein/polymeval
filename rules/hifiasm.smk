@@ -28,9 +28,9 @@ rule hifiasm:
         extra=f"--primary -l 3 --write-ec --hg-size {config['hg_size']}" if config["hifieval"] and config["hg_size"] else " --primary -l 3  --write-ec " if config["hifieval"] and not config["hg_size"] else  f" --primary -l 3 --hg-size {config['hg_size']}" if not config["hifieval"] and config["hg_size"] else "--primary -l 3",
     threads: 50
     resources:
-        mem_mb=200000,
+        mem_mb=400000,
     wrapper:
-        "v5.10.0/bio/hifiasm"
+       f"{wrapper_versions['hifiasm']}/bio/hifiasm"
 
 
 ## Get Fasta file from gfa
@@ -57,4 +57,4 @@ rule samtools_faidx:
     params:
         extra="",
     wrapper:
-        "v7.6.0/bio/samtools/faidx"
+        f"{wrapper_versions['samtools']}/bio/samtools/faidx"

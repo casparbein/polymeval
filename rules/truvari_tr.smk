@@ -28,7 +28,8 @@ rule run_truvari_tr_bench:
         -o {params.out_prefix} \
         --includebed {params.base_bed} \
         --sizemin 5 \
-        --pick ac
+        --pick ac \
+        2> {log}
         """
 
 ## Because of variant representation differences, phab is the right way to go
@@ -58,5 +59,6 @@ rule run_truvari_tr_refine:
         --reference {params.reference} \
         --buffer 0 \
         --coords O {params.bench_dir} \
-        --write-phab
+        --write-phab \
+        2> {log}
         """

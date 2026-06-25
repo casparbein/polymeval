@@ -13,4 +13,4 @@ rule nt_qc_hist:
     resources:
         mem_mb=50000,
     wrapper:
-        "v7.7.0/bio/bbtools"
+         f"{wrapper_versions['bbtools']}/bio/bbtools"

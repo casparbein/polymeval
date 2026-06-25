@@ -17,7 +17,7 @@ rule minimap2_bam_sorted:
     threads: 
         50
     wrapper:
-       "v9.0.1/bio/minimap2/aligner"
+       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
 
 ## Mapping to hg37 for structural variants
 rule minimap2_bam_sorted_hg37:
@@ -38,4 +38,4 @@ rule minimap2_bam_sorted_hg37:
     threads: 
         50
     wrapper:
-       "v9.0.1/bio/minimap2/aligner"
+       f"{wrapper_versions['minimap']}/bio/minimap2/aligner"

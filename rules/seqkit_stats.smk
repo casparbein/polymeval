@@ -11,4 +11,4 @@ rule seqkit_stats:
         extra="--all --tabular",
     threads: 10
     wrapper:
-        "v7.6.0/bio/seqkit"
+         f"{wrapper_versions['seqkit']}/bio/seqkit"
