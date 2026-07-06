@@ -35,7 +35,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -66,12 +70,12 @@ read_pandepth <- function(pandepth_file, asm = "") {
     tail(readLines(pandepth_file), n=1)
   }
   
-  mead_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
+  mean_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
   
   in_pandepth <- fread(pandepth_file, header = T)
   out_pandepth <- in_pandepth %>%
     mutate(polymerase = asm,
-           MeanDepth = MeanDepth/as.numeric(mead_depth))
+           MeanDepth = MeanDepth/as.numeric(mean_depth))
   
   return(out_pandepth)
 }
@@ -81,7 +85,7 @@ read_pandepth <- function(pandepth_file, asm = "") {
 ## but if not, it can be set to lower values 
 ## (if only a part of the sample should be evaluated)
 ## limits for 2D Histogram are for now hard coded
-merge_pairs <- function(i, j, prop = 1.0, corr_list = "", window_size = 200) {
+merge_pairs <- function(i, j, prop = 1.0, corr_list = "", window_size = 200, global_max = 100000) {
     poly_names <- c(i,j)#c(names(corr_list)[i],names(corr_list)[j])
   
     df_i <- corr_list[[i]] %>%
@@ -112,16 +116,27 @@ merge_pairs <- function(i, j, prop = 1.0, corr_list = "", window_size = 200) {
            aes(MeanDepth.x, MeanDepth.y)) +
       geom_bin_2d(bins=400) +
       theme_bw() +
-      scale_fill_gradient2(
-        low = "grey", 
-        mid = lighten(tile_color, 0.5),
-        high = darken(tile_color,0.5),
-        name = "Number of windows (200nt)",
-        midpoint = 1000, ## for now hard-coded
-        transform = "log10",
-        label = comma,
-        limits = c(1, 200000) ## for now hard-coded
-      ) + 
+      # scale_fill_gradient2(
+      #   low = "grey", 
+      #   mid = lighten(tile_color, 0.5),
+      #   high = darken(tile_color,0.5),
+      #   name = "Number of windows (200nt)",
+      #   midpoint = 1000, ## for now hard-coded
+      #   transform = "log10",
+      #   label = comma,
+      #   limits = c(1, 200000) ## for now hard-coded
+      # ) + 
+      # CHANGED
+      scale_fill_viridis_c(
+        option = "inferno",
+        trans  = "log10",
+        name   = "Windows (log10)",
+        limits = c(1, global_max),
+        labels = comma,
+        alpha = 0.75
+      ) +
+      annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
+         fill = tile_color, alpha = 0.2) +
       #geom_smooth(method = "lm", se=T, color="black", formula = y ~ x) +
       coord_cartesian(xlim = c(0,3.0),
                       ylim = c(0,3.0)) +
@@ -163,6 +178,22 @@ correlation_summary <- function(path) {
 
   combs <- combn(name_order, 2, simplify = FALSE)
   
+  ## global max for plot legends:
+  global_max <- combs %>%
+  map_dbl(~ {
+    if (is.na(.x[1]) || is.na(.x[2]) ||
+        is.null(corr_list[[.x[1]]]) || is.null(corr_list[[.x[2]]]))
+      return(NA_real_)
+    df <- full_join(
+      corr_list[[.x[1]]] %>% select(`#Chr`, Start, End, MeanDepth),
+      corr_list[[.x[2]]] %>% select(`#Chr`, Start, End, MeanDepth),
+      by = c("#Chr", "Start", "End")
+    )
+    ggplot_build(
+      ggplot(df, aes(MeanDepth.x, MeanDepth.y)) + geom_bin_2d(bins = 400)
+    )$data[[1]]$count %>% max(na.rm = TRUE)
+  }) %>% max(na.rm = TRUE)
+
   ## Apply plotting function
   plots <- map(
     combs,
@@ -170,7 +201,7 @@ correlation_summary <- function(path) {
       i <- .x[1]
       j <- .x[2]
       ## window_size was removed here
-      merge_pairs(i, j, prop = 1.0, corr_list = corr_list)
+      merge_pairs(i, j, prop = 1.0, corr_list = corr_list, global_max = global_max)
     }
   )
   
@@ -195,9 +226,18 @@ correlation_summary <- function(path) {
     }
   
   # Assemble patchwork from matrix
-  patchwork <- wrap_plots(layout_matrix, guides = 'collect')
-  
-  return(patchwork)
+  patchwork <- wrap_plots(layout_matrix, guides = 'collect') & 
+    theme(
+    axis.text  = element_text(size = 5),
+    axis.title = element_blank()
+    ) 
+    
+  all_patchwork <- patchwork + plot_annotation(
+  caption = "Axes: normalised depth",
+  theme = theme(plot.caption = element_text(size = 8, hjust = 0.5))
+  )
+
+  return(all_patchwork)
   
 }
 
@@ -286,10 +326,25 @@ contig_break_matrix <- function(path, contig_break_path) {
   dropout_names_order <- dropout_names[custom_sort(dropout_names, labels)]
 
   combs <- combn(dropout_names_order, 2, simplify = FALSE)
-  
+
+  ## compute global max bin count across all pairs
+  global_max_breaks <- map_dbl(combs, ~ {
+  col1 <- sym(.x[1])
+  col2 <- sym(.x[2])
+  tryCatch({
+    ggplot_build(
+      ggplot(merged_breaks_small %>% select(!!col1, !!col2),
+             aes(!!col1, !!col2)) +
+        geom_bin_2d(bins = 400)
+    )$data[[1]]$count %>% max(na.rm = TRUE)
+  }, error = function(e) NA_real_)
+  }) %>% max(na.rm = TRUE)
+
+  ## Create plots
   plots <- map(combs, ~ {
     col1 <- sym(.x[1])
     col2 <- sym(.x[2])
+    poly_names <- gsub("_MeanDepth$", "", c(.x[1], .x[2]))
     print(col1)
     print(col2)
     tile_color <- custom_colors[which(names(custom_colors) == gsub("_MeanDepth$", "", .x[1]))]#str_split_i(.x[1], "_", 1))]
@@ -306,23 +361,44 @@ contig_break_matrix <- function(path, contig_break_path) {
     (merged_breaks_small %>% 
       select(chr, Start, End, !!col1, !!col2) %>%
       ggplot(aes(!!col1, !!col2)) +
-      geom_bin_2d(bins = 75) +
-      scale_fill_gradient2(
-        low = "grey", #lighten(tile_color, 0.9),
-        mid = lighten(tile_color, 0.5),
-        high = darken(tile_color,0.5),
-        name = "Number of windows (200nt)",
-        midpoint = 10,
-        transform = "log10",
-        label = comma,
-        limits = c(1, 10000)
+      geom_bin_2d(binwidth=c(0.1,0.1)) +
+      ## CHANGED
+      ## replace scale_fill_gradient2 block with:
+      scale_fill_viridis_c(
+        option = "inferno",
+        trans  = "log10",
+        name   = "Windows (log10)",
+        limits = c(1, global_max_breaks),
+        labels = comma,
+        alpha = 0.75
       ) +
+      annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
+         fill = tile_color, alpha = 0.2) +
+      # scale_fill_gradient2(
+      #   low = "grey", #lighten(tile_color, 0.9),
+      #   mid = lighten(tile_color, 0.5),
+      #   high = darken(tile_color,0.5),
+      #   name = "Number of windows (200nt)",
+      #   midpoint = 10,
+      #   transform = "log10",
+      #   label = comma,
+      #   limits = c(1, 10000)
+      # ) +
+
       #stat_poly_eq(use_label(c("R2", "p"))) + 
       coord_cartesian(xlim = c(0,2), ylim = c(0,2)) +
       theme_bw() +
       geom_abline(intercept= 0, slope = 1, linetype = "dashed") +
       geom_vline(xintercept = 0.1, color = "black", linetype = "dotted") +
-      geom_hline(yintercept = 0.1, color = "black", linetype = "dotted")) +
+      geom_hline(yintercept = 0.1, color = "black", linetype = "dotted") +
+      labs(
+        title = poly_names[2]
+      ) +
+      theme(
+        plot.title  = element_text(size = 6, hjust = 0.5, face = "bold"),
+        axis.text   = element_text(size = 5),
+        axis.title  = element_blank()
+      )) +
     (merged_breaks_small %>% 
        select(chr, Start, End, !!col1, !!col2) %>%
        filter(!!col1 < 0.1 & !!col2 > 0.1) %>%
@@ -361,7 +437,12 @@ contig_break_matrix <- function(path, contig_break_path) {
   
   # Assemble patchwork from matrix
   patchwork <- wrap_plots(layout_matrix, guides = 'collect')
-  
+    
+  all_patchwork <- patchwork + plot_annotation(
+  caption = "Axes: normalized depth",
+  theme = theme(plot.caption = element_text(size = 8, hjust = 0.5))
+  )
+
   ###################
   ## Window plots  ##
   ###################
@@ -392,6 +473,9 @@ contig_break_matrix <- function(path, contig_break_path) {
   
   ## only plot single drop-outs for now
   facets <- input_names
+
+  ## plot all possible combinations
+  #facets <- 
   
   ## GC window plots (all windows stacked on top of each other)
   GC_windows <- map(facets, ~ {
@@ -485,7 +569,7 @@ contig_break_matrix <- function(path, contig_break_path) {
   
   
   out_list <- list()
-  out_list[[1]] <- patchwork
+  out_list[[1]] <- all_patchwork
   out_list[[2]] <- facet_plot
   
   return(out_list)

@@ -23,7 +23,6 @@ output_line_iqr = snakemake@output[["iqr_line"]]
 output_bar_lci = snakemake@output[["lci_bar"]]
 
 ## set colors for names
-## set colors for names
 input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
@@ -32,7 +31,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -45,12 +48,12 @@ read_pandepth <- function(pandepth_file, asm = "") {
     tail(readLines(file), n=1)
   }
   
-  mead_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
+  mean_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
   
   in_pandepth <- fread(pandepth_file, header = T)
   out_frame <- in_pandepth %>%
     mutate(asm = asm,
-           NormDepth = MeanDepth / as.numeric(mead_depth),
+           NormDepth = MeanDepth / as.numeric(mean_depth),
            roundGC = round((as.numeric(`GC(%)`)/100), 2))
 
   out_frame_length <- sum(as.numeric(out_frame$Length), na.rm = T)

@@ -7,7 +7,7 @@ library(scales)
 library(patchwork)
 
 safe <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
-  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888", "black")
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
 
 ## Input for plotting/sumstats
 input_path_faidx = snakemake@params[["faidx_path"]]
@@ -27,6 +27,7 @@ out_hifieval_table = snakemake@output[["hifieval_table"]]
 out_merqury_table = snakemake@output[["merqury_table"]]
 
 ## set colors for names
+input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
 if (!is.null(input_names)){
   labels <- sort(input_names)
@@ -34,7 +35,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -149,7 +154,7 @@ n50_summary <- function(path) {
                  
                  
   ## get break points for plot
-  break_list <- break_list <- get_breaks(10000, 1.5*max(n50_info$length)) #get_breaks(min(n50_info$length), max(n50_info$length))
+  break_list <- get_breaks(10000, 1.5*max(n50_info$length)) #get_breaks(min(n50_info$length), max(n50_info$length))
   
   ## create N50 plot
   n50_graph_plot <- ggplot(chrom_df, aes(n_val, length, color = Assembly)) + #,size = Assembly 
@@ -332,6 +337,7 @@ output_hifieval_readstats <- function(path)
                  values_to = "fraction") 
   
   ## plot
+  ## Only includes corrected bases (as proxy for error rate in reads)
   hifieval_plot <- ggplot(hifieval_df_sum %>%
                               filter(correction_class %in% c("corrected_bases")),
                               aes(polymerase, fraction, fill = polymerase)) +
@@ -389,17 +395,21 @@ merqury_asm_sum <- function(path)
   
   merqury_list_qv <- merqury_list_qv[lengths(merqury_list_qv) > 0]
   mq_qv <- rbindlist(merqury_list_qv)
+  mq_qv <- mq_qv %>%
+    rename(error_rate = X5, qv = X4)
   
   merqury_list_com <- merqury_list_com[lengths(merqury_list_com) > 0]
   mq_com <- rbindlist(merqury_list_com)
-  
+  mq_com <- mq_com %>%
+    rename(completeness = X5)
+
   merqury_all <- mq_qv %>%
-  left_join(mq_com, by = c("X1" = "X1")) %>%
-  rename(polymerase = X1)
+    left_join(mq_com, by = c("X1" = "X1")) %>%
+    rename(polymerase = X1)
   
   print(merqury_all)
     
-  er <- ggplot(merqury_all, aes(polymerase, X5.x)) +
+  er <- ggplot(merqury_all, aes(polymerase, error_rate)) +
   geom_col(aes(fill = polymerase)) +
   #ggtitle("Merqury assembly error rate") +
   ylab("error rate") + 
@@ -409,9 +419,9 @@ merqury_asm_sum <- function(path)
         axis.text.y= element_text(size = 10),
         axis.title= element_text(size = 11))
 
-  qv <- ggplot(merqury_all, aes(polymerase, X4.x)) +
+  qv <- ggplot(merqury_all, aes(polymerase, qv)) +
   geom_col(aes(fill = polymerase)) +
-  coord_cartesian(ylim = c(min(merqury_all$X4.x)-5, 60)) +
+  coord_cartesian(ylim = c(min(merqury_all$qv)-5, 60)) +
   #ggtitle("Merqury assembly quality value") +
   ylab("QV") + 
   theme_bw() +
@@ -420,9 +430,9 @@ merqury_asm_sum <- function(path)
         axis.text.y= element_text(size = 10),
         axis.title= element_text(size = 11))
 
-  comp <- ggplot(merqury_all, aes(polymerase, X5.y)) +
+  comp <- ggplot(merqury_all, aes(polymerase, completeness)) +
   geom_col(aes(fill = polymerase)) +
-  coord_cartesian(ylim = c(min(merqury_all$X5.y)-2, 100)) +
+  coord_cartesian(ylim = c(min(merqury_all$completeness)-2, 100)) +
   #ggtitle("Merqury assembly completeness") +
   ylab("Completeness (%)") +
   theme_bw() +
@@ -454,26 +464,21 @@ merqury_asm_sum <- function(path)
 ## seqkit plot
 seqkit_giga <- read_seqkit(input_path_seqkit_stats, ".fastq.gz")
 
-seqkit_giga
 ## N(x) plot (and table)
 n50_plot <- n50_summary(input_path_faidx)
 
-n50_plot
 ## compleasm plot (and table)
 compleasm_plot <- compleasm_summary(input_path_compleasm, 
                                           compleasm_database_name)
 
-compleasm_plot
 ## hifieval error stats
 if (!is.null(input_path_hifieval)) {
 hifieval_out <- output_hifieval_readstats(input_path_hifieval)
 }
-hifieval_out
 
 ## Merqury output plot
 merqury_out <- merqury_asm_sum(input_path_merqury)
 
-merqury_out
 ## Final Plot
 if (!is.null(input_path_hifieval)) {
 final_plot <- (

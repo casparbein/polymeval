@@ -28,7 +28,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -85,7 +89,8 @@ read_mappings <- function(path) {
   
   out_plot <- ggplot(out_df, aes(description, percentage)) +
     geom_col(aes(fill = library), position = "dodge2") +
-    scale_y_continuous(limits = c(0,1), breaks = seq(0.1, 1, by = 0.1), labels = comma) + 
+    ## CHANGED
+    scale_y_continuous(limits = c(0,1), breaks = c(0, seq(0.1, 1, by = 0.1)), labels = comma) + 
     theme_bw() +
     guides(color = guide_legend(byrow = TRUE, ncol = 2)) +
     xlab("Alignment type") +
@@ -137,6 +142,9 @@ chimera_histograms <- function(path) {
   }
   
   out_df <- rbindlist(chimera_list)
+  ## For x axis scaling
+  x_max <- mean(out_df$X1[out_df$read_type == "raw"]) + 3 * sd(out_df$X1[out_df$read_type == "raw"])
+
   out_plot <- ggplot() +
     geom_col(out_df %>%
                filter(read_type == "raw"), 
@@ -148,11 +156,15 @@ chimera_histograms <- function(path) {
     scale_fill_manual(values = custom_colors) +
     scale_color_manual(name = "alignment type", values = c("red", "blue"), 
                        labels = c("primary", "supplementary (chimeric)")) +
-    xlim(c(1,20000)) +
-    ylim(c(0,max(out_df$X2 + 200))) +
+    ## CHANGED
+    xlim(c(1,x_max)) +
+    ylim(c(0, max(out_df$X2) * 1.05)) +
+    #xlim(c(1,20000)) +
+    #ylim(c(0,max(out_df$X2 + 200))) +
     theme_bw() +
     guides(fill = "none") +
-    theme(legend.position = "none") + 
+    ## CHANGED
+    #theme(legend.position = "none") + 
     xlab("read/alignment length") +
     ylab("count") +
     facet_wrap(~polymerase, ncol = 1)

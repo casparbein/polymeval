@@ -39,11 +39,9 @@ if (!is.null(input_names)){
   } else {
   palette_colors <- safe
   }
-  
   custom_colors <- setNames(palette_colors, labels)
 }
 }
-
 
 
 ## format labels for N50 plot
@@ -383,7 +381,7 @@ merqury_asm_sum <- function(path, top_10)
   rename(polymerase = X1)
   
   #merqury_all <- merqury_all %>%
-  #ilter(polymerase %in% top_10$Assembly)
+  #filter(polymerase %in% top_10$Assembly)
     
   er <- ggplot(merqury_all, aes(polymerase, X5.x)) +
   geom_col(aes(fill = polymerase)) +

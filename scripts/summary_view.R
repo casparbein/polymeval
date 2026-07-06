@@ -32,7 +32,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
-  palette_colors <- safe
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
+  palette_colors <- safe[seq_along(labels)]
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -217,12 +221,22 @@ plot_coverage_windows <- function(pandepth_frame, All_blocks, start, end, scaffo
     geom_line(aes(color = asm), alpha = 0.5) +
     ylim(c(0, max_cov)) + 
     theme_bw() +
-    geom_vline(data = region_blocks,
-                aes(xintercept = ref_end, color = assembly),
-                linetype = "dashed",
-                alpha = 0.4,
-                linewidth = 0.5) +
-    scale_color_manual(values = custom_colors) +
+    #geom_vline(data = region_blocks,
+                # aes(xintercept = ref_end, color = assembly),
+                # linetype = "dashed",
+                # alpha = 0.4,
+                # linewidth = 0.5) +
+    ## CHANGED
+    geom_vline(data = region_blocks %>% dplyr::rename(asm = assembly) %>% filter(!is.na(asm)),
+           aes(xintercept = ref_end, color = asm),
+           linetype = "dashed",
+           alpha = 0.4,
+           linewidth = 0.5,
+           show.legend = FALSE) +
+    ## CHANGED
+    #scale_color_manual(values = custom_colors) +
+    scale_color_manual(values = custom_colors,
+                   limits = names(custom_colors)) +
     scale_x_continuous(labels = comma, breaks = center_plot, name = "Genomic Position") +
     coord_cartesian(xlim = c(start,end), expand = F)
   
@@ -236,12 +250,12 @@ read_pandepth <- function(pandepth_file, asm = "", yoff) {
     tail(readLines(file), n=1)
   }
   
-  mead_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
+  mean_depth <- sub(".*MeanDepth: *([0-9.]+).*", "\\1", read_last(pandepth_file))
   
   in_pandepth <- fread(pandepth_file, header = T)
   out_frame <- in_pandepth %>%
     mutate(asm = asm,
-           NormDepth = MeanDepth / as.numeric(mead_depth),
+           NormDepth = MeanDepth / as.numeric(mean_depth),
            roundGC = round((as.numeric(`GC(%)`)/100), 2),
            yoff = yoff)
   
@@ -323,7 +337,9 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
         pattern <- str_extract(in_files[i], paste(labels, collapse="|"))
         #lib_color = custom_colors[pattern][[1]]
         print(in_files[i])
+        if (!is.na(pattern)) {
         pandepth_list[[i]] <- read_pandepth(in_files[i], asm = pattern, yoff = i)
+        }
       }
       
       pandepth_list_long <- rbindlist(pandepth_list)
@@ -359,10 +375,10 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
       context_fraction <- All_blocks %>%
         filter(t.name == biggest_scaffold_name) %>%
         group_by(assembly) %>%
-        summarise(mapped_contigs =n ()) %>%
+        summarise(mapped_contigs = n()) %>%
         ungroup()
 
-      ## Median of contigs mapped to largest reference contig:
+      ## Mean of contigs mapped to largest reference contig:
       context_fraction_num <- mean(context_fraction$mapped_contigs)
       
       ## Context window:
@@ -381,34 +397,62 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
       
       max_drops <- length(unique(All_blocks$assembly)) * 2.5
       
-      ## Find a representative region (size ~ 1 Mb with all drop outs)
-      windows_with_all_samples <- All_blocks %>%
-        rowwise() %>%
-        filter({
-          valid_rows <- which(All_blocks$ref_end <= ref_end + context_window & 
-                                All_blocks$ref_end >= ref_end - context_window & 
-                                All_blocks$t.name == t.name)
-          window_samples <- All_blocks$assembly[valid_rows]
-          length(unique(window_samples)) + 0.5 * length(unique(window_samples)) >= length(unique(All_blocks$assembly)) & 
-            length(window_samples) <= max_drops #& length(window_samples) >= length(unique(All_blocks$assembly))
-        })%>%
-        ungroup() %>%
-        mutate(
-          window_start = ref_end - (context_window + 10000),
-          window_end = ref_end + (context_window + 10000),
-          window_id = ceiling(window_start/context_window)
-        )
+      ## Find a representative region
+      ## Try several times if fewer than 3 windows are found
+
+      # windows_with_all_samples <- All_blocks %>%
+      #   rowwise() %>%
+      #   filter({
+      #     valid_rows <- which(All_blocks$ref_end <= ref_end + context_window & 
+      #                           All_blocks$ref_end >= ref_end - context_window & 
+      #                           All_blocks$t.name == t.name)
+      #     window_samples <- All_blocks$assembly[valid_rows]
+      #     length(unique(window_samples)) + 0.5 * length(unique(window_samples)) >= length(unique(All_blocks$assembly)) & 
+      #       length(window_samples) <= max_drops #& length(window_samples) >= length(unique(All_blocks$assembly))
+      #   })%>%
+      #   ungroup() %>%
+      #   mutate(
+      #     window_start = ref_end - (context_window + 10000),
+      #     window_end = ref_end + (context_window + 10000),
+      #     window_id = ceiling(window_start/context_window)
+      #   )
     
+      min_windows <- 3
+      n_assemblies <- length(unique(All_blocks$assembly))
+
+      slices <- data.frame()
+      for (min_frac in c(1.0, 0.75, 0.5, 0.25)) {
+        windows_candidate <- All_blocks %>%
+          rowwise() %>%
+          filter({
+            valid_rows <- which(All_blocks$ref_end <= ref_end + context_window &
+                                  All_blocks$ref_end >= ref_end - context_window &
+                                  All_blocks$t.name == t.name)
+            length(unique(All_blocks$assembly[valid_rows])) >= min_frac * n_assemblies & length(All_blocks$assembly[valid_rows]) <= max_drops
+          }) %>%
+          ungroup() %>%
+          mutate(window_start = ref_end - (context_window + 10000),
+                window_end   = ref_end + (context_window + 10000),
+                window_id    = ceiling(ref_end / context_window))
+
+        slices <- windows_candidate %>%
+          filter(t.name == biggest_scaffold_name) %>%
+          group_by(window_id) %>%
+          summarise(start = ifelse(min(window_start) < 0, 0, min(window_start)),
+                    end = max(window_end)) %>%
+          select(-window_id)
+
+        if (nrow(slices) >= min_windows) break
+      }
       
       ## Windows to plot
-      slices <- windows_with_all_samples %>%
-        filter(t.name == biggest_scaffold_name) %>%
-        group_by(window_id) %>%
-        summarise(start = ifelse(min(window_start) <0, 0, min(window_start)),
-                  end = max(window_end)) %>%
-        select(-window_id)
+      # slices <- windows_with_all_samples %>%
+      #   filter(t.name == biggest_scaffold_name) %>%
+      #   group_by(window_id) %>%
+      #   summarise(start = ifelse(min(window_start) <0, 0, min(window_start)),
+      #             end = max(window_end)) %>%
+      #   select(-window_id)
     
-      print(slices)
       
       ## Max Y value for coverage plots:
       max_cov <- pandepth_list_long %>%
@@ -420,7 +464,6 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
       ## summarising factor to create at least 500 data points for lines
       ## window_size = 200, data_points   = 1000 -> 200*1000 = 20,000
       window_factor <- max(10^round(log10(context_window)) / 200 / 1000, 1)
-      
       
       ## Bed file
       breakpoints_bed <- read_bed(bed_path)
@@ -438,7 +481,7 @@ read_data <- function(input_path_paf, input_path_pandepth, bed_path) {
           group_by(window, asm) %>%
           summarise(
             pos = min(End),
-            mean_depth_yoff = mean(MeanDepth/(max_cov * 1.75) + yoff)) %>%
+            mean_depth_yoff = mean(MeanDepth/max_cov + yoff)) %>%
           ungroup()
         
         print(coverage_lines)
@@ -511,6 +554,9 @@ contig_breaks_zoom <- function(blocks, start, end, contig) {
   zoom <- blocks %>%
     filter(t.name == contig)
   
+  ## For ordered y mapping
+  y_mapping <- zoom %>% distinct(assembly, yoff) %>% arrange(yoff)
+
   ggplot(zoom, aes(y = yoff, 
                    yend = yoff,
                    x = ref_start, 
@@ -518,8 +564,8 @@ contig_breaks_zoom <- function(blocks, start, end, contig) {
     geom_segment(aes(color = assembly),
                  linewidth = 1, 
                  arrow = arrow(90, unit(2, "mm"))) +
-    scale_y_continuous(labels = unique(zoom$assembly),
-                       breaks = unique(zoom$yoff)) + 
+    scale_y_continuous(labels = y_mapping$assembly,
+                       breaks = y_mapping$yoff) + 
     scale_color_manual(values = custom_colors) +
     scale_x_continuous(labels = comma) +
     theme_void() +

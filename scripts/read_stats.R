@@ -20,7 +20,6 @@ qv_plot_out = snakemake@output[["qv_plot"]]
 standard_hist_plot_readeval_out = snakemake@output[["standard_hist_plot_readeval"]]
 rdeval_like_out = snakemake@output[["rdeval_like"]]
 
-
 ## set colors for names
 input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
@@ -30,7 +29,11 @@ if (!is.null(input_names)){
   col_dict <- read_delim(in_colors, col_names = FALSE)
   custom_colors <- setNames(col_dict$X2, col_dict$X1)
   } else {
+  if (length(input_names) > 12) {
+  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
+  } else {
   palette_colors <- safe
+  }
   custom_colors <- setNames(palette_colors, labels)
 }
 }
@@ -84,7 +87,8 @@ read_rdeval <- function(path, name){
   scatter_breaks <- get_breaks(1, m$max_value)
   
   scatter <- ggplot(rdeval_in_named, aes(Length, `Average Quality`)) +
-  geom_bin_2d(bins=100, binwidth = c(1, 1)) +
+  ## CHANGED
+  geom_bin_2d(binwidth = c(1, 1)) +
   theme_bw() +
   scale_fill_gradient(
     trans = "log10",
@@ -138,7 +142,7 @@ rdeval_plots <- function(path) {
   tmp_path <- paste(path, "*rdeval_dump.tsv", sep="/")
   in_files <- Sys.glob(tmp_path)
 
-  rdeval_plots <- list()
+  rdeval_plots_list <- list()
   rdeval_gc_bins <- list()
   rdeval_gc_dens <- list()
   rdeval_standard <- list()
@@ -149,7 +153,7 @@ rdeval_plots <- function(path) {
     if (!is.na(pattern)) {
     tmp_frame <- read_rdeval(in_files[i], name=pattern)
 
-    rdeval_plots[[i]] <- tmp_frame[[4]]
+    rdeval_plots_list[[i]] <- tmp_frame[[4]]
     rdeval_gc_bins[[i]] <- tmp_frame[[2]]
     rdeval_gc_dens[[i]] <- tmp_frame[[3]]
     rdeval_standard[[i]] <- tmp_frame[[1]]
@@ -190,7 +194,7 @@ rdeval_plots <- function(path) {
   out_list <- list()
   out_list[[1]] <- dens_plot
   out_list[[2]] <- standard_hist_plot
-  out_list[[3]] <- rdeval_plots
+  out_list[[3]] <- rdeval_plots_list
   
   return(out_list)
 }
