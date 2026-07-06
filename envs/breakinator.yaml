@@ -1,0 +1,6 @@
+name: breakinator
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - breakinator=1.1.1

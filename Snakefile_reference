@@ -35,6 +35,7 @@ def gather_targets():
     all_target.append("out/plots/GC_iqr.pdf"),
     all_target.append("out/plots/LCI_bar.pdf"),
     all_target.append("out/plots/summary_plot.pdf"),
+    all_target.append("out/plots/breakinator.pdf"),
 
     return all_target
 
@@ -52,13 +53,14 @@ include: "rules/pandepth_genome_small_window.smk"
 include: "rules/plot_depth_correlation.smk"
 include: "rules/plot_gc.smk"
 include: "rules/plot_summary.smk"
+include: "rules/breakinator.smk"
+include: "rules/plot_breakinator.smk"
 
 ## Optional output (not yet implemented)
 if config["exons"] != []:
     include: "rules/plot_gc_bed.smk"
 if config["repeats"] != []:
     include: "rules/plot_gc_bed.smk"
-
 
 rule all:
     input:

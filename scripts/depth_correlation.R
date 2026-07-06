@@ -335,7 +335,7 @@ contig_break_matrix <- function(path, contig_break_path) {
     ggplot_build(
       ggplot(merged_breaks_small %>% select(!!col1, !!col2),
              aes(!!col1, !!col2)) +
-        geom_bin_2d(bins = 400)
+        geom_bin_2d(bins = 1000)
     )$data[[1]]$count %>% max(na.rm = TRUE)
   }, error = function(e) NA_real_)
   }) %>% max(na.rm = TRUE)
