@@ -280,8 +280,6 @@ python3 ~/poymeval/polymeval.py \
 --directory_name yeast_reference_test \
 --dry_run \
 --reference_sequence yeast.fasta.gz \
---pandepth \ 
---pandepth-path path/to/pandepth/ \
 --input_reads ~/yeast_reads/ \
 --input_assemblies ~/yeast_standard_test/assemblies/ \
 ```
