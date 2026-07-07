@@ -70,10 +70,11 @@ This way, dataset-specific contig breaks and their underlying causes can be inve
 1. select a reference genome
 2. map reads of each sample to reference (with [minimap2](https://github.com/lh3/minimap2) and [samtools](https://samtools.github.io/))
 3. map dataset-specific assemblies to reference (with minimap2, creating paf output files)
-4. determine the amount of chimeric reads in the dataset (reading samtools-flags from bam files in R). *Future implementation*: detect chimeric reads with [Breakinator](https://github.com/jheinz27/breakinator)
-5. identify contig breaks relative to reference (with an R script using the PAF-reading function from [SVbyEye](https://github.com/daewoooo/SVbyEye))
-6. determine coverage against reference (with [PanDepth](https://github.com/HuiyangYu/PanDepth))
-7. create summary plots displaying how coverage, GC content and contig breaks are related (R scripts)
+4. determine the amount of chimeric reads in the dataset (reading samtools-flags from bam files in R)
+5. detect chimeric and foldback reads with [Breakinator](https://github.com/jheinz27/breakinator)
+6. identify contig breaks relative to reference (with an R script using the PAF-reading function from [SVbyEye](https://github.com/daewoooo/SVbyEye))
+7. determine coverage against reference (with [PanDepth](https://github.com/HuiyangYu/PanDepth))
+8. create summary plots displaying how coverage, GC content and contig breaks are related (R scripts)
 
 All of this is done automatically, the user only has to provide a path to the input reads (in .fastq.gz format) and, for reference mode, reference and dataset specific assemblies (in .fa format).
 
@@ -83,10 +84,11 @@ Since there exist benchmarks for these, polymeval has a **variant calling benchm
 1. reads are mapped to the reference with [minimap2](https://github.com/lh3/minimap2)
 2. SNVs/InDels are called with [deepavariant](https://github.com/google/deepvariant)
 3. These variant calls are then evaluated against existing GIAB benchmarks with [hap.py](https://github.com/Illumina/hap.py)
-4. (optional) larger structural variants are calles with [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
-5. (optional) these variant calls are then evaluated against existing benchmarks with [truvari](https://github.com/ACEnglish/truvari)
+4. (optional) larger structural variants are called with [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
+5. (optional) tandem repeat variants are called with [trgt](https://github.com/PacificBiosciences/trgt)
+6. (optional) these variant calls/tandem repeat calls are then evaluated against existing benchmarks with [truvari](https://github.com/ACEnglish/truvari)
 
-The existing benchmarking datasets have to be downloaded first (see Variant Calling benchmarking mode below).
+The existing benchmarking datasets have to be downloaded first (see Variant Calling benchmarking mode below for how to run and prepare the data).
 As an example, this pipeline can be run on the data from [Wang et al. 2025](https://www.medrxiv.org/content/10.1101/2025.07.25.25332067v1.full):
 
 ```bash
