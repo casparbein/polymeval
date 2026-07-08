@@ -84,9 +84,11 @@ Since there exist benchmarks for these, polymeval has a **variant calling benchm
 1. reads are mapped to the reference with [minimap2](https://github.com/lh3/minimap2)
 2. SNVs/InDels are called with [deepavariant](https://github.com/google/deepvariant)
 3. These variant calls are then evaluated against existing GIAB benchmarks with [hap.py](https://github.com/Illumina/hap.py)
-4. (optional) larger structural variants are called with [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
-5. (optional) tandem repeat variants are called with [trgt](https://github.com/PacificBiosciences/trgt)
-6. (optional) these variant calls/tandem repeat calls are then evaluated against existing benchmarks with [truvari](https://github.com/ACEnglish/truvari)
+4. As an alternative to Genotype-centered SNV benchmarking, all variants are jointly called with [longcallD](https://github.com/yangao07/longcallD)
+5. These joint calls are evaluated against a joint HG002-to-hg38 truth set with [aardvark](https://github.com/PacificBiosciences/aardvark) 
+6. (optional) larger structural variants are called with [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
+7. (optional) tandem repeat variants are called with [trgt](https://github.com/PacificBiosciences/trgt)
+8. (optional) these variant calls/tandem repeat calls are then evaluated against existing benchmarks with [truvari](https://github.com/ACEnglish/truvari)
 
 The existing benchmarking datasets have to be downloaded first (see Variant Calling benchmarking mode below for how to run and prepare the data).
 As an example, this pipeline can be run on the data from [Wang et al. 2025](https://www.medrxiv.org/content/10.1101/2025.07.25.25332067v1.full):
@@ -304,7 +306,7 @@ Grey density on top is reference-wide GC content density.<br/>
 
 Important for variant calling benchmarking is to set up a directory where the relevant files are stored.
 Currently, the following files are required to run this benchmarking:<br/>
-[hg38 reference genome](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip)<br/>
+[hg38 reference genome](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip, both unzipped and bgzipped versions as well as the unzipped index .fai and zipped index .gzi must exist, as hap.py only works with an unzipped fasta reference)<br/>
 [hg38 regions bed for happy](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed)<br/>
 [hg37 for structural variant calling](https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz) (index it with samtools faidx, must be unzipped first and rezipped with bgzip) <br/>
 [hg37 regions bed for truvari](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.bed)<br/>
@@ -312,12 +314,40 @@ Currently, the following files are required to run this benchmarking:<br/>
 [SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
 [Tandem Repeat gold standard set of GIAB TR calls against hg38 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
 [Tandem Repeat gold standard set of GIAB TR calls against hg38 (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz)<br/>
+[Joint Small Variants and SVs truth set from HG002 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz) (must be indexed with tabix or bcftools index)
+[SV regions of Joint variants (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed)(This is a bed file defining true SNV and SV regions, inspired by the Aardvark analysis)
 
 Save them somewhere, like:
 ```bash
 mkdir human_benchmark_data
 cd human_benchmark_data
 wget https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz ## etc
+```
+
+This is how that directory should look like:
+```bash
+cd human_benchmark_data
+ls
+GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai
+GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz
+GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz.fai
+GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz.gzi
+GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz
+GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz.csi
+GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed
+HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.csi
+HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
+HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz
+HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz.tbi
+HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz
+HG002_SVs_Tier1_v0.6.bed
+HG002_SVs_Tier1_v0.6.vcf.gz
+HG002_SVs_Tier1_v0.6.vcf.gz.tbi
+hs37d5.fa.gz
+hs37d5.fa.gz.fai
+hs37d5.fa.gz.gzi
 ```
 
 Now, you just have to provide that path to polymeval (with `--benchmark_path`), the rest will be done automatically. Installation/setup of required tools will all be handled by snakemake.
