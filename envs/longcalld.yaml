@@ -1,0 +1,6 @@
+name: longcalld
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - longcalld

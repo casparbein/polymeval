@@ -1,0 +1,6 @@
+name: aardvark
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - aardvark
