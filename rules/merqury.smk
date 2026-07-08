@@ -44,5 +44,5 @@ rule run_merqury:
         ../../{input.db} \
         ../../{input.asm} \
         {params.out_prefix} \
-        2> {log};
+        2> ../../{log};
         """

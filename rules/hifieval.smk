@@ -72,7 +72,7 @@ rule hifieval_compare:
     threads:
         1
     resources:
-        mem_mb = 50000,
+        mem_mb = 100000,
     log:
         "logs/hifieval_compare/{sample}.log",
     conda:

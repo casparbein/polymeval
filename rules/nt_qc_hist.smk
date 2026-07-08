@@ -11,8 +11,8 @@ rule nt_qc_hist:
         "logs/nt_qc_hist/{sample}.log",
     params:
         command="reformat.sh",
-    threads: 10
+    threads: 3
     resources:
-        mem_mb=50000,
+        mem_mb=100000,
     wrapper:
         bbtools_wrapper 
