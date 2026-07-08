@@ -2,14 +2,14 @@
 rule run_deepvariant:
     input:
         reads = "alignments/{sample}.sorted.bam",
-        reference = reference_seq,
+        reference = reference_seq_gz,
     output:
         vcf="variants/{sample}.vcf.gz",
         gvcf = "variants/{sample}.gvcf.gz",
         #report="variants/{sample}.{reference_name}.visual_report.html"
     params:
         in_reads = "/input/{sample}.sorted.bam",
-        in_ref = "/reference/{}".format(reference_seq.split('/')[-1]),
+        in_ref = "/reference/{}".format(reference_seq_gz.split('/')[-1]),
         out_vcf = "/output/{sample}.vcf.gz",
         out_gvcf = "/output/{sample}.gvcf.gz",
     container: "docker://google/deepvariant:1.10.0-beta",

@@ -27,7 +27,7 @@ rule run_trgt:
     resources:
         mem_mb = 100000
     params:
-        ref = reference_seq,
+        ref = reference_seq_gz,
         out_prefix = 'variants/{sample}_trgt',
     log:
         "logs/run_trgt/{sample}.log"
@@ -65,7 +65,7 @@ rule bcftools_sort:
 rule norm_vcf:
     input:
         "variants/{sample}_trgt.sorted.vcf.gz",
-        ref=reference_seq  # optional reference (will be translated into the -f option)
+        ref=reference_seq_gz  # optional reference (will be translated into the -f option)
     output:
         "variants/{sample}_trgt.sorted.norm.vcf.gz",  # can also be .bcf, corresponding --output-type parameter is inferred automatically
     log:

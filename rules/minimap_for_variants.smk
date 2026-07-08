@@ -3,7 +3,7 @@ minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
 ## Mapping against hg38 for SNVs/InDels
 rule minimap2_bam_sorted:
     input:
-        target=reference_seq,  #should be human hg38
+        target=reference_seq_gz,  #should be human hg38
         query="raw_reads/{sample}.fastq.gz",
     output:
         "alignments/{sample}.sorted.bam",

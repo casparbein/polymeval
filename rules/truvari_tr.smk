@@ -45,7 +45,7 @@ rule run_truvari_tr_refine:
     resources:
         mem_mb = 100000
     params:
-        reference = reference_seq,
+        reference = reference_seq_gz,
         bench_dir = "benchmarks/{sample}_truvari_tr/"
     log:
         "logs/run_truvari_tr/{sample}.log"
