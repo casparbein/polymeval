@@ -314,8 +314,8 @@ Currently, the following files are required to run this benchmarking:<br/>
 [SV vcf gold standard set of GIAB SV calls against hg37](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
 [Tandem Repeat gold standard set of GIAB TR calls against hg38 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz) (must be indexed with tabix -p vcf before running polymeval)<br/>
 [Tandem Repeat gold standard set of GIAB TR calls against hg38 (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz)<br/>
-[Joint Small Variants and SVs truth set from HG002 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz) (must be indexed with tabix or bcftools index)
-[SV regions of Joint variants (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed)(This is a bed file defining true SNV and SV regions, inspired by the Aardvark analysis)
+[Joint Small Variants and SVs truth set from HG002 (vcf)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz) (must be indexed with tabix or bcftools index) <br/>
+[SV regions of Joint variants (bed)](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed)(This is a bed file defining true SNV and SV regions, inspired by the Aardvark analysis) <br/>
 
 Save them somewhere, like:
 ```bash
