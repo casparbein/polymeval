@@ -17,7 +17,8 @@ rule benchmark_variants:
                 ".roc.Locations.SNP.csv.gz",".roc.tsv")
     params:
         engine="vcfeval",
-        prefix=lambda wc, input, output: output[0].split('.')[0],
+        prefix=lambda wc: f"benchmarks/happy/{wc.sample}_happy/{wc.sample}_results",
+        #prefix=lambda wc, input, output: output[0].split('.')[0],
         ## parameters such as -L to left-align variants
         extra="--verbose --pass-only"
     log: 
