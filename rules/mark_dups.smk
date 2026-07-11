@@ -4,10 +4,25 @@ def get_input_reads(wildcards):
     else:
         return "raw_reads/{sample}.dup.fastq"
 
+## remove empty reads (pbmarkdups chokes on this):
+rule seqkit_filter:
+    input:
+        fasta=get_input_reads
+    output:
+        fasta="raw_reads/{sample}.tmp.dup.fastq.gz"
+    log:
+        "logs/seqkit_filter/{sample}.seqkit_filter.log",
+    params:
+        command="seq",
+        extra="--min-len 1",
+    threads: 10
+    wrapper:
+        seqkit_wrapper
+
 ## Optional
 rule mark_dups:
     input:
-        reads=get_input_reads,#"raw_reads/{sample}.dup.fastq.gz",
+        reads="raw_reads/{sample}.tmp.dup.fastq.gz"
     output:
         temp("raw_reads/{sample}.fastq"),
     threads:
