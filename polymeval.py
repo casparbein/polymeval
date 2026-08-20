@@ -683,7 +683,7 @@ def main():
             "happy": "v7.0.0",
             "hifiasm": "v9.4.2",
             "samtools": "v9.4.2",
-            "bbtools": "v9.6.0",
+            "bbtools": "v9.16.0",
             "seqkit": "v9.4.2",
         }
     }
