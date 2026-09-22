@@ -18,6 +18,14 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)-8s] %(message)s")
 ## Absolute paths on file system
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 
+## Suffixes of input read files:
+CANONICAL_SUFFIX = {
+    ".fq":        ".fastq",
+    ".fq.gz":     ".fastq.gz",
+    ".dup.fq":    ".dup.fastq",
+    ".dup.fq.gz": ".dup.fastq.gz",
+}
+
 ## Helper functions for mounting apptainer paths:
 def get_mount_point(path):
     path = os.path.realpath(os.path.abspath(path))
@@ -35,26 +43,38 @@ def get_apptainer_bind_args(paths):
     return " ".join(f"-B {mp}:{mp}" for mp in mount_points)
 
 
-def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False): 
-    os.makedirs(dst_path, exist_ok=True)   
-    src_path =  os.path.abspath(src_path)
-    
-    if down_list == []:
-        down_list = os.listdir(src_path)
-    
-    for rds in os.listdir(src_path):    
-        if reference_run:
-            if rds.endswith("fastq.gz") and not rds.endswith("dup.fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
-                src_file = os.path.join(os.path.realpath(src_path), rds)
-                dst_file = os.path.join(dst_path, rds)
-                if not os.path.lexists(dst_file):
-                    os.symlink(src_file, dst_file)
-        else:
-            if (rds.endswith("fastq.gz") or rds.endswith("fastq")) and (rds.split('.')[0] in down_list or rds in down_list):
-                src_file = os.path.join(os.path.realpath(src_path), rds)
-                dst_file = os.path.join(dst_path, rds)
-                if not os.path.lexists(dst_file):
-                    os.symlink(src_file, dst_file)
+def symlink_all_rds(src_path, dst_path, suffixes, down_list=None, reference_run=False):
+    """Link accepted read files from src_path into dst_path.
+    `down_list` restricts to those sample basenames; None means all.
+    Returns [(basename, canonical_suffix), ...] sorted by basename.
+    """
+    os.makedirs(dst_path, exist_ok=True)
+    real_src = os.path.realpath(os.path.abspath(src_path))
+
+    found = {}
+    for rds in sorted(os.listdir(real_src)):
+        base, suf = split_suffix(rds, suffixes)
+        if base is None:
+            continue
+        # reference mode evaluates the deduplicated reads, never the pre-dedup originals
+        if reference_run and (base.endswith(".dup") or not suf.endswith(".gz")):
+            continue
+        if down_list is not None and base not in down_list:
+            continue
+
+        if base in found:
+            logger.critical("Two input files map to sample %r in %s: %s and %s. Keep one.",
+                            base, src_path, found[base][1], rds)
+            sys.exit(1)
+
+        canonical = CANONICAL_SUFFIX.get(suf, suf)
+        found[base] = (canonical, rds)
+
+        dst_file = os.path.join(dst_path, base + canonical)
+        if not os.path.lexists(dst_file):
+            os.symlink(os.path.join(real_src, rds), dst_file)
+
+    return sorted((b, c) for b, (c, _) in found.items())
 
 def symlink_all_asm(src_path, dst_path): 
     os.makedirs(dst_path, exist_ok=True) 
@@ -65,7 +85,7 @@ def symlink_all_asm(src_path, dst_path):
         if asm.endswith(".fa") and not asm.endswith(".ec.fa"):
             src_file = os.path.join(os.path.realpath(src_path), asm)
             dst_file = os.path.join(dst_path, asm)
-            if not os.path.islink(dst_file):
+            if not os.path.lexists(dst_file):
                 os.symlink(src_file, dst_file)
 
 def get_snakefile_path(name="Snakefile"):
@@ -195,9 +215,7 @@ def run_snakemake(snake_file,
     logger.info("The following command will be run for the polymeval pipeline: %s", print_cmd)
 
 
-    result1 = subprocess.Popen(cmd,preexec_fn=os.setpgrp, stdout=PIPE)
-    logger.info(result1.stdout)
-
+    result1 = subprocess.Popen(cmd,preexec_fn=os.setpgrp)
     try:
         # Wait for Snakemake to finish normally
         result1.wait()
@@ -705,7 +723,7 @@ def main():
     elif (args.combine or args.downsample) and not args.coverage:
         config["sample_base_target"] = False
 
-    if args.combine or args.downsample
+    if args.combine or args.downsample:
         config["restrict_downsampling"] = bool(args.restrict)
 
     ## Change default parameters
@@ -766,8 +784,7 @@ def main():
 
     ## Set up directory;
     READS_SUBDIR = "raw_reads"
-    SUFFIXES = ((".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq") if config["remove_dups"]
-                else (".fastq.gz", ".fastq", ".fq", ".fq.gz"))
+    SUFFIXES = tuple(sorted((".fastq.gz", ".fq.gz", ".dup.fq", ".dup.fq.gz", ".dup.fastq.gz", ".dup.fastq", ".fq", ".fastq"), key=len, reverse=True))
     GZ  = (".fastq.gz", ".fq.gz")
 
     def split_suffix(name, suffixes):
@@ -778,32 +795,11 @@ def main():
         return None, None
 
     def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False):
-        """Symlink reads from `src` into <work_dir>/raw_reads and report what landed there.
-
-        Returns (dest_dir, [(basename, matched_suffix), ...]) sorted by basename.
-        `wanted` is a set of sample names to keep, or None for everything.
-        """
         dest = os.path.join(work_dir, READS_SUBDIR)
-        symlink_all_rds(src, dest, sorted(wanted) if wanted else [], reference_run=reference_run)
-
-        linked = sorted(e for e in os.listdir(dest)
-                        if os.path.islink(os.path.join(dest, e)))
-        if not linked:
-            logger.critical("No read symlinks were created in %s. Check that --input_reads points at "
-                            "the right directory and that files end in %s.",
-                            dest, " or ".join(suffixes))
-            sys.exit(1)
-
-        found = []
-        for f in linked:
-            base, suf = split_suffix(f, suffixes)
-            if base is None or (wanted is not None and base not in wanted):
-                continue
-            found.append((base, suf))
+        found = symlink_all_rds(src, dest, suffixes, down_list=wanted, reference_run=reference_run)
 
         if not found:
-            logger.critical("None of the %d linked files end in %s.",
-                            len(linked), " or ".join(suffixes))
+            logger.critical("No files ending in %s found in %s.", " or ".join(suffixes), src)
             sys.exit(1)
 
         if wanted is not None:
@@ -813,7 +809,7 @@ def main():
                                 src, ", ".join(sorted(missing)))
                 sys.exit(1)
 
-        return dest, sorted(found)
+        return dest, found
 
     def resolve_gzipped(found, dest):
         """All inputs must be compressed, or none. Returns True/False."""
@@ -866,74 +862,6 @@ def main():
         path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, SUFFIXES, wanted=wanted)
         config["gzipped"] = resolve_gzipped(found, path_for_link_rds)
         config["samples"] = basenames(found)
-
-        dest_path = os.path.join(os.getcwd(), args.directory_name)
-        if not os.path.exists(dest_path):
-            os.makedirs(dest_path, exist_ok=True)  
-
-    # if not args.standard and not args.reference and not args.variant_calling:
-    #     readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(args.seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
-
-    #     if (args.combine and args.samples):
-    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-    #         samples = format_list(args.samples.split(','))
-    #         symlink_all_rds(args.in_reads, path_for_link_rds, samples)
-    #         in_reads = os.listdir(path_for_link_rds)
-    #         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in samples]
-    #         config["samples"] =  samples
-
-    #     elif (args.downsample and not args.samples):
-    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-    #         symlink_all_rds(args.in_reads, path_for_link_rds, downsample_samples)
-    #         in_reads = os.listdir(path_for_link_rds)
-    #         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in downsample_samples]
-    #         config["samples"] =  format_list(in_reads_list)
-        
-    # elif args.reference:
-    #     path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-    #     symlink_all_rds(args.in_reads, path_for_link_rds, [], reference_run = True)
-    #     path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
-    #     symlink_all_asm(args.in_assemblies, path_for_link_asm)
-    #     in_reads = os.listdir(path_for_link_rds)
-    #     in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
-    #     in_assemblies = os.listdir(path_for_link_asm)
-    #     in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
-    #     if sorted(in_reads_list) == sorted(in_assemblies_list):
-    #         config["samples"] =  format_list(in_reads_list)
-    #     else:
-    #         logger.critical("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
-    #         sys.exit(1)
-
-    # else:
-
-    #     if args.samples:
-    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-    #         samples = format_list(args.samples.split(','))
-    #         symlink_all_rds(args.in_reads, path_for_link_rds, samples)
-    #         in_reads = os.listdir(path_for_link_rds)
-    #         in_reads_list = [b for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and (b := strip_suffix(f)) and (not samples or b in samples)]
-    #         config["samples"] =  format_list(in_reads_list)
-        
-    #     else:
-    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-    #         symlink_all_rds(args.in_reads, path_for_link_rds, [])
-    #         in_reads = [entry for entry in os.listdir(path_for_link_rds) if os.path.islink(os.path.join(path_for_link_rds, entry))] #in_reads = os.listdir(path_for_link_rds) 
-
-    #         ## Catch exceptions here
-    #         if not in_reads:
-    #             logger.critical(
-    #                 "No read files were found in %s. Check that --input_reads points to the correct directory and that files end in .fastq.gz or .fastq.", path_for_link_rds)
-    #             sys.exit(1)
-
-    #         gz_id = in_reads[0].split(".")[-1]
-    #         if gz_id == "gz":
-    #             fastq_string = fastq_string[0]
-    #             config["gzipped"] = True
-    #         else:
-    #             fastq_string = fastq_string[1]
-    #             config["gzipped"] = False
-    #         in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
-    #         config["samples"] =  format_list(in_reads_list)
 
     ## Which snakefile to use:
     if args.standard:

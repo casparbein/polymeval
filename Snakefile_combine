@@ -35,8 +35,8 @@ turned_combo_dict = {v: ["raw_reads/" + f for f in k.split(" ")] for k,v in comb
 
 ## Wildcard constraints
 wildcard_constraints:
-    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
-    out= r'|'.join([x for x in out_assembly_names]),
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),
+    out= "|".join(re.escape(o) for o in sorted(out_assembly_names, key=len, reverse=True)),
 
 
 ## Gather the target output files (This defines which parts of the pipeline will be run), must be redefined here because of changed input/output names
