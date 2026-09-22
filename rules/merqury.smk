@@ -20,20 +20,20 @@ rule meryl_count:
 ## Run Merqury Assembly quality evaluation
 rule run_merqury:
     input:
-        db="meryl/{sample}_reads.meryl",
-        asm="assemblies/{sample}.fa",
+        db  = lambda wc: f"meryl/{asm_sample(wc.asm_id)}_reads.meryl",
+        asm = "assemblies/{asm_id}.fa",
     output:
-        "merqury/{sample}_slf/{sample}_slf.qv",
-        temp(directory("merqury/{sample}_slf/{sample}.meryl")),
+        "merqury/{asm_id}_slf/{asm_id}_slf.qv",
+        temp(directory("merqury/{asm_id}_slf/{asm_id}.meryl")),
     threads:
         20
     resources:
         mem_mb=60000
     params:
-        output_dir="merqury/{sample}_slf",
-        out_prefix="{sample}_slf"
+        output_dir="merqury/{asm_id}_slf",
+        out_prefix="{asm_id}_slf"
     log:
-        "logs/run_merqury/{sample}.log",
+        "logs/run_merqury/{asm_id}.log",
     conda:
         "../envs/merqury.yaml"
     shell:

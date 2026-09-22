@@ -1,15 +1,25 @@
 minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
 
+CORRECTED = {
+    "hifiasm": "assemblies/hifiasm/{sample}.ec.fa",
+    "lja":     "assemblies/lja/{sample}/01_TopologyBasedCorrection/corrected_reads.fasta",
+    "verkko":  "assemblies/verkko/{sample}/0-correction/hifi-corrected.fasta.gz",
+}
+
+def corrected_reads(wc):
+    sample, corrector = wc.asm_id.rsplit("__", 1)
+    return CORRECTED[corrector].format(sample=sample)
+
 ## Approximation of read error stats with hifieval
 ## Align raw reads
 rule hifieval_align_raw:
     input:
-        target="assemblies/{sample}.fa",  # can be either genome index or genome fasta
-        query="raw_reads/{sample}.fastq.gz",
+        target="assemblies/{asm_id}.fa",  # can be either genome index or genome fasta
+        query=lambda wc: f"raw_reads/{asm_sample(wc.asm_id)}.fastq.gz",
     output:
-        temp("alignments/{sample}.raw.paf"),
+        temp("alignments/{asm_id}.raw.paf"),
     log:
-        "logs/hifieval_align_raw/{sample}.log",
+        "logs/hifieval_align_raw/{asm_id}.log",
     params:
         extra="-cx map-hifi --secondary=no --paf-no-hit --cs", 
         sorting="none",  # optional: Enable sorting. Possible values: 'none', 'queryname' or 'coordinate'
@@ -23,12 +33,12 @@ rule hifieval_align_raw:
 ## Aligned error corrected reads
 rule hifieval_align_ec:
     input:
-        target="assemblies/{sample}.fa",  # can be either genome index or genome fasta
-        query="assemblies/{sample}.ec.fa",
+        target="assemblies/{asm_id}.fa",  # can be either genome index or genome fasta
+        query=corrected_reads,
     output:
-        temp("alignments/{sample}.ec.paf"),
+        temp("alignments/{asm_id}.ec.paf"),
     log:
-        "logs/hifieval_align_ec/{sample}.log",
+        "logs/hifieval_align_ec/{asm_id}.log",
     params:
         extra="-cx map-hifi --secondary=no --paf-no-hit --cs", 
         sorting="none",  # optional: Enable sorting. Possible values: 'none', 'queryname' or 'coordinate'
@@ -42,13 +52,13 @@ rule hifieval_align_ec:
 ## Normally optional: If read file contains empty reads (Revio demo from PacBio does), hifieval will choke on this:
 rule remove_empty:
     input:
-        ec = "alignments/{sample}.ec.paf",
-        raw = "alignments/{sample}.raw.paf",
+        ec = "alignments/{asm_id}.ec.paf",
+        raw = "alignments/{asm_id}.raw.paf",
     output:
-        ec = temp("alignments/{sample}.ec.clean.paf"),
-        raw = temp("alignments/{sample}.raw.clean.paf"),
+        ec = temp("alignments/{asm_id}.ec.clean.paf"),
+        raw = temp("alignments/{asm_id}.raw.clean.paf"),
     log: 
-        "logs/remove_empty/{sample}.log",
+        "logs/remove_empty/{asm_id}.log",
     threads: 1
     resources:
         mem_mb = 10000
@@ -61,20 +71,20 @@ rule remove_empty:
 ## Run Hifieval
 rule hifieval_compare:
     input:
-        raw ="alignments/{sample}.raw.clean.paf", 
-        ec ="alignments/{sample}.ec.clean.paf", 
+        raw ="alignments/{asm_id}.raw.clean.paf", 
+        ec ="alignments/{asm_id}.ec.clean.paf", 
     output:
-        metric = "hifieval/{sample}.metric.eval.tsv",
-        rdl_eval = "hifieval/{sample}.rdlvl.eval.tsv",
-        summary = temp("hifieval/{sample}.summary.tsv"),
+        metric = "hifieval/{asm_id}.metric.eval.tsv",
+        rdl_eval = "hifieval/{asm_id}.rdlvl.eval.tsv",
+        summary = temp("hifieval/{asm_id}.summary.tsv"),
     params:
-        out_base = "hifieval/{sample}",
+        out_base = "hifieval/{asm_id}",
     threads:
         1
     resources:
         mem_mb = 100000,
     log:
-        "logs/hifieval_compare/{sample}.log",
+        "logs/hifieval_compare/{asm_id}.log",
     conda:
         "../envs/hifieval.yaml",
     shell:

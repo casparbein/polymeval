@@ -16,8 +16,30 @@ compleasm_database_name = snakemake@params[["compleasm_database"]]
 input_path_seqkit_stats = snakemake@input[["seqkit"]]
 input_path_merqury = snakemake@params[["merqury_path"]]
 input_path_hifieval = snakemake@params[["hifieval_path"]]
-input_names = snakemake@params[["sample_names"]]
 in_colors = snakemake@params[["colors"]]
+input_names = snakemake@params[["asm_ids"]]
+sample_names = snakemake@params[["sample_names"]]
+
+
+asm_ids      <- unlist(strsplit(c(snakemake@params[["asm_ids"]]),      split = ","))
+sample_names <- unlist(strsplit(c(snakemake@params[["sample_names"]]), split = ","))
+
+## --- one table mapping every assembly id to its sample and assembler ----
+id_table <- tibble(asm_id = asm_ids) %>%
+  mutate(sample    = if_else(str_detect(asm_id, "__"),
+                             str_remove(asm_id, "__[^_]+$"), asm_id),
+         assembler = if_else(str_detect(asm_id, "__"),
+                             str_extract(asm_id, "[^_]+$"), "hifiasm"))
+
+## match longest first, so repliQa cannot match inside repliQa__hifiasm
+labels <- asm_ids[order(nchar(asm_ids), decreasing = TRUE)]
+
+## colour stays per polymerase, so it means the same thing here as in reference mode
+palette_colors <- if (length(sample_names) > 12) {
+  colorRampPalette(brewer.pal(8, "Set2"))(length(sample_names))
+} else safe
+custom_colors <- setNames(palette_colors[seq_along(sort(sample_names))], sort(sample_names))
+
 
 ## output (N(x) + compleasm tables, final plot)
 output_ng_table = snakemake@output[["ng_table"]]
@@ -27,23 +49,30 @@ out_hifieval_table = snakemake@output[["hifieval_table"]]
 out_merqury_table = snakemake@output[["merqury_table"]]
 
 ## set colors for names
-input_names <- c(input_names)
 input_names <- unlist(strsplit(input_names, split = ","))
-if (!is.null(input_names)){
-  labels <- sort(input_names)
-  if (!is.null(in_colors)) {
-  col_dict <- read_delim(in_colors, col_names = FALSE)
-  custom_colors <- setNames(col_dict$X2, col_dict$X1)
-  } else {
-  if (length(input_names) > 12) {
-  palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(labels))
-  } else {
-  palette_colors <- safe
-  }
-  custom_colors <- setNames(palette_colors, labels)
-}
-}
+sample_names <- unlist(strsplit(c(sample_names), split = ","))
 
+## one row per assembly: which sample it came from, and which assembler built it
+id_table <- tibble(asm_id = input_names) %>%
+  mutate(sample    = if_else(str_detect(asm_id, "__"),
+                             str_remove(asm_id, "__[^_]+$"), asm_id),
+         assembler = if_else(str_detect(asm_id, "__"),
+                             str_extract(asm_id, "[^_]+$"), "hifiasm"))
+assemblers <- sort(unique(id_table$assembler))
+
+if (!is.null(input_names)){
+   if (!is.null(in_colors)) {
+   col_dict <- read_delim(in_colors, col_names = FALSE)
+   custom_colors <- setNames(col_dict$X2, col_dict$X1)
+   } else {
+    if (length(sample_names) > 12) {
+    palette_colors <- colorRampPalette(brewer.pal(8, "Set2"))(length(sample_names))
+    } else {
+   palette_colors <- safe
+   }
+   custom_colors <- setNames(palette_colors[seq_along(sample_names)], sort(sample_names))
+   }
+}
 
 ## format labels for N50 plot
 format_labels <- function(x) {
@@ -116,16 +145,17 @@ prepare_n50 <- function(chrom_file_path = "", asm = "") {
 }
 
 ## do the N50 plot and summary
-n50_summary <- function(path) {
+n50_summary <- function(path, ids, scales) {
   
   ## set up variables
   tmp_path <- paste(path, "*.fa.fai", sep="/")
   in_files <- Sys.glob(tmp_path)
   chrom_list <- list()
+  alt <- paste(ids[order(nchar(ids), decreasing = TRUE)], collapse = "|")
   
   ## read files
   for (i in seq_along(in_files)) {
-    pattern <- str_extract(in_files[i], paste(labels, collapse="|"))
+    pattern <- str_extract(in_files[i], alt)
     
     if (!is.na(pattern)) {
     chrom_list[[i]] <- prepare_n50(in_files[i], asm=pattern)
@@ -154,10 +184,11 @@ n50_summary <- function(path) {
                  
                  
   ## get break points for plot
-  break_list <- get_breaks(10000, 1.5*max(n50_info$length)) #get_breaks(min(n50_info$length), max(n50_info$length))
+  break_list <- scales$n50_breaks
   
   ## create N50 plot
-  n50_graph_plot <- ggplot(chrom_df, aes(n_val, length, color = Assembly)) + #,size = Assembly 
+  chrom_df <- chrom_df %>% left_join(id_table, by = c("Assembly" = "asm_id"))
+  n50_graph_plot <- ggplot(chrom_df, aes(n_val, length, color = sample)) +
     geom_step(size = 0.5) +
     theme_bw() +
     theme(axis.text= element_text(size = 15),
@@ -165,7 +196,7 @@ n50_summary <- function(path) {
     scale_y_log10(
       breaks = break_list[[1]],
       label = break_list[[2]],
-      limits = c(1000,max(chrom_df$length))) +
+      limits = scales$n50_limits) +
     annotation_logticks(sides = "l") +  
     scale_x_continuous(breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100) ) +
     ylab("Contig length (bp)") +
@@ -192,16 +223,17 @@ read_compl <- function(path, name) {
 }
 
 ## create summary stats and output plot
-compleasm_summary <- function(path, compleasm_label) {
+compleasm_summary <- function(path, compleasm_label, ids, scales) {
   
   ## set up variables
   tmp_path <- paste(path, "*rf.txt", sep="/")
   in_files <- Sys.glob(tmp_path)
   compl_list <- list()
+  alt <- paste(ids[order(nchar(ids), decreasing = TRUE)], collapse = "|")
   
   ## create data table
   for (i in seq_along(in_files)) {
-    pattern <- str_extract(in_files[i], paste(labels, collapse="|"))
+    pattern <- str_extract(in_files[i], alt)
     if (!is.na(pattern)) {
     compl_list[[i]] <- read_compl(in_files[i], name=pattern)
   }
@@ -240,7 +272,10 @@ compleasm_summary <- function(path, compleasm_label) {
   compl_all_mut <- compl_all%>% 
     mutate(polymerase = factor(polymerase, levels = sel_order_compl$polymerase, ordered = TRUE))
   
-  compleasm_plot <- ggplot(compl_all_mut, aes(X3, polymerase, fill = category)) +
+  compl_all_mut <- compl_all_mut %>%
+    left_join(id_table, by = c("polymerase" = "asm_id"))
+  
+  compleasm_plot <- ggplot(compl_all_mut, aes(X3, sample, fill = category)) +
     geom_col() +
     theme_bw() +
     theme(axis.text= element_text(size = 12),
@@ -296,12 +331,13 @@ return(seqkit_sequenced_gigas)
 
 }
 
-output_hifieval_readstats <- function(path)
+output_hifieval_readstats <- function(path, ids, scales)
 {
   ## set up variables
   tmp_path <- paste(path, "*.summary.tsv", sep="/")
   in_files <- Sys.glob(tmp_path)
   hifieval_list <- list()
+  alt <- paste(ids[order(nchar(ids), decreasing = TRUE)], collapse = "|")
   
   read_hifieval <- function(path, name) {
     hifieval_reads <- fread(path, header = T)
@@ -312,7 +348,7 @@ output_hifieval_readstats <- function(path)
   
   ## read files
   for (i in seq_along(in_files)) {
-    pattern <- str_extract(in_files[i], paste(labels, collapse="|"))
+    pattern <- str_extract(in_files[i], alt)
     if (!is.na(pattern)){
     hifieval_list[[i]] <- read_hifieval(in_files[i], name=pattern)
     }
@@ -359,7 +395,7 @@ output_hifieval_readstats <- function(path)
 }
 
 
-merqury_asm_sum <- function(path)
+merqury_asm_sum <- function(path, ids, scales)
 {
 
 
@@ -377,17 +413,18 @@ merqury_asm_sum <- function(path)
   in_files_com <- Sys.glob(tmp_path_com)
   merqury_list_qv <- list()
   merqury_list_com <- list()
+  alt <- paste(ids[order(nchar(ids), decreasing = TRUE)], collapse = "|")
   
   ## create data table
   for (i in seq_along(in_files_qv)) {
-    pattern <- str_extract(in_files_qv[i], paste(labels, collapse="|"))
+    pattern <- str_extract(in_files_qv[i], alt)
     if (!is.na(pattern)) {
     merqury_list_qv[[i]] <- read_merqury_oneline(in_files_qv[i], name=pattern)
   }
   }
   
   for (i in seq_along(in_files_com)) {
-    pattern <- str_extract(in_files_com[i], paste(labels, collapse="|"))
+    pattern <- str_extract(in_files_com[i], alt)
     if (!is.na(pattern)) {
     merqury_list_com[[i]] <- read_merqury_oneline(in_files_com[i], name=pattern)
   }
@@ -458,52 +495,60 @@ merqury_asm_sum <- function(path)
 }
 
 ## final output
-## prepare compleasm path (I have to pass a file so that this rule is executed at the end of the workflow but I need only a path to extract files??):
-#input_path_compleasm_adapt <-str_extract(input_path_compleasm, "compleasm")
 
 ## seqkit plot
 seqkit_giga <- read_seqkit(input_path_seqkit_stats, ".fastq.gz")
 
-## N(x) plot (and table)
-n50_plot <- n50_summary(input_path_faidx)
+all_len <- map_dfr(Sys.glob(paste(input_path_faidx, "*.fa.fai", sep = "/")),
+                   ~ read_delim(.x, col_names = FALSE) %>% select(len = X2))
+scales <- list(
+  n50_breaks = get_breaks(10000, 1.5 * max(all_len$len)),
+  n50_limits = c(1000, max(all_len$len))
+)
 
-## compleasm plot (and table)
-compleasm_plot <- compleasm_summary(input_path_compleasm, 
-                                          compleasm_database_name)
+## One page per assembler, same layout on each
+build_page <- function(asm) {
+  ids  <- id_table$asm_id[id_table$assembler == asm]
+  n50  <- n50_summary(input_path_faidx, ids, scales)
+  comp <- compleasm_summary(input_path_compleasm, compleasm_database_name, ids, scales)
+  merq <- merqury_asm_sum(input_path_merqury, ids, scales)
+  ttl  <- if (length(assemblers) > 1) paste("Assembler:", asm) else NULL
 
-## hifieval error stats
-if (!is.null(input_path_hifieval)) {
-hifieval_out <- output_hifieval_readstats(input_path_hifieval)
+  if (!is.null(input_path_hifieval) && asm != "flye") {
+    hife <- output_hifieval_readstats(input_path_hifieval, ids, scales)
+    page <- seqkit_giga / n50[[2]] / comp[[2]] / merq[[1]] / hife[[1]] +
+            plot_layout(guides = "collect", heights = c(2,3,2,2,2))
+  } else {
+    page <- seqkit_giga / n50[[2]] / comp[[2]] / merq[[3]] +
+            plot_layout(guides = "collect", heights = c(2,3,2,2))
+  }
+  page + plot_annotation(tag_levels = "A", title = ttl)
 }
 
-## Merqury output plot
-merqury_out <- merqury_asm_sum(input_path_merqury)
 
 ## Final Plot
-if (!is.null(input_path_hifieval)) {
-final_plot <- (
-seqkit_giga/
-  n50_plot[[2]] /
-  compleasm_plot[[2]] /
-  merqury_out[[1]] /
-   hifieval_out[[1]]) +
-   plot_layout(guides = "collect", heights = c(2,3,2,2,2)) + 
-  plot_annotation(tag_levels = 'A') 
-  } else { ## Final Plot without hifieval
-final_plot <- (
-seqkit_giga/
-  n50_plot[[2]] /
-  compleasm_plot[[2]] /
-  merqury_out[[3]]) +
-   plot_layout(guides = "collect", heights = c(2,3,2,2)) + 
-  plot_annotation(tag_levels = 'A')
-}
+pdf(output_final_figure, width = 12, height = 14)
+for (asm in assemblers) print(build_page(asm))
+dev.off()
 
-## write output
-ggsave(output_final_figure, plot = final_plot, device = "pdf", width = 12, height = 14, units = "in")
-write_delim(n50_plot[[1]], output_ng_table, delim = "\t")
-write_delim(compleasm_plot[[1]], output_compleasm_table, delim = "\t")
-write_delim(merqury_out[[2]], out_merqury_table, delim = "\t")
+## tables stay single files, with an assembler column
+per_asm <- function(f) map_dfr(assemblers, function(asm) {
+  ids <- id_table$asm_id[id_table$assembler == asm]
+  f(ids) %>% mutate(assembler = asm)
+})
+
+write_delim(per_asm(function(i) n50_summary(input_path_faidx, i, scales)[[1]]),
+            output_ng_table, delim = "\t")
+write_delim(per_asm(function(i) compleasm_summary(input_path_compleasm,
+                                                  compleasm_database_name, i, scales)[[1]]),
+            output_compleasm_table, delim = "\t")
+write_delim(per_asm(function(i) merqury_asm_sum(input_path_merqury, i, scales)[[2]]),
+            out_merqury_table, delim = "\t")
 if (!is.null(input_path_hifieval)) {
-  write_delim(hifieval_out[[2]], out_hifieval_table, delim = "\t")
-  }
+  hife_asm <- assemblers[assemblers != "flye"]
+  write_delim(map_dfr(hife_asm, function(asm) {
+    ids <- id_table$asm_id[id_table$assembler == asm]
+    output_hifieval_readstats(input_path_hifieval, ids, scales)[[2]] %>%
+      mutate(assembler = asm)
+  }), out_hifieval_table, delim = "\t")
+}

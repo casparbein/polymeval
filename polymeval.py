@@ -301,6 +301,18 @@ def argument_parser():
     )
 
     app.add_argument(
+    "-A", 
+    "--assembler",
+    action="store", 
+    dest="assemblers", 
+    default="hifiasm",
+    help=
+    """Comma-separated list of assemblers: hifiasm, flye, lja, verkko.
+    Default: hifiasm. Multiple assemblers are run on every sample and
+    compared in the summary plot.
+    """)
+
+    app.add_argument(
     "-pw",
     "--pairwise", 
     action="store_true",
@@ -697,6 +709,21 @@ def main():
             "seqkit": "v9.4.2",
         }
     }
+
+    ## Which assemblers are used in standard (and downsample mode)
+    VALID = {"hifiasm", "flye", "lja", "verkko"}
+    asms = [a.strip().lower() for a in args.assemblers.split(",") if a.strip()]
+    bad = set(asms) - VALID
+    if bad:
+        logger.critical("Unknown assembler(s): %s. Choose from: %s", ", ".join(bad), ", ".join(sorted(VALID)))
+        sys.exit(1)
+    if "verkko" in asms:
+        logger.warning("Verkko is designed for HiFi + ONT ultra-long reads. Running it on HiFi alone "
+                    "is supported but costs far more compute than hifiasm for comparable "
+                    "contiguity. See --verkko_no_correction.")
+    config["assemblers"] = format_list(asms)
+    config["verkko_extra"] = "--no-correction" if args.verkko_no_correction else ""
+
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:

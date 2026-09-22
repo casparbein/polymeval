@@ -1,10 +1,12 @@
 ## Create final output plots and stats
 rule final_output_stats:
     input:
-        faidx_files = expand("assemblies/{sample}.fa.fai", sample = samples),
-        compleasm_files = expand("compleasm/{sample}_summary.rf.txt", sample = samples),
-        merqury_files = expand("merqury/{sample}_slf/{sample}_slf.qv", sample = samples),
-        hifieval_files = expand("hifieval/{sample}.summary.tsv", sample = samples) if config["hifieval"] else [],
+        faidx_files = expand("assemblies/{asm_id}.fa.fai", asm_id = asm_ids),
+        compleasm_files = expand("compleasm/{asm_id}_summary.rf.txt", asm_id = asm_ids),
+        merqury_files = expand("merqury/{asm_id}_slf/{asm_id}_slf.qv", asm_id = asm_ids),
+        hifieval_files = expand("hifieval/{asm_id}.summary.tsv",
+                                 asm_id=[i for i in asm_ids if not i.endswith("__flye")])
+                          if config["hifieval"] else [],
         seqkit = "out/stats/seqkit_all.tsv"
     output:
         ng_table = "out/stats/all.NG.table.txt",
@@ -19,7 +21,8 @@ rule final_output_stats:
         hifieval_path = "hifieval/" if config["hifieval"] else [],
         merqury_path = "merqury/",
         colors = config["colors"],
-        sample_names = expand("{sample}", sample = samples),
+        asm_ids      = asm_ids,
+        sample_names = samples, 
     threads:
         1
     resources:

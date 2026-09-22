@@ -3,12 +3,24 @@ import re
 configfile: "DEF.yaml"
 samples = config["samples"]
 wrapper_versions = config["wrapper_versions"]
+ASSEMBLERS = config["assemblers"]
 
-
+asm_ids = [f"{s}__{a}" for s in samples for a in ASSEMBLERS]
 compleasm_database = config["compleasm_db"]
+
+## Standard case:
+if len(ASSEMBLERS) == 1 and ASSEMBLERS[0] == "hifiasm":
+    asm_ids = samples
+
+## Return sample name from sample__assembly ID
+def asm_sample(asm_id):
+    """repliQa__flye -> repliQa ; repliQa -> repliQa"""
+    return asm_id.rsplit("__", 1)[0] if "__" in asm_id else asm_id
+
 wildcard_constraints:
-    #sample ="[A-Za-z0-9_]+"
-    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),
+    assembler = "|".join(ASSEMBLERS),
+    asm_id    = "|".join(re.escape(i) for i in sorted(asm_ids, key=len, reverse=True)),
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():
@@ -16,9 +28,8 @@ def gather_targets():
     
     ## Optional output
     if config["hifieval"]:
-        all_target.extend(expand("hifieval/{sample}.summary.tsv", sample = samples)),
-    #if config["quadron"]:
-    #    all_target.extend(expand("out/stats/{sample}_quadron.txt", sample = samples)),
+        all_target.extend(expand("hifieval/{asm_id}.summary.tsv", asm_id=[i for i in asm_ids if not i.endswith("__flye")])),
+
     if config["kmc"]:
         all_target.extend(expand("kmc/{sample}_diff.kmc_pre", sample = samples)),
         all_target.extend(expand("genomescope/{sample}/linear_plot.png", sample = samples)),
@@ -37,10 +48,10 @@ def gather_targets():
         
     ## Default output (always turned on)
     all_target.append("out/stats/seqkit_all.tsv"),
-    all_target.extend(expand("assemblies/{sample}.fa.fai", sample = samples)),
+    all_target.extend(expand("assemblies/{asm_id}.fa.fai", sample = samples)),
     all_target.append("out/stats/all.summary_plot.pdf"),
-    all_target.extend(expand("compleasm/{sample}_summary.rf.txt", sample = samples)),
-    all_target.extend(expand("merqury/{sample}_slf/{sample}_slf.qv", sample = samples)),
+    all_target.extend(expand("compleasm/{asm_id}_summary.rf.txt", sample = samples)),
+    all_target.extend(expand("merqury/{asm_id}_slf/{asm_id}_slf.qv", sample = samples)),
 
     return all_target
 
@@ -53,10 +64,11 @@ all_target_files = gather_targets()
 include: "rules/rdeval_dump.smk"
 include: "rules/nt_qc_hist.smk"
 include: "rules/seqkit_stats.smk"
-include: "rules/hifiasm.smk"
+#include: "rules/hifiasm.smk"
 include: "rules/compleasm.smk"
 include: "rules/merqury.smk"
 include: "rules/plotting.smk"
+include: "rules/assemble.smk"
 
 ## Optional output
 if config["hifieval"]:

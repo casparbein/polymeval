@@ -40,6 +40,7 @@ rule mark_dups:
         pbmarkdup \
         --dup-file {params.dupreads} \
         -j {threads} \
+        --ignore-read-names \
         {input.reads} \
         --log-level INFO \
         {output} \

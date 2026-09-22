@@ -1,21 +1,19 @@
 rule run_compleasm:
     input:
-        "assemblies/{sample}.fa"
+        "assemblies/{asm_id}.fa"
     output:
-        "compleasm/{sample}_compleasm/summary.txt",
-        temp(directory(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/hmmer_output")),
-        #temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fasta"),
-        #temp(f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff")
+        "compleasm/{asm_id}_compleasm/summary.txt",
+        temp(directory(f"compleasm/{{asm_id}}_compleasm/{config['compleasm_db']}/hmmer_output")),
     threads:
         10
     resources:
         mem_mb=50000
     params:
-        outname = "compleasm/{sample}_compleasm",
+        outname = "compleasm/{asm_id}_compleasm",
         database = config["compleasm_db"],
         database_path = config["compleasm_db_path"],
     log:
-        "logs/run_compleasm/{sample}.log"
+        "logs/run_compleasm/{asm_id}.log"
     conda:
         "../envs/compleasm.yaml"
     shell:
@@ -33,13 +31,11 @@ rule run_compleasm:
 ## reformat stats so they can be read in easily in R
 rule reformat_compleasm:
     input:
-        summary = "compleasm/{sample}_compleasm/summary.txt",
-        #temp1 = f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/translated_protein.fasta",
-        #temp2 = f"compleasm/{{sample}}_compleasm/{config['compleasm_db']}/miniprot_output.gff"
+        summary = "compleasm/{asm_id}_compleasm/summary.txt",
     output:
-        "compleasm/{sample}_summary.rf.txt"
+        "compleasm/{asm_id}_summary.rf.txt"
     log:
-        "logs/reformat_compleasm/{sample}.log"
+        "logs/reformat_compleasm/{asm_id}.log"
     shell:
         """
         cat {input.summary} | sed -e 's/:/\t/g' -e 's/%, /\t/g' | head -n6 | tail -n5 > {output} 2> {log}
