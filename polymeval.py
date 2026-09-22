@@ -93,20 +93,6 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
 
     return sorted((b, c) for b, (c, _) in found.items())
 
-        if base in found:
-            logger.critical("Two %s files map to sample %r in %s: %s and %s. Keep one.",
-                            kind, base, src_path, found[base][1], name)
-            sys.exit(1)
-
-        canonical = CANONICAL_SUFFIX.get(suf, suf)
-        found[base] = (canonical, name)
-
-        dst_file = os.path.join(dst_path, base + canonical)
-        if not os.path.lexists(dst_file):
-            os.symlink(os.path.join(real_src, name), dst_file)
-
-    return sorted((b, c) for b, (c, _) in found.items())
-
 
 def link_reads(src, dst, suffixes, down_list=None, skip_bases_ending=None):
     return link_inputs(src, dst, suffixes, down_list, skip_bases_ending, kind="read")
