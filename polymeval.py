@@ -808,21 +808,26 @@ def main():
         else:
             logger.critical("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
             sys.exit(1)
-    #elif args.variant_calling:
 
     else:
         ## Case when remove dups should be turned on:
         if config["remove_dups"]:
-            fastq_string = [".dup.fastq.gz", ".dup.fastq"]
+            fastq_string = (".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq")
         else:
-            fastq_string = [".fastq.gz", ".fastq"] 
+            fastq_string = (".fastq.gz", ".fastq", ".fq.gz", ".fq") 
+
+        def strip_suffix(name):
+            for s in suffixes:
+                if name.endswith(s):
+                    return name[: -len(s)]
+            return None
 
         if args.samples:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
             samples = format_list(args.samples.split(','))
             symlink_all_rds(args.in_reads, path_for_link_rds, samples)
             in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string) and f.replace(fastq_string, "") in samples]
+            in_reads_list = [b for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and (b := strip_suffix(f)) and (not samples or b in samples)]
             config["samples"] =  format_list(in_reads_list)
         else:
             path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
@@ -871,10 +876,6 @@ def main():
         if args.reference_seq == "":
             logger.critical("A reference genome sequence has to be provided to --reference_seq in order to run the analysis.")
             sys.exit(1)
-        # if not args.pandepth:
-        #     logger.warning("Warning: Pandepth mode is not turned on, most of the analysis cannot be run. Install pandepth for the best experience")
-        # if args.pandepth_path == "":
-        #     logger.warning("Warning: Pandepth path not given. If pandepth is not installed or accessible, all operations involving pandepth will fail.")
         snakefile = "Snakefile_reference"
     
     elif args.variant_calling:
