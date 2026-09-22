@@ -11,28 +11,9 @@ ASSEMBLY_FASTA = {
 }
 
 def assembly_source(wc):
-    """assemblies/repliQa__flye.fa  ->  assemblies/flye/repliQa/assembly.fasta"""
-    sample, assembler = wc.asm_id.rsplit("__", 1)
+    sample, assembler = (wc.asm_id.rsplit("__", 1) if "__" in wc.asm_id
+                         else (wc.asm_id, ASSEMBLERS[0]))
     return ASSEMBLY_FASTA[assembler].format(sample=sample)
-
-
-## hifiasm is the only one that emits a graph rather than a FASTA.
-## This is the existing get_fasta rule, moved under the hifiasm subdirectory.
-rule get_fasta:
-    input:  "assemblies/hifiasm/{sample}.p_ctg.gfa"
-    output: "assemblies/hifiasm/{sample}.fa"
-    log:    "logs/get_fasta/{sample}.log"
-    shell:
-        """
-        awk '/^S/{{print ">"$2;print $3}}' {input} > {output} 2> {log}
-        """
-
-## One canonical name per assembly, as a relative symlink — no second copy on disk.
-rule collect_assembly:
-    input:  assembly_source
-    output: "assemblies/{asm_id}.fa"
-    run:
-        os.symlink(os.path.relpath(input[0], os.path.dirname(output[0])), output[0])
 
 ## Polymerase-specific assembly with hifiasm
 rule hifiasm:
@@ -41,7 +22,6 @@ rule hifiasm:
     output:
         "assemblies/hifiasm/{sample}.p_ctg.gfa",
         temp("assemblies/hifiasm/{sample}.ec.fa") if config["hifieval"] else [],
-        temp("assemblies/hifiasm/{sample}.r_utg.gfa"),
         temp("assemblies/hifiasm/{sample}.r_utg.gfa"),
         temp("assemblies/hifiasm/{sample}.p_utg.gfa"),
         temp("assemblies/hifiasm/{sample}.a_ctg.gfa"),
