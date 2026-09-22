@@ -39,21 +39,21 @@ def symlink_all_rds(src_path, dst_path, down_list = [], reference_run = False):
     os.makedirs(dst_path, exist_ok=True)   
     src_path =  os.path.abspath(src_path)
     
-    for rds in os.listdir(src_path):
-        if down_list == []:
-            down_list = os.listdir(src_path)
-        
+    if down_list == []:
+        down_list = os.listdir(src_path)
+    
+    for rds in os.listdir(src_path):    
         if reference_run:
             if rds.endswith("fastq.gz") and not rds.endswith("dup.fastq.gz") and (rds.split('.')[0] in down_list or rds in down_list):
                 src_file = os.path.join(os.path.realpath(src_path), rds)
                 dst_file = os.path.join(dst_path, rds)
-                if not os.path.islink(dst_file):
+                if not os.path.lexists(dst_file):
                     os.symlink(src_file, dst_file)
         else:
             if (rds.endswith("fastq.gz") or rds.endswith("fastq")) and (rds.split('.')[0] in down_list or rds in down_list):
                 src_file = os.path.join(os.path.realpath(src_path), rds)
                 dst_file = os.path.join(dst_path, rds)
-                if not os.path.islink(dst_file):
+                if not os.path.lexists(dst_file):
                     os.symlink(src_file, dst_file)
 
 def symlink_all_asm(src_path, dst_path): 
@@ -195,7 +195,7 @@ def run_snakemake(snake_file,
     logger.info("The following command will be run for the polymeval pipeline: %s", print_cmd)
 
 
-    result1 = subprocess.Popen(cmd,preexec_fn=os.setpgrp)
+    result1 = subprocess.Popen(cmd,preexec_fn=os.setpgrp, stdout=PIPE)
     logger.info(result1.stdout)
 
     try:
@@ -743,7 +743,7 @@ def main():
     else:
         color_path = None
 
-    if args.hg_size != "":
+    if args.hg_size:
         config["hg_size"] = args.hg_size
 
     if args.pairwise:
