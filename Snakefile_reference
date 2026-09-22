@@ -10,7 +10,7 @@ exon_bed = config["exons"]
 repeat_bed = config["repeats"]
 
 wildcard_constraints:
-    sample = r"|".join(samples),
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():

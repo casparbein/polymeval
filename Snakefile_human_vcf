@@ -8,7 +8,7 @@ wrapper_versions = config["wrapper_versions"]
 compleasm_database = config["compleasm_db"]
 wildcard_constraints:
     #sample ="[A-Za-z0-9_]+"
-    sample = r"|".join(samples),
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
 
 ## benchmarking reference datasets
 reference_seq_gz = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"

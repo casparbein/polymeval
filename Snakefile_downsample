@@ -8,7 +8,7 @@ compleasm_database = config["compleasm_db"]
 wrapper_versions = config["wrapper_versions"]
 
 wildcard_constraints:
-    sample = r"|".join(samples)
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
 
 ## Get minimum downsampling rate and dictionary:
 ## variable "downsample_nucs" is used in the rasusa downsampling rule

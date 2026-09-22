@@ -8,7 +8,7 @@ wrapper_versions = config["wrapper_versions"]
 compleasm_database = config["compleasm_db"]
 wildcard_constraints:
     #sample ="[A-Za-z0-9_]+"
-    sample = r"|".join(samples),
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():

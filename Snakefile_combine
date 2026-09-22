@@ -35,7 +35,7 @@ turned_combo_dict = {v: ["raw_reads/" + f for f in k.split(" ")] for k,v in comb
 
 ## Wildcard constraints
 wildcard_constraints:
-    sample = r"|".join(samples),
+    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
     out= r'|'.join([x for x in out_assembly_names]),
 
 
