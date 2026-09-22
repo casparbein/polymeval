@@ -24,7 +24,19 @@ CANONICAL_SUFFIX = {
     ".fq.gz":     ".fastq.gz",
     ".dup.fq":    ".dup.fastq",
     ".dup.fq.gz": ".dup.fastq.gz",
+    ".fasta":     ".fa",
+    ".fna":       ".fa",
 }
+
+ASM_SUFFIXES = (".fa", ".fasta", ".fna")
+
+## Helper functions
+def split_suffix(name, suffixes):
+    """Return (basename, matched_suffix), or (None, None) if nothing matches."""
+    for suf in suffixes:
+        if name.endswith(suf):
+            return name[: -len(suf)], suf
+    return None, None
 
 ## Helper functions for mounting apptainer paths:
 def get_mount_point(path):
@@ -43,76 +55,56 @@ def get_apptainer_bind_args(paths):
     return " ".join(f"-B {mp}:{mp}" for mp in mount_points)
 
 
-def symlink_all_rds(src_path, dst_path, suffixes, down_list=None, reference_run=False):
-    """Link accepted read files from src_path into dst_path.
-    `down_list` restricts to those sample basenames; None means all.
+def link_inputs(src_path, dst_path, suffixes, down_list=None,
+                skip_bases_ending=None, kind="input"):
+    """Link every accepted file from src_path into dst_path under its canonical name.
+
+    suffixes           accepted source extensions; matched longest-first
+    down_list          restrict to these sample basenames, or None for all
+    skip_bases_ending  ignore files whose basename ends with this (".ec", ".dup")
+    kind               noun used in error messages
+
     Returns [(basename, canonical_suffix), ...] sorted by basename.
     """
     os.makedirs(dst_path, exist_ok=True)
     real_src = os.path.realpath(os.path.abspath(src_path))
+    suffixes = tuple(sorted(suffixes, key=len, reverse=True))
 
     found = {}
-    for rds in sorted(os.listdir(real_src)):
-        base, suf = split_suffix(rds, suffixes)
+    for name in sorted(os.listdir(real_src)):
+        base, suf = split_suffix(name, suffixes)
         if base is None:
             continue
-        # reference mode evaluates the deduplicated reads, never the pre-dedup originals
-        if reference_run and (base.endswith(".dup") or not suf.endswith(".gz")):
+        if skip_bases_ending and base.endswith(skip_bases_ending):
             continue
         if down_list is not None and base not in down_list:
             continue
 
         if base in found:
-            logger.critical("Two input files map to sample %r in %s: %s and %s. Keep one.",
-                            base, src_path, found[base][1], rds)
+            logger.critical("Two %s files map to sample %r in %s: %s and %s. Keep one.",
+                            kind, base, src_path, found[base][1], name)
             sys.exit(1)
 
         canonical = CANONICAL_SUFFIX.get(suf, suf)
-        found[base] = (canonical, rds)
+        found[base] = (canonical, name)
 
         dst_file = os.path.join(dst_path, base + canonical)
         if not os.path.lexists(dst_file):
-            os.symlink(os.path.join(real_src, rds), dst_file)
+            os.symlink(os.path.join(real_src, name), dst_file)
 
     return sorted((b, c) for b, (c, _) in found.items())
 
-def symlink_all_asm(src_path, dst_path): 
-    os.makedirs(dst_path, exist_ok=True) 
 
-    src_path =  os.path.abspath(src_path) 
+def link_reads(src, dst, suffixes, down_list=None, skip_bases_ending=None):
+    return link_inputs(src, dst, suffixes, down_list, skip_bases_ending, kind="read")
 
-    for asm in os.listdir(src_path):
-        if asm.endswith(".fa") and not asm.endswith(".ec.fa"):
-            src_file = os.path.join(os.path.realpath(src_path), asm)
-            dst_file = os.path.join(dst_path, asm)
-            if not os.path.lexists(dst_file):
-                os.symlink(src_file, dst_file)
+def link_assemblies(src, dst, down_list=None):
+    return link_inputs(src, dst, ASM_SUFFIXES, down_list,
+                       skip_bases_ending=".ec", kind="assembly")
 
 def get_snakefile_path(name="Snakefile"):
     snakefile = os.path.join(base_dir, name)
     return snakefile
-
-# def get_cluster_configfile_path(name="config.yaml", run_type="standard", bench_dir = None):
-#     if run_type == "standard":
-#         cluster_configfile =  os.path.join(base_dir, "prof")
-#     elif run_type == "human":
-#         cluster_configfile =  os.path.join(base_dir, "prof_human")
-
-#         current_yaml = YAML()
-
-#         with open(cluster_configfile + "/config.yaml", "r") as yaml_file:
-#             current_def_file = current_yaml.load(yaml_file)
-#             current_def_file["apptainer-args"] = f"-B ./alignments:/input -B {bench_dir}:/reference -B ./variants:/output"
-
-#         with open(cluster_configfile + "/config.yaml", "w") as yaml_file_new:
-#             yaml = YAML()
-#             yaml.width = 4096
-#             yaml.boolean_representation = ['False', 'True']
-#             yaml.default_flow_style = False
-#             yaml.preserve_quotes = True
-#             yaml.dump(current_def_file, yaml_file_new)
-
-#     return cluster_configfile
 
 def get_cluster_configfile_path(name="config.yaml"):
     cluster_configfile =  os.path.join(base_dir, "prof")
@@ -235,6 +227,7 @@ def run_snakemake(snake_file,
         result1.wait()
         
         logger.info(f"Snakemake has exited (Code: {result1.returncode}).")
+        sys.exit(result1.returncode)
 
 
 DESCRIPTION = '''
@@ -784,15 +777,9 @@ def main():
 
     ## Set up directory;
     READS_SUBDIR = "raw_reads"
-    SUFFIXES = tuple(sorted((".fastq.gz", ".fq.gz", ".dup.fq", ".dup.fq.gz", ".dup.fastq.gz", ".dup.fastq", ".fq", ".fastq"), key=len, reverse=True))
+    SUFFIXES = tuple(sorted((".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq") if config["remove_dups"]
+                        else (".fastq.gz", ".fastq", ".fq.gz", ".fq"), key=len, reverse=True))
     GZ  = (".fastq.gz", ".fq.gz")
-
-    def split_suffix(name, suffixes):
-        """Return (basename, matched_suffix), or (None, None) if nothing matches."""
-        for suf in suffixes:
-            if name.endswith(suf):
-                return name[: -len(suf)], suf
-        return None, None
 
     def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False):
         dest = os.path.join(work_dir, READS_SUBDIR)
@@ -843,19 +830,21 @@ def main():
                                                         wanted=wanted or set(downsample_samples))
             config["samples"] = basenames(found)
 
-    elif args.reference:
-        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ, reference_run=True)
-        path_for_link_asm = os.path.join(work_dir, "assemblies")
-        symlink_all_asm(args.in_assemblies, path_for_link_asm)
-        asm = sorted(f[:-3] for f in os.listdir(path_for_link_asm)
-                    if f.endswith(".fa") and not f.endswith(".ec.fa"))
-        reads = sorted(b for b, _ in found)
-        if reads != asm:
-            logger.critical("Reads and assemblies do not match.\n  only in reads: %s\n  only in "
-                            "assemblies: %s", sorted(set(reads) - set(asm)) or "-",
-                            sorted(set(asm) - set(reads)) or "-")
-            sys.exit(1)
-        config["samples"] = basenames(found)
+elif args.reference:
+    path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
+                                                 skip_bases_ending=".dup")
+    path_for_link_asm = os.path.join(work_dir, "assemblies")
+    asm_found = link_assemblies(args.in_assemblies, path_for_link_asm)
+
+    reads = {b for b, _ in found}
+    asms  = {b for b, _ in asm_found}
+    if reads != asms:
+        logger.critical("Reads and assemblies do not match.\n  only in reads: %s\n"
+                        "  only in assemblies: %s",
+                        ", ".join(sorted(reads - asms)) or "-",
+                        ", ".join(sorted(asms - reads)) or "-")
+        sys.exit(1)
+    config["samples"] = basenames(found)
 
     # standard and variant-calling
     else:                                      
