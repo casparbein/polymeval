@@ -167,7 +167,7 @@ Universe.fastq.gz
 ### Standard Mode
 Now, we can just run polymeval in standard mode:
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --standard \
 --directory_name yeast_standard_test \
 --dry_run \
@@ -182,7 +182,7 @@ This will run a "dry-run", which just means that it will test whether snakemake 
 If this works, you can then start a run:
 
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --standard \
 --directory_name yeast_standard_test \
 --run_snakemake \
@@ -204,7 +204,7 @@ ls ~/yeast_standard_test/out/stats/seqkit_all.tsv
 
 If this file exists, you can simply run (first as dry-run, then as the actual run):
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --downsample \
 --directory_name yeast_downsample_test \
 --dry_run \
@@ -244,7 +244,7 @@ X1 + X1 (combining two downsampled read sets, in case of 10 read sets there are 
 
 All this is done automatically with (all-to-all):
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --combine \
 --directory_name yeast_combine_test \
 --dry_run \
@@ -258,7 +258,7 @@ python3 ~/poymeval/polymeval.py \
 
 (pairwise mode):
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --combine \
 --pairwise \ 
 --directory_name yeast_combine_test \
@@ -268,7 +268,7 @@ python3 ~/poymeval/polymeval.py \
 --compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/ \
 --seqkit_file_path ~/yeast_standard_test/out/stats/seqkit_all.tsv \
---samples repliQa,Terra,LongAmp,Q5,LaTaq,Universe,WatchmakerEquinox,PrimeStar_Max, ## The ten samples that should be combined here
+--samples repliQa,Terra,LongAmp,Q5,LaTaq,Universe,WatchmakerEquinox,PrimeStar_Max ## The ten samples that should be combined here
 ```
 
 ### Reference mode
@@ -277,7 +277,7 @@ When comparing different polymerases for amplification, in this context we are m
 Let's see how this looks compared to a reference ([S288C_reference_genome_R64-5-1_20240529](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000146045.2/)).
 
 ```bash
-python3 ~/poymeval/polymeval.py \
+python3 ~/polymeval/polymeval.py \
 --reference \
 --directory_name yeast_reference_test \
 --dry_run \
