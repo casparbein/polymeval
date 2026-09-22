@@ -547,14 +547,14 @@ def argument_parser():
     ''')
 
     app.add_argument(
-    "-re", 
-    "--restrict",
-    action="store_true",
+    "-nre", 
+    "--no_restrict",
+    action="store_false",
     dest="restrict",
     default = True,
     help=
     '''For combine and downsample: If the smallest given input is an outlier (< 1/3 the number of sequenced nts compared to 
-    the biggest available read set), whether it should still be used to infer target base coverage. If -r is set, 
+    the biggest available read set), still use it to infer target base coverage. If not set,
     the next bigger read set is instead taken until one is found that is > 1/3 number of sequenced nucleotides of the biggest set.  
     ''')
 
@@ -703,12 +703,10 @@ def main():
     if (args.combine or args.downsample) and args.coverage:
         config["sample_base_target"] = int(args.coverage)
     elif (args.combine or args.downsample) and not args.coverage:
-        config["sample_base_target"] = ""
-
-    if (args.combine or args.downsample) and args.restrict:
-        config["restrict_downsampling"] = True
-    elif (args.combine or args.downsample) and not args.coverage:
         config["sample_base_target"] = False
+
+    if args.combine or args.downsample
+        config["restrict_downsampling"] = bool(args.restrict)
 
     ## Change default parameters
     if args.compleasm_db:
@@ -766,91 +764,176 @@ def main():
     if args.tandem_repeats:
         config["tandem_repeats"] = True
 
-    ## get mounts for apptainer (if applicable):
-    #external_paths = [pandepth_path, benchmark_path, reference_path, seqkit_path, color_path]
-    #bind_args = get_apptainer_bind_args([p for p in external_paths if p])
-    #logger.info(bind_args)
-
     ## Set up directory;
-    dest_path = os.path.join(os.getcwd(), args.directory_name)
-    if not os.path.exists(dest_path):
-        os.makedirs(dest_path, exist_ok=True)  
+    READS_SUBDIR = "raw_reads"
+    SUFFIXES = ((".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq") if config["remove_dups"]
+                else (".fastq.gz", ".fastq", ".fq", ".fq.gz"))
+    GZ  = (".fastq.gz", ".fq.gz")
 
-    if not args.standard and not args.reference and not args.variant_calling:
-        readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(args.seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+    def split_suffix(name, suffixes):
+        """Return (basename, matched_suffix), or (None, None) if nothing matches."""
+        for suf in suffixes:
+            if name.endswith(suf):
+                return name[: -len(suf)], suf
+        return None, None
 
-        if (args.combine and args.samples):
-            path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-            samples = format_list(args.samples.split(','))
-            symlink_all_rds(args.in_reads, path_for_link_rds, samples)
-            in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in samples]
-            config["samples"] =  samples
+    def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False):
+        """Symlink reads from `src` into <work_dir>/raw_reads and report what landed there.
 
-        elif (args.downsample and not args.samples):
-            path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-            symlink_all_rds(args.in_reads, path_for_link_rds, downsample_samples)
-            in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in downsample_samples]
-            config["samples"] =  format_list(in_reads_list)
-        
-    elif args.reference:
-        path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-        symlink_all_rds(args.in_reads, path_for_link_rds, [], reference_run = True)
-        path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
-        symlink_all_asm(args.in_assemblies, path_for_link_asm)
-        in_reads = os.listdir(path_for_link_rds)
-        in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
-        in_assemblies = os.listdir(path_for_link_asm)
-        in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
-        if sorted(in_reads_list) == sorted(in_assemblies_list):
-            config["samples"] =  format_list(in_reads_list)
-        else:
-            logger.critical("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
+        Returns (dest_dir, [(basename, matched_suffix), ...]) sorted by basename.
+        `wanted` is a set of sample names to keep, or None for everything.
+        """
+        dest = os.path.join(work_dir, READS_SUBDIR)
+        symlink_all_rds(src, dest, sorted(wanted) if wanted else [], reference_run=reference_run)
+
+        linked = sorted(e for e in os.listdir(dest)
+                        if os.path.islink(os.path.join(dest, e)))
+        if not linked:
+            logger.critical("No read symlinks were created in %s. Check that --input_reads points at "
+                            "the right directory and that files end in %s.",
+                            dest, " or ".join(suffixes))
             sys.exit(1)
 
-    else:
-        ## Case when remove dups should be turned on:
-        if config["remove_dups"]:
-            fastq_string = (".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq")
-        else:
-            fastq_string = (".fastq.gz", ".fastq", ".fq.gz", ".fq") 
+        found = []
+        for f in linked:
+            base, suf = split_suffix(f, suffixes)
+            if base is None or (wanted is not None and base not in wanted):
+                continue
+            found.append((base, suf))
 
-        def strip_suffix(name):
-            for s in suffixes:
-                if name.endswith(s):
-                    return name[: -len(s)]
-            return None
+        if not found:
+            logger.critical("None of the %d linked files end in %s.",
+                            len(linked), " or ".join(suffixes))
+            sys.exit(1)
 
-        if args.samples:
-            path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-            samples = format_list(args.samples.split(','))
-            symlink_all_rds(args.in_reads, path_for_link_rds, samples)
-            in_reads = os.listdir(path_for_link_rds)
-            in_reads_list = [b for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and (b := strip_suffix(f)) and (not samples or b in samples)]
-            config["samples"] =  format_list(in_reads_list)
-        else:
-            path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
-            symlink_all_rds(args.in_reads, path_for_link_rds, [])
-            in_reads = [entry for entry in os.listdir(path_for_link_rds) if os.path.islink(os.path.join(path_for_link_rds, entry))] #in_reads = os.listdir(path_for_link_rds) 
-
-            ## Catch exceptions here
-            if not in_reads:
-                logger.critical(
-                    "No read files were found in %s. Check that --input_reads points to the correct directory and that files end in .fastq.gz or .fastq.", path_for_link_rds)
+        if wanted is not None:
+            missing = wanted - {b for b, _ in found}
+            if missing:
+                logger.critical("Requested sample(s) not found in %s: %s",
+                                src, ", ".join(sorted(missing)))
                 sys.exit(1)
 
-            gz_id = in_reads[0].split(".")[-1]
-            if gz_id == "gz":
-                fastq_string = fastq_string[0]
-                config["gzipped"] = True
-            else:
-                fastq_string = fastq_string[1]
-                config["gzipped"] = False
-            in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
-            #print(in_reads_list)
-            config["samples"] =  format_list(in_reads_list)
+        return dest, sorted(found)
 
+    def resolve_gzipped(found, dest):
+        """All inputs must be compressed, or none. Returns True/False."""
+        compressed = {suf.endswith(".gz") for _, suf in found}
+        if len(compressed) > 1:
+            logger.critical("Directory %s mixes compressed and uncompressed reads. polymeval needs "
+                            "all inputs in the same form — gzip the plain files and rerun.", dest)
+            sys.exit(1)
+        return compressed.pop()
+
+    def basenames(found):
+        return format_list([b for b, _ in found])
+
+    work_dir = os.path.join(os.getcwd(), args.directory_name)
+    os.makedirs(work_dir, exist_ok=True)
+    wanted = {x.strip() for x in args.samples.split(",") if x.strip()} if args.samples else None
+
+    ## GZ as suffix here because rules only allow gz files and no deduplication
+    if args.combine or args.downsample:
+        readset_dict, downsample_samples, removed_samples, downsample_nucs = \
+            get_downsample_rates.read_seq_stats(args.seqkit_path,
+                                                restrict=config["restrict_downsampling"],
+                                                min_frac=config["min_frac"])
+        if args.combine:
+            if not wanted:
+                logger.critical("--combine requires --samples."); sys.exit(1)
+            path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ, wanted=wanted)
+            config["samples"] = format_list(sorted(wanted))
+        else:
+            path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
+                                                        wanted=wanted or set(downsample_samples))
+            config["samples"] = basenames(found)
+
+    elif args.reference:
+        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ, reference_run=True)
+        path_for_link_asm = os.path.join(work_dir, "assemblies")
+        symlink_all_asm(args.in_assemblies, path_for_link_asm)
+        asm = sorted(f[:-3] for f in os.listdir(path_for_link_asm)
+                    if f.endswith(".fa") and not f.endswith(".ec.fa"))
+        reads = sorted(b for b, _ in found)
+        if reads != asm:
+            logger.critical("Reads and assemblies do not match.\n  only in reads: %s\n  only in "
+                            "assemblies: %s", sorted(set(reads) - set(asm)) or "-",
+                            sorted(set(asm) - set(reads)) or "-")
+            sys.exit(1)
+        config["samples"] = basenames(found)
+
+    # standard and variant-calling
+    else:                                      
+        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, SUFFIXES, wanted=wanted)
+        config["gzipped"] = resolve_gzipped(found, path_for_link_rds)
+        config["samples"] = basenames(found)
+
+        dest_path = os.path.join(os.getcwd(), args.directory_name)
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path, exist_ok=True)  
+
+    # if not args.standard and not args.reference and not args.variant_calling:
+    #     readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(args.seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+
+    #     if (args.combine and args.samples):
+    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+    #         samples = format_list(args.samples.split(','))
+    #         symlink_all_rds(args.in_reads, path_for_link_rds, samples)
+    #         in_reads = os.listdir(path_for_link_rds)
+    #         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in samples]
+    #         config["samples"] =  samples
+
+    #     elif (args.downsample and not args.samples):
+    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+    #         symlink_all_rds(args.in_reads, path_for_link_rds, downsample_samples)
+    #         in_reads = os.listdir(path_for_link_rds)
+    #         in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz") and f.replace(".fastq.gz", "") in downsample_samples]
+    #         config["samples"] =  format_list(in_reads_list)
+        
+    # elif args.reference:
+    #     path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+    #     symlink_all_rds(args.in_reads, path_for_link_rds, [], reference_run = True)
+    #     path_for_link_asm = os.path.join(os.getcwd(), args.directory_name, "assemblies")
+    #     symlink_all_asm(args.in_assemblies, path_for_link_asm)
+    #     in_reads = os.listdir(path_for_link_rds)
+    #     in_reads_list = [f.replace('.fastq.gz','') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(".fastq.gz")]
+    #     in_assemblies = os.listdir(path_for_link_asm)
+    #     in_assemblies_list = [f.replace('.fa','') for f in in_assemblies if (os.path.islink(os.path.join(path_for_link_asm, f)) or os.path.isfile(os.path.join(path_for_link_asm, f))) and f.endswith(".fa") and not f.endswith(".ec.fa")]
+    #     if sorted(in_reads_list) == sorted(in_assemblies_list):
+    #         config["samples"] =  format_list(in_reads_list)
+    #     else:
+    #         logger.critical("Number or names of assemblies and raw reads differ. Please check that they have the same base names and that there is the same number of them present in the respective directories")
+    #         sys.exit(1)
+
+    # else:
+
+    #     if args.samples:
+    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+    #         samples = format_list(args.samples.split(','))
+    #         symlink_all_rds(args.in_reads, path_for_link_rds, samples)
+    #         in_reads = os.listdir(path_for_link_rds)
+    #         in_reads_list = [b for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and (b := strip_suffix(f)) and (not samples or b in samples)]
+    #         config["samples"] =  format_list(in_reads_list)
+        
+    #     else:
+    #         path_for_link_rds = os.path.join(os.getcwd(), args.directory_name, "raw_reads")
+    #         symlink_all_rds(args.in_reads, path_for_link_rds, [])
+    #         in_reads = [entry for entry in os.listdir(path_for_link_rds) if os.path.islink(os.path.join(path_for_link_rds, entry))] #in_reads = os.listdir(path_for_link_rds) 
+
+    #         ## Catch exceptions here
+    #         if not in_reads:
+    #             logger.critical(
+    #                 "No read files were found in %s. Check that --input_reads points to the correct directory and that files end in .fastq.gz or .fastq.", path_for_link_rds)
+    #             sys.exit(1)
+
+    #         gz_id = in_reads[0].split(".")[-1]
+    #         if gz_id == "gz":
+    #             fastq_string = fastq_string[0]
+    #             config["gzipped"] = True
+    #         else:
+    #             fastq_string = fastq_string[1]
+    #             config["gzipped"] = False
+    #         in_reads_list = [f.replace(fastq_string,'') for f in in_reads if (os.path.islink(os.path.join(path_for_link_rds, f)) or os.path.isfile(os.path.join(path_for_link_rds, f))) and f.endswith(fastq_string)]
+    #         config["samples"] =  format_list(in_reads_list)
 
     ## Which snakefile to use:
     if args.standard:

@@ -174,7 +174,7 @@ python3 ~/poymeval/polymeval.py \
 --readstats \
 --hifieval \
 --compleasm_db saccharomycetes_odb12 \
---compleasm_dp_path ~/compleasm_libs \
+--compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/
 ```
 
@@ -189,7 +189,7 @@ python3 ~/poymeval/polymeval.py \
 --readstats \
 --hifieval \
 --compleasm_db saccharomycetes_odb12 \
---compleasm_dp_path ~/compleasm_libs \
+--compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/
 ```
 
@@ -211,7 +211,7 @@ python3 ~/poymeval/polymeval.py \
 --readstats \
 --hifieval \
 --compleasm_db saccharomycetes_odb12 \
---compleasm_dp_path ~/compleasm_libs \
+--compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/ \
 --seqkit_file_path ~/yeast_standard_test/out/stats/seqkit_all.tsv
 ```
@@ -250,7 +250,7 @@ python3 ~/poymeval/polymeval.py \
 --dry_run \
 --hifieval \
 --compleasm_db saccharomycetes_odb12 \
---compleasm_dp_path ~/compleasm_libs \
+--compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/ \
 --seqkit_file_path ~/yeast_standard_test/out/stats/seqkit_all.tsv \
 --samples repliQa,Terra,LongAmp,Q5,LaTaq ## The five best samples here
@@ -265,7 +265,7 @@ python3 ~/poymeval/polymeval.py \
 --dry_run \
 --hifieval \
 --compleasm_db saccharomycetes_odb12 \
---compleasm_dp_path ~/compleasm_libs \
+--compleasm_db_path ~/compleasm_libs \
 --input_reads ~/yeast_reads/ \
 --seqkit_file_path ~/yeast_standard_test/out/stats/seqkit_all.tsv \
 --samples repliQa,Terra,LongAmp,Q5,LaTaq,Universe,WatchmakerEquinox,PrimeStar_Max, ## The ten samples that should be combined here
