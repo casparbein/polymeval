@@ -781,7 +781,7 @@ def main():
                         else (".fastq.gz", ".fastq", ".fq.gz", ".fq"), key=len, reverse=True))
     GZ  = (".fastq.gz", ".fq.gz")
 
-    def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False):
+    def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False, skip_bases_ending=None):
         dest = os.path.join(work_dir, READS_SUBDIR)
         found = link_reads(src, dest, suffixes, down_list=wanted,
                         skip_bases_ending=skip_bases_ending)
