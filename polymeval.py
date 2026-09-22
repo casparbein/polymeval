@@ -79,6 +79,19 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
             continue
         if down_list is not None and base not in down_list:
             continue
+        if base in found:
+            logger.critical("Two %s files map to sample %r in %s: %s and %s. Keep one.",
+                            kind, base, src_path, found[base][1], name)
+            sys.exit(1)
+        found[base] = (CANONICAL_SUFFIX.get(suf, suf), name)
+
+    # nothing is linked until the whole directory has been accepted
+    for base, (canonical, name) in found.items():
+        dst_file = os.path.join(dst_path, base + canonical)
+        if not os.path.lexists(dst_file):
+            os.symlink(os.path.join(real_src, name), dst_file)
+
+    return sorted((b, c) for b, (c, _) in found.items())
 
         if base in found:
             logger.critical("Two %s files map to sample %r in %s: %s and %s. Keep one.",
