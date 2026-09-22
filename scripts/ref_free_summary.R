@@ -20,27 +20,6 @@ in_colors = snakemake@params[["colors"]]
 input_names = snakemake@params[["asm_ids"]]
 sample_names = snakemake@params[["sample_names"]]
 
-
-asm_ids      <- unlist(strsplit(c(snakemake@params[["asm_ids"]]),      split = ","))
-sample_names <- unlist(strsplit(c(snakemake@params[["sample_names"]]), split = ","))
-
-## --- one table mapping every assembly id to its sample and assembler ----
-id_table <- tibble(asm_id = asm_ids) %>%
-  mutate(sample    = if_else(str_detect(asm_id, "__"),
-                             str_remove(asm_id, "__[^_]+$"), asm_id),
-         assembler = if_else(str_detect(asm_id, "__"),
-                             str_extract(asm_id, "[^_]+$"), "hifiasm"))
-
-## match longest first, so repliQa cannot match inside repliQa__hifiasm
-labels <- asm_ids[order(nchar(asm_ids), decreasing = TRUE)]
-
-## colour stays per polymerase, so it means the same thing here as in reference mode
-palette_colors <- if (length(sample_names) > 12) {
-  colorRampPalette(brewer.pal(8, "Set2"))(length(sample_names))
-} else safe
-custom_colors <- setNames(palette_colors[seq_along(sort(sample_names))], sort(sample_names))
-
-
 ## output (N(x) + compleasm tables, final plot)
 output_ng_table = snakemake@output[["ng_table"]]
 output_compleasm_table = snakemake@output[["compleasm_table"]]

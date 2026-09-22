@@ -48,10 +48,10 @@ def gather_targets():
         
     ## Default output (always turned on)
     all_target.append("out/stats/seqkit_all.tsv"),
-    all_target.extend(expand("assemblies/{asm_id}.fa.fai", sample = samples)),
+    all_target.extend(expand("assemblies/{asm_id}.fa.fai", asm_id = asm_ids)),
     all_target.append("out/stats/all.summary_plot.pdf"),
-    all_target.extend(expand("compleasm/{asm_id}_summary.rf.txt", sample = samples)),
-    all_target.extend(expand("merqury/{asm_id}_slf/{asm_id}_slf.qv", sample = samples)),
+    all_target.extend(expand("compleasm/{asm_id}_summary.rf.txt", asm_id = asm_ids)),
+    all_target.extend(expand("merqury/{asm_id}_slf/{asm_id}_slf.qv", asm_id = asm_ids)),
 
     return all_target
 

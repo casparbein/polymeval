@@ -7,7 +7,8 @@ CORRECTED = {
 }
 
 def corrected_reads(wc):
-    sample, corrector = wc.asm_id.rsplit("__", 1)
+    sample, corrector = (wc.asm_id.rsplit("__", 1) if "__" in wc.asm_id
+                         else (wc.asm_id, ASSEMBLERS[0]))
     return CORRECTED[corrector].format(sample=sample)
 
 ## Approximation of read error stats with hifieval

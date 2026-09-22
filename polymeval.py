@@ -722,7 +722,7 @@ def main():
                     "is supported but costs far more compute than hifiasm for comparable "
                     "contiguity. See --verkko_no_correction.")
     config["assemblers"] = format_list(asms)
-    config["verkko_extra"] = "--no-correction" if args.verkko_no_correction else ""
+    config["verkko_extra"] = ""
 
 
     ## Additional parameters:
