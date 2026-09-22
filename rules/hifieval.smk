@@ -3,7 +3,7 @@ minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
 CORRECTED = {
     "hifiasm": "assemblies/hifiasm/{sample}.ec.fa",
     "lja":     "assemblies/lja/{sample}/01_TopologyBasedCorrection/corrected_reads.fasta",
-    "verkko":  "assemblies/verkko/{sample}/0-correction/hifi-corrected.fasta.gz",
+    "verkko":  "assemblies/verkko/{sample}/hifi-corrected.fasta.gz",
 }
 
 def corrected_reads(wc):

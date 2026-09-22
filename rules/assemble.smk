@@ -40,9 +40,9 @@ rule hifiasm:
         "logs/hifiasm/{sample}.log",
     params:
         extra=f"--primary -l 3 --write-ec --hg-size {config['hg_size']}" if config["hifieval"] and config["hg_size"] else " --primary -l 3  --write-ec " if config["hifieval"] and not config["hg_size"] else  f" --primary -l 3 --hg-size {config['hg_size']}" if not config["hifieval"] and config["hg_size"] else "--primary -l 3",
-    threads: 50
+    threads: 32
     resources:
-        mem_mb=400000,
+        mem_mb=200000,
     wrapper:
        hifiasm_wrapper
 
@@ -98,7 +98,7 @@ rule lja:
         -o {params.outdir} \
         --reads {input} \
         -t {threads} \
-        {params.diploid} &> {log}
+        --diploid &> {log}
         """
 
 ## Verkko assembly (might not work since it is local)
@@ -107,13 +107,13 @@ rule verkko:
         "raw_reads/{sample}.fastq.gz"
     output: 
         "assemblies/verkko/{sample}/assembly.fasta",
-        temp("assemblies/verkko/{sample}/0-correction/hifi-corrected.fasta.gz")
+        temp("assemblies/verkko/{sample}/hifi-corrected.fasta.gz")
     params:
         outdir  = "assemblies/verkko/{sample}",
         mem_gb  = lambda wc, resources: max(1, resources.mem_mb // 1024),
         extra   = config.get("verkko_extra", ""),
-    threads: 10
-    resources: mem_mb = 50000
+    threads: 32
+    resources: mem_mb = 100000
     conda: "../envs/verkko.yaml"
     log: "logs/verkko/{sample}.log"
     shell:
