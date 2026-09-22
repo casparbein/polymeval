@@ -80,8 +80,11 @@ rule flye:
 
 ## LJA assembly
 rule lja:
-    input:  "raw_reads/{sample}.fastq.gz"
-    output: "assemblies/lja/{sample}/assembly.fasta"
+    input:  
+        "raw_reads/{sample}.fastq.gz"
+    output: 
+        "assemblies/lja/{sample}/assembly.fasta",
+        temp("assemblies/lja/{sample}/01_TopologyBasedCorrection/corrected_reads.fasta")
     params:
         outdir  = "assemblies/lja/{sample}",
         diploid = "--diploid" if config.get("lja_diploid") else "",
