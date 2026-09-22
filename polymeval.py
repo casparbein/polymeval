@@ -227,7 +227,7 @@ def run_snakemake(snake_file,
         result1.wait()
         
         logger.info(f"Snakemake has exited (Code: {result1.returncode}).")
-        sys.exit(result1.returncode)
+    sys.exit(result1.returncode)
 
 
 DESCRIPTION = '''
@@ -783,7 +783,8 @@ def main():
 
     def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False):
         dest = os.path.join(work_dir, READS_SUBDIR)
-        found = symlink_all_rds(src, dest, suffixes, down_list=wanted, reference_run=reference_run)
+        found = link_reads(src, dest, suffixes, down_list=wanted,
+                        skip_bases_ending=skip_bases_ending)
 
         if not found:
             logger.critical("No files ending in %s found in %s.", " or ".join(suffixes), src)
@@ -830,25 +831,25 @@ def main():
                                                         wanted=wanted or set(downsample_samples))
             config["samples"] = basenames(found)
 
-elif args.reference:
-    path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
-                                                 skip_bases_ending=".dup")
-    path_for_link_asm = os.path.join(work_dir, "assemblies")
-    asm_found = link_assemblies(args.in_assemblies, path_for_link_asm)
+    elif args.reference:
+        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
+                                                    skip_bases_ending=".dup")
+        path_for_link_asm = os.path.join(work_dir, "assemblies")
+        asm_found = link_assemblies(args.in_assemblies, path_for_link_asm)
 
-    reads = {b for b, _ in found}
-    asms  = {b for b, _ in asm_found}
-    if reads != asms:
-        logger.critical("Reads and assemblies do not match.\n  only in reads: %s\n"
-                        "  only in assemblies: %s",
-                        ", ".join(sorted(reads - asms)) or "-",
-                        ", ".join(sorted(asms - reads)) or "-")
-        sys.exit(1)
-    config["samples"] = basenames(found)
+        reads = {b for b, _ in found}
+        asms  = {b for b, _ in asm_found}
+        if reads != asms:
+            logger.critical("Reads and assemblies do not match.\n  only in reads: %s\n"
+                            "  only in assemblies: %s",
+                            ", ".join(sorted(reads - asms)) or "-",
+                            ", ".join(sorted(asms - reads)) or "-")
+            sys.exit(1)
+        config["samples"] = basenames(found)
 
     # standard and variant-calling
     else:                                      
-        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, SUFFIXES, wanted=wanted)
+        path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, SUFFIXES, wanted=wanted, skip_bases_ending=None if config["remove_dups"] else ".dup")
         config["gzipped"] = resolve_gzipped(found, path_for_link_rds)
         config["samples"] = basenames(found)
 
