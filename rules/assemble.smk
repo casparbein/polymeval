@@ -103,8 +103,11 @@ rule lja:
 
 ## Verkko assembly (might not work since it is local)
 rule verkko:
-    input:  "raw_reads/{sample}.fastq.gz"
-    output: "assemblies/verkko/{sample}/assembly.fasta"
+    input:  
+        "raw_reads/{sample}.fastq.gz"
+    output: 
+        "assemblies/verkko/{sample}/assembly.fasta",
+        temp("assemblies/verkko/Expand_Bluepippin_15/0-correction/hifi-corrected.fasta.gz")
     params:
         outdir  = "assemblies/verkko/{sample}",
         mem_gb  = lambda wc, resources: max(1, resources.mem_mb // 1024),
