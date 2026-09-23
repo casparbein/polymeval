@@ -32,3 +32,18 @@ rule run_aardvark:
         --enable-record-basepair-metrics \
         2> {log}
         """
+
+## For the CMRG dataset:
+if config["cmrg"]:
+    use rule run_aardvark as run_aardvark_cmrg with:
+        input:
+            truth         = cmrg_smallvar_vcf,
+            truth_regions = cmrg_smallvar_bed,
+            query         = "variants/{sample}_longcalld.vcf.gz",
+            query_index   = "variants/{sample}_longcalld.vcf.gz.tbi",
+        output: 
+            "benchmarks/aardvark_cmrg/{sample}_aardvark/summary.tsv"
+        params:
+            ref        = reference_seq_gz,
+            out_prefix = "benchmarks/aardvark_cmrg/{sample}_aardvark/"
+        log: "logs/run_aardvark_cmrg/{sample}.log"

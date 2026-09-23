@@ -25,6 +25,9 @@ tandem_repeats_truvari = config["benchmark_path"] + "/HG002_GRCh38_TandemRepeats
 tandem_repeats_truvari_bed = config["benchmark_path"] + "/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz"
 GIAB_joint_variants = config["benchmark_path"] + "/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz"
 GIAB_stvar_regions_bed = config["benchmark_path"] + "/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed"
+cmrg_smallvar_vcf = config["benchmark_path"] + "/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz"
+cmrg_smallvar_bed = config["benchmark_path"] + "/HG002_GRCh38_CMRG_smallvar_v1.00.bed"
+
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():
@@ -37,6 +40,10 @@ def gather_targets():
     if config["tandem_repeats"]:
         all_target.extend(expand("benchmarks/{sample}_truvari_tr/refine.variant_summary.json", sample = samples)),
 
+    if config["cmrg"]:
+        all_target.extend(expand("benchmarks/aardvark_cmrg/{sample}_aardvark/summary.tsv", sample = samples)),
+        all_target.append(expand("benchmarks/happy_cmrg/{sample}_happy/{sample}_results.summary.csv", sample = samples)),
+    
     ## Default output (always turned on)
     all_target.append(expand("benchmarks/happy/{sample}_happy/{sample}_results.summary.csv", sample = samples)),
     all_target.append(expand("benchmarks/aardvark/{sample}_aardvark/summary.tsv", sample = samples)),

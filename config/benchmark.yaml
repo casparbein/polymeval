@@ -1,0 +1,53 @@
+references:
+  GRCh38:
+    url: https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz
+    basename: GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+    
+  GRCh37:
+    url: https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz
+    basenme: hs37d5.fa
+
+releases:
+  v5.0q:
+    base: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/v5.0q
+    files:
+      - HG002_GRCh38_v5.0q_smvar.vcf.gz
+      - HG002_GRCh38_v5.0q_smvar.vcf.gz.tbi
+      - HG002_GRCh38_v5.0q_smvar.benchmark.bed
+      - HG002_GRCh38_v5.0q_stvar.vcf.gz
+      - HG002_GRCh38_v5.0q_stvar.vcf.gz.tbi
+      - HG002_GRCh38_v5.0q_stvar.benchmark.bed
+    checksums: checksum.md5
+
+  v4.2.1:
+    base: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38
+    files:
+      - HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+      - HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi
+      - HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
+      
+  NIST_SV_v0.6:
+    base: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6
+    files:
+      - HG002_SVs_Tier1_v0.6.bed
+      - HG002_SVs_Tier1_v0.6.vcf.gz
+      - HG002_SVs_Tier1_v0.6.vcf.gz.tbi
+
+  cmrg:
+    base: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38
+    files:
+      - SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz
+      - SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz.tbi
+      - SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed
+      - StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz
+      - StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz.tbi
+      - StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.bed
+    checksums: ../chksum.md5
+
+  tandem_repeats:
+    base: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38
+    files:
+      - HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz
+      - HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz.tbi
+      - HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz
+      - HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz.tbi

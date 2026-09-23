@@ -28,3 +28,28 @@ rule benchmark_variants:
         mem_mb = 600000
     wrapper: 
         happy_wrapper
+
+
+## For the CMRG dataset:
+if config["cmrg"]:
+    use rule benchmark_variants as benchmark_variants_cmrg with:
+        input:
+            truth         = cmrg_smallvar_vcf,
+            query         = "variants/{sample}.vcf.gz",
+            truth_regions = cmrg_smallvar_bed,
+            genome        = reference_seq,
+            genome_index  = reference_seq_idx,
+        output:
+            multiext("benchmarks/happy_cmrg/{sample}_happy/{sample}_results",
+                     ".runinfo.json", ".vcf.gz", ".summary.csv", ".extended.csv",
+                     ".metrics.json.gz", ".roc.all.csv.gz",
+                     ".roc.Locations.INDEL.csv.gz", ".roc.Locations.INDEL.PASS.csv.gz",
+                     ".roc.Locations.SNP.csv.gz", ".roc.tsv")
+        params:
+            engine = "vcfeval",
+            prefix = lambda wc: f"benchmarks/happy_cmrg/{wc.sample}_happy/{wc.sample}_results",
+            extra  = "--verbose --pass-only"
+        log: "logs/benchmark_variants_cmrg/{sample}.log"
+        threads: 5
+        resources:
+            mem_mb = 50000

@@ -1,0 +1,101 @@
+configfile: "DEF.yaml"
+MANIFEST = config["benchmark_manifest"]
+DEST     = config["benchmark_path"]
+WANTED   = config["benchmark_releases"]
+
+import yaml
+mani = yaml.safe_load(open(MANIFEST))
+
+def url_for(fname):
+    for rel in WANTED:
+        for f in mani["releases"][rel]["files"]:
+            if os.path.basename(f) == fname:
+                return f"{mani['releases'][rel]['base']}/{f}"
+    raise ValueError(fname)
+
+localrules: download_file
+
+rule download_file:
+    output: 
+        protected(f"{DEST}/{{fname}}")
+    params: 
+        url = lambda wc: url_for(wc.fname)
+    retries: 3
+    log: 
+        f"{DEST}/logs/download_{{fname}}.log"
+    conda: 
+        "../envs/fetch.yaml"
+    shell:
+        """
+        curl \
+        -fsSL \
+        --retry 5 \
+        --retry-delay 10 \
+        -C - \
+        -o {output} \
+        {params.url} 2> {log}
+        """
+
+rule verify_checksums:
+    input:  
+        files = expand(f"{DEST}/{{f}}", f=all_files), 
+        md5 = f"{DEST}/checksum.md5"
+    output: 
+        touch(f"{DEST}/.verified")
+    shell:  
+        """ 
+        cd {DEST} && grep -F -f <(basename -a {input.files}) {input.md5} | md5sum -c -
+        """
+
+rule reference_plain:
+    input: 
+        f"{DEST}/{REF}.gz"
+    output: 
+        protected(f"{DEST}/{REF}")
+    conda: 
+        "../envs/htslib.yaml"
+    shell:  
+        """
+        gzip \
+        -dc {input} > {output}
+        """
+
+rule reference_bgzip:
+    input:  
+        f"{DEST}/{REF}"
+    output: 
+        protected(f"{DEST}/{REF}.bgz.gz")
+    threads: 8
+    conda: 
+        "../envs/htslib.yaml"
+    shell:  
+        """
+        bgzip \
+        -@ {threads} \
+        -c {input} > {output}
+        """
+
+rule faidx_plain:
+    input: 
+        f"{DEST}/{REF}"
+    output: 
+        protected(f"{DEST}/{REF}.fai")
+    conda: 
+        "../envs/htslib.yaml"
+    shell:  
+        """
+        samtools faidx {input}
+        """
+
+rule faidx_bgzip:
+    input:  
+        f"{DEST}/{REF}.gz"
+    output: 
+        protected(f"{DEST}/{REF}.gz.fai"), 
+        protected(f"{DEST}/{REF}.gz.gzi")
+    conda: 
+        "../envs/htslib.yaml"
+    shell:  
+        """
+        samtools faidx {input}
+        """

@@ -524,6 +524,20 @@ def argument_parser():
     ''')
 
     app.add_argument(
+    "--fetch_benchmarks", 
+    action="store_true",
+    help=
+    '''Download and prepare all human variant benchmark data into --benchmark_path, then exit.
+    ''')
+    
+    app.add_argument(
+    "--benchmark_releases", 
+    default="v5.0q,cmrg,tandem_repeats",
+    help=
+    '''Comma-separated GIAB releases to fetch: v5.0q, v4.2.1, cmrg, tandem_repeats, nist_sv_v0.6.
+    ''')
+
+    app.add_argument(
     "-svc", 
     "--structural_variant_calling",
     action="store_true",
@@ -541,6 +555,16 @@ def argument_parser():
     default=False,
     help=
     '''Whether tandem repeats should be called and benchmarked with trgt and truvari.
+    ''')
+
+    app.add_argument(
+    "--cmrg", 
+    action="store_true", 
+    dest="cmrg", 
+    default=False,
+    help=
+    '''Additionally benchmark against the GIAB Challenging Medically Relevant
+    Genes (CMRG v1.00) small-variant and SV benchmarks.
     ''')
 
     # app.add_argument(
