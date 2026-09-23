@@ -50,10 +50,9 @@ rule download_file:
     shell:
         """
         curl \
-        -fsSL \
+        -fSL \
         --retry 5 \
         --retry-delay 10 \
-        -C - \
         -o {output} \
         {params.url} 2> {log}
         """
