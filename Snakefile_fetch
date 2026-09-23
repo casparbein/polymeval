@@ -41,12 +41,12 @@ rule download_file:
     output: 
         protected(f"{DEST}/{{fname}}")
     params: 
-        url = lambda wc: url_for(wc.fname)
+        url = lambda wc: FILES[wc.fname]
     retries: 3
     log: 
         f"{DEST}/logs/download_{{fname}}.log"
     conda: 
-        "../envs/fetch.yaml"
+        "envs/fetch.yaml"
     shell:
         """
         curl \
