@@ -34,8 +34,6 @@ rule hpc_target:
         "assemblies/{asm_id}.fa"
     output: 
         temp("hifieval/hpc/{asm_id}.target.fa")
-    conda:  
-        "../envs/seqtk.yaml"
     log:    
         "logs/hpc_target/{asm_id}.log"
     params:
@@ -48,8 +46,6 @@ rule hpc_raw_reads:
         "raw_reads/{sample}.fastq.gz"
     output: 
         temp("hifieval/hpc/{sample}.raw.fa")
-    conda:  
-        "../envs/seqtk.yaml"
     log:    
         "logs/hpc_raw_reads/{sample}.log"
     params:
