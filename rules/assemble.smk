@@ -84,7 +84,7 @@ rule lja:
         "raw_reads/{sample}.fastq.gz"
     output: 
         "assemblies/lja/{sample}/assembly.fasta",
-        temp("assemblies/lja/{sample}/k5001/corrected_reads.fasta") if config["hifieval"] else [],
+        "assemblies/lja/{sample}/k5001/corrected_reads.fasta" if config["hifieval"] else [],
     params:
         outdir  = "assemblies/lja/{sample}",
         diploid = "--diploid" if config.get("lja_diploid") else "",
@@ -106,7 +106,7 @@ rule verkko:
         "raw_reads/{sample}.fastq.gz"
     output: 
         "assemblies/verkko/{sample}/assembly.fasta",
-        temp("assemblies/verkko/{sample}/hifi-corrected.fasta.gz") if config["hifieval"] else [],
+        "assemblies/verkko/{sample}/hifi-corrected.fasta.gz" if config["hifieval"] else [],
     params:
         outdir  = "assemblies/verkko/{sample}",
         mem_gb  = lambda wc, resources: max(1, resources.mem_mb // 1024),
