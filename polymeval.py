@@ -93,6 +93,24 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
 
     return sorted((b, c) for b, (c, _) in found.items())
 
+## Check whether compleasm lib is available, otherwise, write to user cache
+def resolve_compleasm_lib(arg):
+    if arg:
+        if not os.access(os.path.expanduser(arg), os.W_OK):
+            logger.critical("compleasm needs write access to %s (it refreshes file_versions.tsv on every "
+                    "run, even when the lineage is already present). Copy the lineage to a "
+                    "writable directory and pass it with --compleasm_db_path, set "
+                    "POLYMEVAL_COMPLEASM_LIBS, or do not set this parameter, leading to automatic download "
+                    "of the specified db to the user's cache. ", s.path.expanduser(arg))
+            sys.exit(1)
+        else:
+            return os.path.abspath(os.path.expanduser(arg))
+    env = os.environ.get("POLYMEVAL_COMPLEASM_LIBS")
+    if env:
+        return os.path.abspath(os.path.expanduser(env))
+    cache = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(cache, "polymeval", "compleasm")
+
 
 def link_reads(src, dst, suffixes, down_list=None, skip_bases_ending=None):
     return link_inputs(src, dst, suffixes, down_list, skip_bases_ending, kind="read")
@@ -389,11 +407,11 @@ def argument_parser():
     "--compleasm_db_path",
     action="store",
     dest="compleasm_db_path",
-    default="/sgn/software/orthodb/odb12_latest/",
+    default=None,
     type=str,
     help=
     '''Path to accessible odb library stored centrally on the HPC. If not provided, 
-    compleasm will download libraries on the fly, which takes a lot of time and disk space.
+    compleasm will download libraries on the fly and put it on the user's cache, which takes time and disk space.
     ''')
 
     app.add_argument(
@@ -426,6 +444,15 @@ def argument_parser():
     help=
     '''Estimated size for homozygous genome length, for hifiasm's --hg-size.
     Should be in k,m or g (for instance: 2g or 700m).
+    ''')
+
+    app.add_argument(   
+    "--lja_path", 
+    action="store", 
+    dest="lja_path", 
+    default=None,
+    help=
+    '''Absolute path to an LJA binary.
     ''')
 
     ## Define exactly what the output files would be here
@@ -724,6 +751,15 @@ def main():
     config["assemblers"] = format_list(asms)
     config["verkko_extra"] = ""
 
+    ## LJA binary wire-in
+    if "lja" in asms:
+        lja_bin = os.path.abspath(os.path.expanduser(args.lja_path)) if args.lja_path else "lja"
+        if not (os.path.isfile(lja_bin) and os.access(lja_bin, os.X_OK)) and not shutil.which(lja_bin):
+            logger.critical("LJA binary %r not found or not executable. Build it from source and pass "
+                            "--lja_path, or drop 'lja' from --assembler.", lja_bin)
+            sys.exit(1)
+        config["lja_path"] = SingleQuotedScalarString(lja_bin)
+
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:
@@ -746,14 +782,12 @@ def main():
         config["restrict_downsampling"] = bool(args.restrict)
 
     ## Change default parameters
-    if args.compleasm_db:
-        config["compleasm_db"] = SingleQuotedScalarString(args.compleasm_db)
-
-    if args.compleasm_db_path:
-        compleasm_db_path = os.path.abspath(args.compleasm_db_path)
-        config["compleasm_db_path"] = SingleQuotedScalarString(compleasm_db_path)
-    else:
-        compleasm_db_path = None
+    compleasm_lib = resolve_compleasm_lib(args.compleasm_db_path)
+    config["compleasm_db_path"] = SingleQuotedScalarString(compleasm_lib)
+    if not args.compleasm_db_path:
+        logger.info("No --compleasm_db_path given; using %s", compleasm_lib)
+        logger.info("On a shared cluster, point --compleasm_db_path at a central ODB library, "
+                    "or set POLYMEVAL_COMPLEASM_LIBS, to avoid one copy per user.")
 
     if args.kmc:
         config["kmc"] = True

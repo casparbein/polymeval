@@ -88,13 +88,13 @@ rule lja:
     params:
         outdir  = "assemblies/lja/{sample}",
         diploid = "--diploid" if config.get("lja_diploid") else "",
+        binary  = config.get("lja_path", "lja"),
     threads: 32
     resources: mem_mb = 200000
-    conda: "../envs/lja.yaml"
     log: "logs/lja/{sample}.log"
     shell:
         """
-        lja \
+        {params.binary} \
         -o {params.outdir} \
         --reads {input} \
         -t {threads} \

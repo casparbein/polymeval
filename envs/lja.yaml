@@ -1,6 +1,0 @@
-name: lja
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-    - lja

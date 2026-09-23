@@ -7,3 +7,4 @@ dependencies:
   - snakemake-executor-plugin-slurm
   - snakedeploy
   - ruamel.yaml
+  - compleasm
