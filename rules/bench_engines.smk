@@ -88,9 +88,9 @@ rule bench_truvari_refine:
         ref = lambda wc: REFERENCE[t_build(wc)],
     log: 
         "logs/bench_truvari_refine/{caller}.{truth}.{sample}.log"
-    threads: 4
+    threads: 1
     resources: 
-        mem_mb = 50000
+        mem_mb = 200000
     conda: 
         "../envs/truvari.yaml"
     shell:
