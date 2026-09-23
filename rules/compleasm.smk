@@ -15,6 +15,8 @@ rule compleasm_download:
     retries: 3
     log: 
         "logs/compleasm_download/download.log"
+    conda:
+        "../envs/compleasm.yaml"
     shell:
         """
         compleasm download \
@@ -40,6 +42,8 @@ rule run_compleasm:
         database = config["compleasm_db"],
     log:
         "logs/run_compleasm/{asm_id}.log"
+    conda:
+        "../envs/compleasm.yaml"
     shell:
         """
         compleasm \
@@ -47,7 +51,7 @@ rule run_compleasm:
         -a {input} \
         -o {params.outname} \
         -l {params.database} \
-        -L {params.lib} \
+        -L {input.lib} \
         -t {threads} \
         2> {log}
         """

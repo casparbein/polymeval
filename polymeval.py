@@ -5,7 +5,7 @@ import os
 from ruamel.yaml import load_all, YAML, comments
 from ruamel.yaml.scalarstring import SingleQuotedScalarString, DoubleQuotedScalarString
 import subprocess
-import filecmp
+import shutil
 import signal
 
 ## import helper script
@@ -101,7 +101,7 @@ def resolve_compleasm_lib(arg):
                     "run, even when the lineage is already present). Copy the lineage to a "
                     "writable directory and pass it with --compleasm_db_path, set "
                     "POLYMEVAL_COMPLEASM_LIBS, or do not set this parameter, leading to automatic download "
-                    "of the specified db to the user's cache. ", s.path.expanduser(arg))
+                    "of the specified db to the user's cache. ", os.path.expanduser(arg))
             sys.exit(1)
         else:
             return os.path.abspath(os.path.expanduser(arg))
@@ -397,9 +397,8 @@ def argument_parser():
     type=str,
     help=
     '''Name of the compleasm db that should be used to compute assembly completness. 
-    Must be present in the specified path, otherwise will be downloaded automatically 
-    (It is highly advised to have one accessible odb library stored centrally on the HPC to
-    circumvent repeated costly downloads), see --compleasm_db_path
+    Must be present in the specified path, otherwise will be downloaded automatically,
+    see --compleasm_db_path
     ''')
 
     app.add_argument(
@@ -788,6 +787,9 @@ def main():
         logger.info("No --compleasm_db_path given; using %s", compleasm_lib)
         logger.info("On a shared cluster, point --compleasm_db_path at a central ODB library, "
                     "or set POLYMEVAL_COMPLEASM_LIBS, to avoid one copy per user.")
+
+    if args.compleasm_db:
+        config["compleasm_db"] = SingleQuotedScalarString(args.compleasm_db)
 
     if args.kmc:
         config["kmc"] = True
