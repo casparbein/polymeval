@@ -84,7 +84,7 @@ rule lja:
         "raw_reads/{sample}.fastq.gz"
     output: 
         "assemblies/lja/{sample}/assembly.fasta",
-        temp("assemblies/lja/{sample}/01_TopologyBasedCorrection/corrected_reads.fasta") if config["hifieval"] else [],
+        temp("assemblies/lja/{sample}/k5001/corrected_reads.fasta") if config["hifieval"] else [],
     params:
         outdir  = "assemblies/lja/{sample}",
         diploid = "--diploid" if config.get("lja_diploid") else "",
@@ -97,8 +97,7 @@ rule lja:
         {params.binary} \
         -o {params.outdir} \
         --reads {input} \
-        -t {threads} \
-        --diploid &> {log}
+        -t {threads} &> {log}
         """
 
 ## Verkko assembly (might not work since it is local)

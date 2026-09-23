@@ -2,7 +2,7 @@ minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
 
 CORRECTED = {
     "hifiasm": "assemblies/hifiasm/{sample}.ec.fa",
-    "lja":     "assemblies/lja/{sample}/01_TopologyBasedCorrection/corrected_reads.fasta",
+    "lja":     "assemblies/lja/{sample}/k5001/corrected_reads.fasta",
     "verkko":  "assemblies/verkko/{sample}/hifi-corrected.fasta.gz",
 }
 
