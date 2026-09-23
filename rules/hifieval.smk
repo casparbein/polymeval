@@ -46,7 +46,7 @@ rule hpc_raw_reads:
     output: 
         temp("hifieval/hpc/{asm_id}.raw.fa")
     log:    
-        "logs/hpc_raw_reads/{sample}.log"
+        "logs/hpc_raw_reads/{asm_id}.log"
     params:
         command="hpc",
     wrapper:
