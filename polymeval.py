@@ -795,6 +795,7 @@ def main():
             os.path.join(base_dir, "config", "benchmark.yaml"))
         config["benchmark_releases"] = format_list(
             [r.strip() for r in args.benchmark_releases.split(",") if r.strip()])
+        snakefile = "Snakefile_fetch"
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:
@@ -913,8 +914,11 @@ def main():
     os.makedirs(work_dir, exist_ok=True)
     wanted = {x.strip() for x in args.samples.split(",") if x.strip()} if args.samples else None
 
+    if args.fetch_benchmarks:
+        pass
+
     ## GZ as suffix here because rules only allow gz files and no deduplication
-    if args.combine or args.downsample:
+    elif args.combine or args.downsample:
         readset_dict, downsample_samples, removed_samples, downsample_nucs = \
             get_downsample_rates.read_seq_stats(args.seqkit_path,
                                                 restrict=config["restrict_downsampling"],
@@ -985,9 +989,6 @@ def main():
             logger.critical("Path to benchmark files given by --benchmark_path does not exist. Check that the path was spelled correctly and exists")
             sys.exit(1)
         snakefile = "Snakefile_human_vcf"
-
-    if args.fetch_benchmarks:
-        snakefile = "Snakefile_fetch"
 
 
     ## Add DEF file to created directory
