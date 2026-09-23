@@ -38,9 +38,9 @@ rule bench_happy:
         extra  = lambda wc: BENCHMARKS[wc.truth].get("happy_extra", "--verbose --pass-only"),
     log: 
         "logs/bench_happy/{caller}.{truth}.{sample}.log"
-    threads: 20
+    threads: 32
     resources: 
-        mem_mb = 120000
+        mem_mb = 200000
     wrapper: happy_wrapper
 
 

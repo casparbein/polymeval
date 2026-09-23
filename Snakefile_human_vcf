@@ -34,7 +34,7 @@ BENCHMARKS = {
     "v5.0q_smvar": dict(vcf=v5_smvar_vcf, bed=v5_smvar_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose --pass-only --gender male"),
     "v5.0q_stvar": dict(vcf=v5_stvar_vcf, bed=v5_stvar_bed, cls="sv", build="GRCh38",
-                        truvari_extra="--passonly --dup-to-ins --sizemin 50", refine=True),
+                        truvari_extra="--passonly --dup-to-ins --sizemin 50"),
     "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose"),
     "cmrg_sv":     dict(vcf=cmrg_sv_vcf, bed=cmrg_sv_bed, cls="sv", build="GRCh38",
@@ -45,7 +45,7 @@ BENCHMARKS = {
     "v4.2.1":      dict(vcf=vcf_benchmark, bed=vcf_truth_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose --pass-only"),
     "sv_v0.6":     dict(vcf=sv_ground_vcf, bed=sv_ground_bed, cls="sv", build="GRCh37",
-                        truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50", refine=True),
+                        truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50"),
 }
 
 CALLERS = {
