@@ -35,7 +35,7 @@ rule all:
         [f"{DEST}/{f}" for f in FILES if not f.endswith(".src.gz")],
         [t for b in REFS.values() for t in ref_targets(b)],
 
-localrules: download_file
+localrules: download_file, ref_unpack, ref_faidx, ref_faidx_gz
 
 rule download_file:
     output: 
@@ -44,7 +44,7 @@ rule download_file:
         url = lambda wc: FILES[wc.fname]
     retries: 3
     log: 
-        f"{DEST}/logs/download_{{fname}}.log"
+        f"logs/fetch/download_{{fname}}.log"
     conda: 
         "envs/fetch.yaml"
     shell:
