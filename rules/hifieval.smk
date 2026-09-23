@@ -24,10 +24,9 @@ def hifieval_target(wc):
             else f"assemblies/{wc.asm_id}.fa")
 
 def hifieval_raw_query(wc):
-    s = asm_sample(wc.asm_id)
-    return (f"hifieval/hpc/{s}.raw.fa"
+    return (f"hifieval/hpc/{wc.asm_id}.raw.fa"
             if HPC_CORRECTOR[corrector_of(wc.asm_id)]
-            else f"raw_reads/{s}.fastq.gz")
+            else f"raw_reads/{asm_sample(wc.asm_id)}.fastq.gz")
 
 rule hpc_target:
     input:  
@@ -43,9 +42,9 @@ rule hpc_target:
 
 rule hpc_raw_reads:
     input:  
-        "raw_reads/{sample}.fastq.gz"
+        lambda wc: f"raw_reads/{asm_sample(wc.asm_id)}.fastq.gz"
     output: 
-        temp("hifieval/hpc/{sample}.raw.fa")
+        temp("hifieval/hpc/{asm_id}.raw.fa")
     log:    
         "logs/hpc_raw_reads/{sample}.log"
     params:
