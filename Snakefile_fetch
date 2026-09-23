@@ -80,7 +80,7 @@ rule ref_bgzip:
     log:    
         "logs/fetch/bgzip_{base}.log"
     shell:  
-        "bgzip -@ {threads} -c {input} > {output} 2> {log} &> {log}"
+        "bgzip -@ {threads} -c {input} > {output} 2> {log}"
 
 rule ref_faidx:
     input: 
@@ -92,7 +92,7 @@ rule ref_faidx:
     log:    
         "logs/fetch/faidx_{base}.log"
     shell:  
-        "samtools faidx {input} 2> {log} &> {log}"
+        "samtools faidx {input} 2> {log}"
 
 rule ref_faidx_gz:
     input:  
@@ -105,4 +105,4 @@ rule ref_faidx_gz:
     log:    
         "logs/fetch/faidx_gz_{base}.log"
     shell:  
-        "samtools faidx {input} 2> {log} &> {log}"
+        "samtools faidx {input} 2> {log}"
