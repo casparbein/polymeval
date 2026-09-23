@@ -4,9 +4,10 @@ slurm-delete-logfiles-older-than: 0
 slurm-keep-successful-logs: True
 use-conda: True
 use-singularity: True
-restart-times: 3
+restart-times: 2
 rerun-incomplete: True
 printshellcmds: True
+latency-wait: 120
 default-resources:
     slurm_partition: "batch"
     runtime: 1200
