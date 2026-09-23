@@ -38,7 +38,7 @@ BENCHMARKS = {
     "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose"),
     "cmrg_sv":     dict(vcf=cmrg_sv_vcf, bed=cmrg_sv_bed, cls="sv", build="GRCh38",
-                        truvari_extra="--dup-to-ins --sizemin 50", refine=True),
+                        truvari_extra="--dup-to-ins --sizemin 50"),
     "tr_v1.0.1":   dict(vcf=tandem_repeats_truvari, bed=tandem_repeats_truvari_bed,
                         cls="tr", build="GRCh38",
                         truvari_extra="--sizemin 5 --pick ac", refine=True),
