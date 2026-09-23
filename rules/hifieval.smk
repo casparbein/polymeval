@@ -1,4 +1,5 @@
 minimap_wrapper = f"{wrapper_versions['minimap']}/bio/minimap2/aligner"
+seqtk_wrapper = f"{wrapper_versions['seqtk']}/bio/seqtk"
 
 CORRECTED = {
     "hifiasm": "assemblies/hifiasm/{sample}.ec.fa",
@@ -11,12 +12,57 @@ def corrected_reads(wc):
                          else (wc.asm_id, ASSEMBLERS[0]))
     return CORRECTED[corrector].format(sample=sample)
 
+## Whether error correction includes HP compression
+HPC_CORRECTOR = {"hifiasm": False, "lja": True, "verkko": True}
+
+def corrector_of(asm_id):
+    return asm_id.rsplit("__", 1)[1] if "__" in asm_id else ASSEMBLERS[0]
+
+def hifieval_target(wc):
+    return (f"hifieval/hpc/{wc.asm_id}.target.fa"
+            if HPC_CORRECTOR[corrector_of(wc.asm_id)]
+            else f"assemblies/{wc.asm_id}.fa")
+
+def hifieval_raw_query(wc):
+    s = asm_sample(wc.asm_id)
+    return (f"hifieval/hpc/{s}.raw.fa"
+            if HPC_CORRECTOR[corrector_of(wc.asm_id)]
+            else f"raw_reads/{s}.fastq.gz")
+
+rule hpc_target:
+    input:  
+        "assemblies/{asm_id}.fa"
+    output: 
+        temp("hifieval/hpc/{asm_id}.target.fa")
+    conda:  
+        "../envs/seqtk.yaml"
+    log:    
+        "logs/hpc_target/{asm_id}.log"
+    params:
+        command="hpc",
+    wrapper:  
+        seqtk_wrapper
+
+rule hpc_raw_reads:
+    input:  
+        "raw_reads/{sample}.fastq.gz"
+    output: 
+        temp("hifieval/hpc/{sample}.raw.fa")
+    conda:  
+        "../envs/seqtk.yaml"
+    log:    
+        "logs/hpc_raw_reads/{sample}.log"
+    params:
+        command="hpc",
+    wrapper:
+        seqtk_wrapper
+
 ## Approximation of read error stats with hifieval
 ## Align raw reads
 rule hifieval_align_raw:
     input:
-        target="assemblies/{asm_id}.fa",  # can be either genome index or genome fasta
-        query=lambda wc: f"raw_reads/{asm_sample(wc.asm_id)}.fastq.gz",
+        target=hifieval_target,
+        query=hifieval_raw_query,
     output:
         temp("alignments/{asm_id}.raw.paf"),
     log:
@@ -34,7 +80,7 @@ rule hifieval_align_raw:
 ## Aligned error corrected reads
 rule hifieval_align_ec:
     input:
-        target="assemblies/{asm_id}.fa",  # can be either genome index or genome fasta
+        target=hifieval_target,
         query=corrected_reads,
     output:
         temp("alignments/{asm_id}.ec.paf"),
@@ -65,8 +111,8 @@ rule remove_empty:
         mem_mb = 10000
     shell:
         """
-        awk '$5 != "*" {{print}}' {input.ec} > {output.ec};
-        awk '$5 != "*" {{print}}' {input.raw} > {output.raw};
+        awk '$2 > 0 {{print}}' {input.ec}  > {output.ec};
+        awk '$2 > 0 {{print}}' {input.raw} > {output.raw};
         """
 
 ## Run Hifieval

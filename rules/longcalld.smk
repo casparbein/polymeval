@@ -1,5 +1,3 @@
-tabix_wrapper = f"{wrapper_versions['tabix']}/bio/tabix/index"
-
 ## Run Tandem Repeat Genotyper with TRGT
 rule run_longcalld:      
     input:

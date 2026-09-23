@@ -759,6 +759,7 @@ def main():
             "samtools": "v9.4.2",
             "bbtools": "v9.16.0",
             "seqkit": "v9.4.2",
+            "seqtk": "v7.0.0",
         }
     }
 
