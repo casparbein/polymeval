@@ -28,7 +28,7 @@ rule compleasm_download:
 ## Run compleasm
 rule run_compleasm:
     input:
-        "assemblies/{asm_id}.fa",
+        asm = "assemblies/{asm_id}.fa",
         lib = [] if HAVE_LINEAGE else os.path.join(LIB, ".polymeval." + LINEAGE + ".ok"),
     output:
         "compleasm/{asm_id}_compleasm/summary.txt",
@@ -40,6 +40,7 @@ rule run_compleasm:
     params:
         outname = "compleasm/{asm_id}_compleasm",
         database = config["compleasm_db"],
+        db_path = config["compleasm_db_path"],
     log:
         "logs/run_compleasm/{asm_id}.log"
     conda:
@@ -48,10 +49,10 @@ rule run_compleasm:
         """
         compleasm \
         run \
-        -a {input} \
+        -a {input.asm} \
         -o {params.outname} \
         -l {params.database} \
-        -L {input.lib} \
+        -L {params.db_path} \
         -t {threads} \
         2> {log}
         """
