@@ -54,7 +54,7 @@ rule download_file:
         --retry 5 \
         --retry-delay 10 \
         -o {output} \
-        {params.url} 2> {log}
+        {params.url} 2> {log} &> {log}
         """
 
 rule ref_unpack:
@@ -66,7 +66,7 @@ rule ref_unpack:
         "logs/fetch/unpack_{base}.log"
     shell:  
         """
-        gzip -dc {input} > {output} 2> {log}
+        gzip -dc {input} > {output} 2> {log} &> {log}  || [ $? -eq 2 ]
         """
 
 rule ref_bgzip:
@@ -80,7 +80,7 @@ rule ref_bgzip:
     log:    
         "logs/fetch/bgzip_{base}.log"
     shell:  
-        "bgzip -@ {threads} -c {input} > {output} 2> {log}"
+        "bgzip -@ {threads} -c {input} > {output} 2> {log} &> {log}"
 
 rule ref_faidx:
     input: 
@@ -92,7 +92,7 @@ rule ref_faidx:
     log:    
         "logs/fetch/faidx_{base}.log"
     shell:  
-        "samtools faidx {input} 2> {log}"
+        "samtools faidx {input} 2> {log} &> {log}"
 
 rule ref_faidx_gz:
     input:  
@@ -105,4 +105,4 @@ rule ref_faidx_gz:
     log:    
         "logs/fetch/faidx_gz_{base}.log"
     shell:  
-        "samtools faidx {input} 2> {log}"
+        "samtools faidx {input} 2> {log} &> {log}"
