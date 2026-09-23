@@ -1,17 +1,39 @@
+import os, re, yaml
+
 configfile: "DEF.yaml"
 MANIFEST = config["benchmark_manifest"]
 DEST     = config["benchmark_path"]
 WANTED   = config["benchmark_releases"]
 
-import yaml
 mani = yaml.safe_load(open(MANIFEST))
 
-def url_for(fname):
-    for rel in WANTED:
-        for f in mani["releases"][rel]["files"]:
-            if os.path.basename(f) == fname:
-                return f"{mani['releases'][rel]['base']}/{f}"
-    raise ValueError(fname)
+FILES = {}
+for rel in WANTED:
+    spec = mani["releases"][rel]
+    for f in spec["files"]:
+        FILES[os.path.basename(f)] = f"{spec['base']}/{f}"
+
+REFS = {}
+for name, spec in mani["references"].items():
+    base = spec["basename"]
+    REFS[name] = base
+    FILES[base + ".src.gz"] = spec["url"]
+
+wildcard_constraints:
+    fname = "|".join(re.escape(f) for f in sorted(FILES, key=len, reverse=True)),
+    base  = "|".join(re.escape(b) for b in sorted(REFS.values(), key=len, reverse=True)),
+
+def ref_targets(b):
+    return [f"{DEST}/{b}", 
+            f"{DEST}/{b}.fai",
+            f"{DEST}/{b}.gz", 
+            f"{DEST}/{b}.gz.fai", 
+            f"{DEST}/{b}.gz.gzi"]
+
+rule all:
+    input:
+        [f"{DEST}/{f}" for f in FILES if not f.endswith(".src.gz")],
+        [t for b in REFS.values() for t in ref_targets(b)],
 
 localrules: download_file
 
@@ -36,15 +58,16 @@ rule download_file:
         {params.url} 2> {log}
         """
 
-rule verify_checksums:
+rule ref_unpack:
     input:  
-        files = expand(f"{DEST}/{{f}}", f=all_files), 
-        md5 = f"{DEST}/checksum.md5"
+        f"{DEST}/{{base}}.src.gz"
     output: 
-        touch(f"{DEST}/.verified")
+        protected(f"{DEST}/{{base}}")
+    log:
+        "logs/fetch/unpack_{base}.log"
     shell:  
-        """ 
-        cd {DEST} && grep -F -f <(basename -a {input.files}) {input.md5} | md5sum -c -
+        """
+        gzip -dc {input} > {output} 2> {log}
         """
 
 rule reference_plain:

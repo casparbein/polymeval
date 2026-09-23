@@ -534,7 +534,7 @@ def argument_parser():
     "--benchmark_releases", 
     default="v5.0q,cmrg,tandem_repeats",
     help=
-    '''Comma-separated GIAB releases to fetch: v5.0q, v4.2.1, cmrg, tandem_repeats, nist_sv_v0.6.
+    '''Comma-separated GIAB releases to fetch: v5.0q, v4.2.1, cmrg, tandem_repeats, NIST_SV_v0.6.
     ''')
 
     app.add_argument(
@@ -783,6 +783,19 @@ def main():
             sys.exit(1)
         config["lja_path"] = SingleQuotedScalarString(lja_bin)
 
+    ## Fetching human benchmark data:
+    config["cmrg"] = bool(args.cmrg)
+
+    if args.fetch_benchmarks:
+        if not args.benchmark_path:
+            logger.critical("--fetch_benchmarks needs --benchmark_path.")
+            sys.exit(1)
+        os.makedirs(os.path.abspath(args.benchmark_path), exist_ok=True)
+        config["benchmark_manifest"] = SingleQuotedScalarString(
+            os.path.join(base_dir, "config", "benchmark.yaml"))
+        config["benchmark_releases"] = format_list(
+            [r.strip() for r in args.benchmark_releases.split(",") if r.strip()])
+        snakefile = "Snakefile_fetch"
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:

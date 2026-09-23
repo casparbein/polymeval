@@ -1,0 +1,7 @@
+name: htslib
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - htslib=1.21
+  - samtools=1.21

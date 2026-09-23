@@ -4,18 +4,13 @@ configfile: "DEF.yaml"
 samples = config["samples"]
 wrapper_versions = config["wrapper_versions"]
 
-
-compleasm_database = config["compleasm_db"]
-wildcard_constraints:
-    #sample ="[A-Za-z0-9_]+"
-    sample = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True))
-
 ## benchmarking reference datasets
 reference_seq_gz = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
 reference_seq_idx_gz = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz.gzi"
 reference_seq = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
 reference_seq_idx = config["benchmark_path"] + "/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai"
 reference_seq2 = config["benchmark_path"] + "/hs37d5.fa.gz"
+reference_seq2_plain = config["benchmark_path"] + "/hs37d5.fa"
 sv_ground_vcf = config["benchmark_path"] + "/HG002_SVs_Tier1_v0.6.vcf.gz" 
 sv_ground_bed = config["benchmark_path"] + "/HG002_SVs_Tier1_v0.6.bed"
 vcf_benchmark =  config["benchmark_path"] + "/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
@@ -27,27 +22,86 @@ GIAB_joint_variants = config["benchmark_path"] + "/GRCh38_HG2-T2TQ100-V1.1_smvar
 GIAB_stvar_regions_bed = config["benchmark_path"] + "/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed"
 cmrg_smallvar_vcf = config["benchmark_path"] + "/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz"
 cmrg_smallvar_bed = config["benchmark_path"] + "/HG002_GRCh38_CMRG_smallvar_v1.00.bed"
+cmrg_sv_vcf = config["benchmark_path"] + "/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz"
+cmrg_sv_bed = config["benchmark_path"] + "/HG002_GRCh38_CMRG_SV_v1.00.bed"
+v5_smvar_vcf = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_smvar.vcf.gz"
+v5_smvar_bed = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_smvar.benchmark.bed"
+v5_stvar_vcf = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_stvar.vcf.gz"
+v5_stvar_bed = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_stvar.benchmark.bed"
+
+## Benchmark Matrix
+BENCHMARKS = {
+    "v5.0q_smvar": dict(vcf=v5_smvar_vcf, bed=v5_smvar_bed, cls="small", build="GRCh38",
+                        happy_extra="--verbose --pass-only --gender male"),
+    "v5.0q_stvar": dict(vcf=v5_stvar_vcf, bed=v5_stvar_bed, cls="sv", build="GRCh38",
+                        truvari_extra="--passonly --dup-to-ins --sizemin 50"),
+    "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
+                        happy_extra="--verbose"),
+    "cmrg_sv":     dict(vcf=cmrg_sv_vcf, bed=cmrg_sv_bed, cls="sv", build="GRCh38",
+                        truvari_extra="--dup-to-ins --sizemin 50"),
+    "tr_v1.0.1":   dict(vcf=tandem_repeats_truvari, bed=tandem_repeats_truvari_bed,
+                        cls="tr", build="GRCh38",
+                        truvari_extra="--sizemin 5 --pick ac", refine=True),
+    "v4.2.1":      dict(vcf=vcf_benchmark, bed=vcf_truth_bed, cls="small", build="GRCh38",
+                        happy_extra="--verbose --pass-only"),
+    "sv_v0.6":     dict(vcf=sv_ground_vcf, bed=sv_ground_bed, cls="sv", build="GRCh37",
+                        truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50"),
+}
+
+CALLERS = {
+    "deepvariant": dict(vcf="variants/{sample}.vcf.gz",                  cls={"small"},      build="GRCh38"),
+    "longcalld":   dict(vcf="variants/{sample}_longcalld.vcf.gz",        cls={"small","sv"}, build="GRCh38"),
+    "sniffles":    dict(vcf="variants/{sample}.sniffles.grch38.vcf.gz",  cls={"sv"},         build="GRCh38"),
+    "sniffles37":  dict(vcf="variants/{sample}.sniffles.vcf.gz",         cls={"sv"},         build="GRCh37"),
+    "trgt":        dict(vcf="variants/{sample}_trgt.sorted.norm.vcf.gz", cls={"tr"},         build="GRCh38"),
+}
+
+ENGINES   = {"happy": {"small"}, "truvari": {"sv", "tr"}, "aardvark": {"small", "sv", "tr"}}
+REFERENCE = {"GRCh38": reference_seq_gz, "GRCh37": reference_seq2}
+REF_PLAIN = {"GRCh38": reference_seq,    "GRCh37": reference_seq2_plain}
+REF_FAI   = {"GRCh38": reference_seq_idx, "GRCh37": reference_seq2_plain + ".fai"}
+
+SUMMARY = {"happy":    "{sample}_results.summary.csv",
+           "truvari":  "summary.json",
+           "aardvark": "summary.tsv"}
+
+## which truth sets this run is allowed to use
+def enabled(name):
+    b = BENCHMARKS[name]
+    if name.startswith("cmrg") and not config["cmrg"]:              return False
+    if b["cls"] == "sv" and not config["structural_variants"]:      return False
+    if b["cls"] == "tr" and not config["tandem_repeats"]:           return False
+    return True
+
+def cells():
+    for cn, c in CALLERS.items():
+        for bn, b in BENCHMARKS.items():
+            if not enabled(bn):            continue
+            if c["build"] != b["build"]:   continue
+            if b["cls"] not in c["cls"]:   continue
+            for en, kinds in ENGINES.items():
+                if b["cls"] in kinds:
+                    yield en, cn, bn
+
+CELLS = list(cells())
+
+wildcard_constraints:
+    sample   = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),
+    caller   = "|".join(re.escape(c) for c in sorted(CALLERS, key=len, reverse=True)),
+    truth    = "|".join(re.escape(t) for t in sorted(BENCHMARKS, key=len, reverse=True)),
 
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
 def gather_targets():
     all_target = []
-    
-    ## Optional output (sniffles)
-    if config["structural_variants"]:
-        all_target.extend(expand("benchmarks/{sample}_truvari_sv/summary.json", sample = samples)),
-    
-    if config["tandem_repeats"]:
-        all_target.extend(expand("benchmarks/{sample}_truvari_tr/refine.variant_summary.json", sample = samples)),
-
-    if config["cmrg"]:
-        all_target.extend(expand("benchmarks/aardvark_cmrg/{sample}_aardvark/summary.tsv", sample = samples)),
-        all_target.append(expand("benchmarks/happy_cmrg/{sample}_happy/{sample}_results.summary.csv", sample = samples)),
-    
-    ## Default output (always turned on)
-    all_target.append(expand("benchmarks/happy/{sample}_happy/{sample}_results.summary.csv", sample = samples)),
-    all_target.append(expand("benchmarks/aardvark/{sample}_aardvark/summary.tsv", sample = samples)),
-
+    for engine, caller, truth in CELLS:
+        all_target.extend(expand(
+            f"benchmarks/{engine}/{caller}/{truth}/{{sample}}/" + SUMMARY[engine],
+            sample=samples))
+        if engine == "truvari" and BENCHMARKS[truth].get("refine"):
+            all_target.extend(expand(
+                f"benchmarks/truvari/{caller}/{truth}/{{sample}}/refine.variant_summary.json",
+                sample=samples))
     return all_target
 
 
@@ -58,18 +112,16 @@ all_target_files = gather_targets()
 #include: "rules/get_readlen_hist.smk"
 include: "rules/minimap_for_variants.smk"
 include: "rules/deepvariant.smk"
-include: "rules/happy.smk"
 include: "rules/longcalld.smk"
-include: "rules/aardvark.smk"
 
 ## Optional output
 if config["structural_variants"]:
     include: "rules/sniffles.smk"
-    include: "rules/truvari.smk"
 
 if config["tandem_repeats"]:
     include: "rules/trgt.smk"
-    include: "rules/truvari_tr.smk"
+
+include: "rules/bench_engines.smk"
 
 rule all:
     input:
