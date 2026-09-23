@@ -319,7 +319,7 @@ def argument_parser():
     )
 
     run_mode.add_argument(
-    "-f",
+    "-fb",
     "--fetch_benchmarks", 
     action="store_true",
     help=
