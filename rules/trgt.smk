@@ -75,17 +75,3 @@ rule norm_vcf:
         #uncompressed_bcf=False,
     wrapper:
         norm_wrapper
-
-## Index VCF files
-rule tabix:
-    input:
-        "variants/{sample}_trgt.sorted.norm.vcf.gz",
-    output:
-        "variants/{sample}_trgt.sorted.norm.vcf.gz.tbi",
-    log:
-        "logs/tabix/{sample}.log",
-    params:
-        # pass arguments to tabix (e.g. index a vcf)
-        "-p vcf",
-    wrapper:
-        tabix_wrapper

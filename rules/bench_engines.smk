@@ -1,4 +1,5 @@
 happy_wrapper = f"{wrapper_versions['happy']}/bio/hap.py/hap.py"
+tabix_wrapper_generic = f"{wrapper_versions['tabix']}/bio/tabix/index"
 
 def q_vcf(wc):   return CALLERS[wc.caller]["vcf"].format(sample=wc.sample)
 def q_tbi(wc):   return q_vcf(wc) + ".tbi"
@@ -6,6 +7,17 @@ def t_vcf(wc):   return BENCHMARKS[wc.truth]["vcf"]
 def t_bed(wc):   return BENCHMARKS[wc.truth]["bed"]
 def t_build(wc): return BENCHMARKS[wc.truth]["build"]
 
+
+rule tabix_vcf:
+    input:  
+        "variants/{vcf}.vcf.gz"
+    output: 
+        "variants/{vcf}.vcf.gz.tbi"
+    log:    
+        "logs/tabix_vcf/{vcf}.log"
+    params: "-p vcf"
+    wrapper: 
+        tabix_wrapper_generic
 
 rule bench_happy:
     input:

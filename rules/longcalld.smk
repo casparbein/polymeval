@@ -28,17 +28,3 @@ rule run_longcalld:
         -Oz \
         2> {log}
         """
-
-## Index VCF files
-rule tabix_longcall:
-    input:
-        "variants/{sample}_longcalld.vcf.gz",
-    output:
-        "variants/{sample}_longcalld.vcf.gz.tbi",
-    log:
-        "logs/tabix_longcall/{sample}.log",
-    params:
-        # pass arguments to tabix (e.g. index a vcf)
-        "-p vcf",
-    wrapper:
-        tabix_wrapper

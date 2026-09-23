@@ -70,55 +70,40 @@ rule ref_unpack:
         gzip -dc {input} > {output} 2> {log}
         """
 
-rule reference_plain:
-    input: 
-        f"{DEST}/{REF}.gz"
-    output: 
-        protected(f"{DEST}/{REF}")
-    conda: 
-        "../envs/htslib.yaml"
-    shell:  
-        """
-        gzip \
-        -dc {input} > {output}
-        """
-
-rule reference_bgzip:
+rule ref_bgzip:
     input:  
-        f"{DEST}/{REF}"
+        f"{DEST}/{{base}}"
     output: 
-        protected(f"{DEST}/{REF}.bgz.gz")
+        protected(f"{DEST}/{{base}}.gz")
     threads: 8
-    conda: 
-        "../envs/htslib.yaml"
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/bgzip_{base}.log"
     shell:  
-        """
-        bgzip \
-        -@ {threads} \
-        -c {input} > {output}
-        """
+        "bgzip -@ {threads} -c {input} > {output} 2> {log}"
 
-rule faidx_plain:
+rule ref_faidx:
     input: 
-        f"{DEST}/{REF}"
+        f"{DEST}/{{base}}"
     output: 
-        protected(f"{DEST}/{REF}.fai")
-    conda: 
-        "../envs/htslib.yaml"
+        protected(f"{DEST}/{{base}}.fai")
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/faidx_{base}.log"
     shell:  
-        """
-        samtools faidx {input}
-        """
+        "samtools faidx {input} 2> {log}"
 
-rule faidx_bgzip:
+rule ref_faidx_gz:
     input:  
-        f"{DEST}/{REF}.gz"
+        f"{DEST}/{{base}}.gz"
     output: 
-        protected(f"{DEST}/{REF}.gz.fai"), 
-        protected(f"{DEST}/{REF}.gz.gzi")
-    conda: 
-        "../envs/htslib.yaml"
+        protected(f"{DEST}/{{base}}.gz.fai"), 
+        protected(f"{DEST}/{{base}}.gz.gzi")
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/faidx_gz_{base}.log"
     shell:  
-        """
-        samtools faidx {input}
-        """
+        "samtools faidx {input} 2> {log}"
