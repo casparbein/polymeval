@@ -105,7 +105,8 @@ get_breaks_lin <- function(min, max, steps = 10) {
 ## contig N50 plots for all polymerases
 ## load chrom size plots
 prepare_n50 <- function(chrom_file_path = "", asm = "") {
-  chrom_file <- read_delim(chrom_file_path, col_names = F)
+  chrom_file <- chrom_file <- read_delim(chrom_file_path, col_names = FALSE,
++                           col_types = cols(X1 = col_character(), .default = col_double()))
   
   chrom_file_ord <- chrom_file %>%
     select(X1,X2) %>%
