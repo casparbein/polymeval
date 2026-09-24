@@ -1,46 +1,35 @@
+sniffles_wrapper = f"{wrapper_versions['tabix']}/bio/tabix/index"
+
 ## Call SVs with Sniffles2
 rule run_sniffles2:
     input:
-        reads = "alignments/{sample}.hs37d5.sorted.bam",
-        reference = reference_seq2,
+        samples = "alignments/{sample}.hs37d5.sorted.bam",
+        ref = reference_seq2,
     output:
         vcf="variants/{sample}.sniffles.vcf.gz",
     log:
         "logs/run_sniffles2/{sample}.log"
-    conda:
-        "../envs/sniffles.yaml"
     threads:
-        20
+        4
     resources:
         mem_mb = 100000
-    shell:
-        """
-        sniffles \
-        --input {input.reads} \
-        --reference {input.reference} \
-        --vcf {output.vcf} \
-        --threads {threads} \
-        2> {log}
-        """
+    params:
+        extra="", 
+    wrapper:
+        sniffles_wrapper
 
 rule run_sniffles2_grch38:
     input:
-        reads = "alignments/{sample}.sorted.bam",
-        reference = reference_seq_gz,
+        samples = "alignments/{sample}.sorted.bam",
+        ref = reference_seq_gz,
     output: 
-        "variants/{sample}.sniffles.grch38.vcf.gz"
-    conda: 
-        "../envs/sniffles.yaml"
+        vcf="variants/{sample}.sniffles.grch38.vcf.gz"
     log:   
         "logs/run_sniffles2_grch38/{sample}.log"
-    threads: 20
+    threads: 4
     resources: 
         mem_mb = 100000
-    shell:
-        """
-        sniffles \
-        --input {input.reads} \
-        --reference {input.reference} \
-        --vcf {output} \
-        --threads {threads} 2> {log}
-        """
+    params:
+        extra="",  
+    wrapper:
+        sniffles_wrapper

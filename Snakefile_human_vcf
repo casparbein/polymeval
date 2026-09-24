@@ -50,7 +50,9 @@ BENCHMARKS = {
 
 CALLERS = {
     "deepvariant": dict(vcf="variants/{sample}.vcf.gz",                  cls={"small"},      build="GRCh38"),
-    "longcalld":   dict(vcf="variants/{sample}_longcalld.vcf.gz",        cls={"small","sv"}, build="GRCh38"),
+    "longcalld":   dict(vcf="variants/{sample}_longcalld.vcf.gz",
+                        vcf_small="variants/{sample}_longcalld.small.vcf.gz",
+                        cls={"small","sv"}, build="GRCh38"),
     "sniffles":    dict(vcf="variants/{sample}.sniffles.grch38.vcf.gz",  cls={"sv"},         build="GRCh38"),
     "sniffles37":  dict(vcf="variants/{sample}.sniffles.vcf.gz",         cls={"sv"},         build="GRCh37"),
     "trgt":        dict(vcf="variants/{sample}_trgt.sorted.norm.vcf.gz", cls={"tr"},         build="GRCh38"),
@@ -89,6 +91,7 @@ wildcard_constraints:
     sample   = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),
     caller   = "|".join(re.escape(c) for c in sorted(CALLERS, key=len, reverse=True)),
     truth    = "|".join(re.escape(t) for t in sorted(BENCHMARKS, key=len, reverse=True)),
+    build    = "GRCh37|GRCh38",
 
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
@@ -102,9 +105,24 @@ def gather_targets():
             all_target.extend(expand(
                 f"benchmarks/truvari/{caller}/{truth}/{{sample}}/refine.variant_summary.json",
                 sample=samples))
+    all_target.append("out/benchmarks/all_benchmarks.tsv")
+    all_target.append("out/benchmarks/benchmark_matrix.tsv")
     return all_target
 
+## Which output files the benchmarking tools create, copy of gather_targets
+def bench_files():
+    """(engine, caller, truth, sample, path) for every summary the run produces."""
+    out = []
+    for engine, caller, truth in CELLS:
+        for s in samples:
+            out.append((engine, caller, truth, s,
+                        f"benchmarks/{engine}/{caller}/{truth}/{s}/" + SUMMARY[engine]))
+            if engine == "truvari" and BENCHMARKS[truth].get("refine"):
+                out.append(("truvari_refine", caller, truth, s,
+                            f"benchmarks/truvari/{caller}/{truth}/{s}/refine.variant_summary.json"))
+    return out
 
+BENCH_FILES = bench_files()
 all_target_files = gather_targets()
 
 ## Import rules

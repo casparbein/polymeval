@@ -760,6 +760,7 @@ def main():
             "bbtools": "v9.16.0",
             "seqkit": "v9.4.2",
             "seqtk": "v7.0.0",
+            "sniffles": "9.18.0"
         }
     }
 
