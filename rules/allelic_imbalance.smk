@@ -74,7 +74,7 @@ rule alib_query_at_hets:
     log: 
         "logs/alib_query_at_hets/{sample}.log"
     conda: 
-        "../envs/bcftools.yaml"
+        "../envs/htslib.yaml"
     shell:
         """
         set -o pipefail
