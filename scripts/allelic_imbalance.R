@@ -118,10 +118,15 @@ gc_tbl <- unique(fread(gc_file, header = FALSE, col.names = c("key2", "gc")), by
 sites  <- merge(sites, gc_tbl, by = "key2", all.x = TRUE)
 
 classify <- function(query_path, depth_path, nm) {
-  q <- fread(query_path, na.strings = c(".", "", "NA"))
-  ## bcftools norm -m -any leaves every record biallelic, so AD has exactly two fields
-  q[, `:=`(ad_ref = as.integer(tstrsplit(ad, ",", fixed = TRUE)[[1]]),
-           ad_alt = as.integer(tstrsplit(ad, ",", fixed = TRUE)[[2]]),
+  q <- fread(query_path, na.strings = c(".", "", "NA"),
+             dec = ".", colClasses = c(ad = "character"))
+  if (!any(grepl(",", q$ad, fixed = TRUE)))
+    stop("no comma-separated AD values in ", query_path,
+         " (class ", class(q$ad), ") -- fread mis-parsed the column")
+  ad_ref <- as.integer(sub(",.*$",    "", q$ad))
+  ad_alt <- as.integer(sub("^[^,]*,", "", q$ad))
+  q[, `:=`(ad_ref = ad_ref,
+           ad_alt = ad_alt,
            dp     = as.integer(dp),
            gq     = as.integer(gq),
            key4   = paste(chrom, pos, ref, alt, sep = "_"),
