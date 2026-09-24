@@ -569,6 +569,17 @@ def argument_parser():
     Genes (CMRG v1.00) small-variant and SV benchmarks.
     ''')
 
+    app.add_argument(
+    "--allelic_imbalance", 
+    action="store_true", 
+    dest="allelic_imbalance",
+    default=False,
+    help=
+    '''Screen for allelic imbalance and het dropout at GIAB true-het sites, 
+    using the DeepVariant calls and the aligned reads. 
+    Requires --variant_calling_benchmarks.
+    ''')
+
     # app.add_argument(
     # "-hm", 
     # "--hifiasm",
@@ -787,9 +798,13 @@ def main():
             sys.exit(1)
         config["lja_path"] = SingleQuotedScalarString(lja_bin)
 
-    ## Fetching human benchmark data:
+    ## CMRG benchmarks:
     config["cmrg"] = bool(args.cmrg)
 
+    ## Allelic imbalance:
+    config["allelic_imbalance"] = bool(args.allelic_imbalance)
+
+    ## Fetching human benchmark data:
     if args.fetch_benchmarks:
         if not args.benchmark_path:
             logger.critical("--fetch_benchmarks needs --benchmark_path.")

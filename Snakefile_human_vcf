@@ -106,6 +106,10 @@ def gather_targets():
                 sample=samples))
     all_target.append("out/benchmarks/all_benchmarks.tsv")
     all_target.append("out/benchmarks/benchmark_matrix.tsv")
+    if config["allelic_imbalance"]:
+        all_target.append("allelic_imbalance/alib_vaf_summary.tsv")
+        all_target.append("allelic_imbalance/alib_dropout.tsv")
+        all_target.append("allelic_imbalance/alib_plots.pdf")
     return all_target
 
 ## Which output files the benchmarking tools create, copy of gather_targets
@@ -137,6 +141,9 @@ if config["structural_variants"]:
 
 if config["tandem_repeats"]:
     include: "rules/trgt.smk"
+
+if config["allelic_imbalance"]:
+    include: "rules/allelic_imbalance.smk"
 
 include: "rules/bench_engines.smk"
 
