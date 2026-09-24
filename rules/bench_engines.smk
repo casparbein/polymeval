@@ -149,17 +149,19 @@ rule bench_truvari:
           {params.extra} 2> {log}
         """
 
-
+## Refine for TRGT
 rule bench_truvari_refine:
     input:
         summary = "benchmarks/truvari/{caller}/{truth}/{sample}/summary.json",
         comp    = q_vcf,
         index   = q_tbi,
+        ref      = lambda wc: REFERENCE[t_build(wc)],
+        ref_fai  = lambda wc: REFERENCE[t_build(wc)] + ".fai",
+        ref_gzi  = lambda wc: REFERENCE[t_build(wc)] + ".gzi",
     output: 
         "benchmarks/truvari/{caller}/{truth}/{sample}/refine.variant_summary.json"
     params:
         out = "benchmarks/truvari/{caller}/{truth}/{sample}/",
-        ref = lambda wc: REFERENCE[t_build(wc)],
     log: 
         "logs/bench_truvari_refine/{caller}.{truth}.{sample}.log"
     threads: 1
@@ -171,14 +173,14 @@ rule bench_truvari_refine:
         """
         truvari refine \
           --use-original-vcfs \
-          --reference {params.ref} \
+          --reference {input.ref} \
           --buffer 0 \
           --coords O \
           --write-phab \
           {params.out} 2> {log}
         """
 
-
+## Aardvark benchmarking
 rule bench_aardvark:
     input:
         query       = q_vcf,

@@ -91,7 +91,6 @@ wildcard_constraints:
     sample   = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),
     caller   = "|".join(re.escape(c) for c in sorted(CALLERS, key=len, reverse=True)),
     truth    = "|".join(re.escape(t) for t in sorted(BENCHMARKS, key=len, reverse=True)),
-    build    = "GRCh37|GRCh38",
 
 
 ## Gather the target output files (This defines which parts of the pipeline will be run)
@@ -116,7 +115,7 @@ def bench_files():
     for engine, caller, truth in CELLS:
         for s in samples:
             out.append((engine, caller, truth, s,
-                        f"benchmarks/{engine}/{caller}/{truth}/{s}/" + SUMMARY[engine]))
+                    f"benchmarks/{engine}/{caller}/{truth}/{s}/" + SUMMARY[engine].format(sample=s)))
             if engine == "truvari" and BENCHMARKS[truth].get("refine"):
                 out.append(("truvari_refine", caller, truth, s,
                             f"benchmarks/truvari/{caller}/{truth}/{s}/refine.variant_summary.json"))
