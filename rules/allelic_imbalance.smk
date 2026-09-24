@@ -14,7 +14,7 @@ rule alib_truth_hets:
     log: 
         "logs/alib_truth_hets/truth.log"
     conda: 
-        "../envs/bcftools.yaml"
+        "../envs/htslib.yaml"
     shell:
         """
         set -o pipefail
@@ -33,7 +33,7 @@ rule alib_truth_sites:
     log: 
         "logs/alib_truth_sites/truth.log"
     conda: 
-        "../envs/bcftools.yaml"
+        "../envs/htslib.yaml"
     shell:
         "bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} > {output} 2> {log}"
 
