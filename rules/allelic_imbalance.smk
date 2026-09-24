@@ -4,8 +4,8 @@ Alib_TRUTH_BED = v5_smvar_bed
 ## Extract biallelic sites from truth
 rule alib_truth_hets:
     input:
-        vcf = Alib_TRUTH_VC,
-        tbi = Alib_TRUTH_VC + ".tbi",
+        vcf = Alib_TRUTH_VCF,
+        tbi = Alib_TRUTH_VCF + ".tbi",
         bed = Alib_TRUTH_BED,
         ref = reference_seq,
     output:
