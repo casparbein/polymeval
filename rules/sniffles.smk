@@ -1,4 +1,4 @@
-sniffles_wrapper = f"{wrapper_versions['tabix']}/bio/tabix/index"
+sniffles_wrapper = f"{wrapper_versions['tabix']}/bio/sniffles"
 
 ## Call SVs with Sniffles2
 rule run_sniffles2:
