@@ -64,8 +64,8 @@ rule alib_site_gc:
 ## Get calls for query deepvariant vcf files at truth positions
 rule alib_query_at_hets:
     input:
-        query = "variants/{sample}_longcall.small.vcf.gz",
-        qidx  = "variants/{sample}_longcall.small.vcf.gz.tbi",
+        query = "variants/{sample}_longcalld.small.vcf.gz",
+        qidx  = "variants/{sample}_longcalld.small.vcf.gz.tbi",
         sites = "allelic_imbalance/truth_het.vcf.gz",
         sidx  = "allelic_imbalance/truth_het.vcf.gz.tbi",
         ref   = reference_seq,
