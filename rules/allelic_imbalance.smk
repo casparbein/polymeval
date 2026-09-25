@@ -64,8 +64,8 @@ rule alib_site_gc:
 ## Get calls for query deepvariant vcf files at truth positions
 rule alib_query_at_hets:
     input:
-        query = "variants/{sample}.vcf.gz",
-        qidx  = "variants/{sample}.vcf.gz.tbi",
+        query = "variants/{sample}_longcall.small.vcf.gz",
+        qidx  = "variants/{sample}_longcall.small.vcf.gz.tbi",
         sites = "allelic_imbalance/truth_het.vcf.gz",
         sidx  = "allelic_imbalance/truth_het.vcf.gz.tbi",
         ref   = reference_seq,
@@ -95,7 +95,7 @@ rule alib_site_depth:
         "allelic_imbalance/{sample}.site_depth.tsv"
     params:
         min_bq = config.get("ai_min_bq", 20),
-        min_mq = config.get("ai_min_mq", 20),
+        min_mq = config.get("ai_min_mq", 1),
     log: 
         "logs/alib_site_depth/{sample}.log"
     conda: 
