@@ -216,8 +216,7 @@ rule bench_aardvark:
           --regions {input.regions} \
           -o {params.out} \
           --min-variant-gap {params.gap} \
-          --compare-label {wildcards.caller} \
-          {params.extra} 2> {log}
+          --compare-label {wildcards.caller} 2> {log}
         """
 
 ## Summarize all output tables

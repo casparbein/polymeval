@@ -71,8 +71,6 @@ rule alib_query_at_hets:
     input:
         query = alib_query_vcf,
         qidx  = lambda wc: alib_query_vcf(wc) + ".tbi",
-        query = "variants/{sample}_longcalld.small.vcf.gz",
-        qidx  = "variants/{sample}_longcalld.small.vcf.gz.tbi",
         sites = "allelic_imbalance/truth_het.vcf.gz",
         sidx  = "allelic_imbalance/truth_het.vcf.gz.tbi",
         ref   = reference_seq,

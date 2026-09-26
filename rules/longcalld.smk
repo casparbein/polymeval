@@ -1,3 +1,5 @@
+bcftools_view_wrapper     = f"{wrapper_versions['bcftools']}/bio/bcftools/view"
+
 ## Run Tandem Repeat Genotyper with TRGT
 rule run_longcalld:      
     input:
@@ -30,9 +32,9 @@ rule run_longcalld:
 ## longcalld emits small variants and SVs in one VCF, small-variant cells get a size-filtered copy.
 rule small_only_vcf:
     input:   
-        "variants/{sample}_longcalld.vcf.gz"
+        "variants/{sample}_longcalld.pass.vcf.gz"
     output:  
-        "variants/{sample}_longcalld.small.vcf.gz"
+        "variants/{sample}_longcalld.pass.small.vcf.gz"
     params:  
         extra = "-i 'abs(ILEN)<50'"
     log:     
