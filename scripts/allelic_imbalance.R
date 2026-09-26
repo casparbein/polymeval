@@ -185,7 +185,7 @@ dropout_tbl <- cls[, .(n_truth_het = .N,
                    by = .(sample, var_class)]
 dropout_tbl[, `:=`(recovery_rate = recovered / n_truth_het,
                    fn_rate       = 1 - recovered / n_truth_het,
-                   dropout_ratio_strict = hom_ref / pmax(1, hom_alt)          # confident calls only
+                   dropout_ratio_strict = hom_ref / pmax(1, hom_alt),          # confident calls only
                    dropout_ratio_all    = (hom_ref + hom_ref_filtered) / pmax(1, hom_alt)]
 write_tsv(dropout_tbl[order(sample, var_class)], out_dropout)
 
