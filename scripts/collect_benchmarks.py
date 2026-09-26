@@ -74,7 +74,7 @@ for engine, caller, truth, sample, path in CELLS:
         parsed = read_aardvark(path)
     for stratum, filt, metrics in parsed:
         rows.append(dict(sample=sample, engine=engine, caller=caller, benchmark=truth,
-                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""),stratum_detail=stratum. filter=filt, **metrics))
+                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""), stratum_detail=stratum, filter=filt, **metrics))
 
 rows.sort(key=lambda r: tuple(str(r[k]) for k in
                               ("sample", "caller", "benchmark", "stratum", "filter", "engine")))

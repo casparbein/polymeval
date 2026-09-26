@@ -40,14 +40,7 @@ rule small_only_vcf:
     wrapper: 
         bcftools_view_wrapper
 
-## Check pass filtering here later
-rule small_only_vcf:
-    input:   "variants/{sample}_longcalld.pass.vcf.gz"
-    output:  "variants/{sample}_longcalld.pass.small.vcf.gz"
-    params:  extra = "-i 'abs(ILEN)<50'"
-    log:     "logs/small_only_vcf/{sample}.log"
-    wrapper: bcftools_view_wrapper
-
+## longcalld emits small variants and SVs in one VCF, SV cells also get a size-filtered copy.
 rule sv_only_vcf:
     input:   
         "variants/{sample}_longcalld.pass.vcf.gz"

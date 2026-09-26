@@ -198,9 +198,7 @@ rule bench_aardvark:
         "benchmarks/aardvark/{caller}/{truth}/{sample}/summary.tsv"
     params:
         out   = "benchmarks/aardvark/{caller}/{truth}/{sample}/",
-        gap   = lambda wc: 1000 if BENCHMARKS[wc.truth]["cls"] in ("sv", "tr") else 100,
-        extra = lambda wc: "--enable-record-basepair-metrics"
-                           if BENCHMARKS[wc.truth]["cls"] == "tr" else "",
+        gap   = lambda wc: 1000 if BENCHMARKS[wc.truth]["cls"] == "sv" else 100,
     log: 
         "logs/bench_aardvark/{caller}.{truth}.{sample}.log"
     threads: 4

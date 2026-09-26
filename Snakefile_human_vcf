@@ -49,19 +49,18 @@ BENCHMARKS = {
 }
 
 CALLERS = {
-    "deepvariant": dict(vcf="variants/{sample}.vcf.gz",                  cls={"small"},      build="GRCh38"),
+    "deepvariant": dict(vcf="variants/{sample}.pass.vcf.gz",                  cls={"small"},      build="GRCh38"),
     "longcalld": dict(vcf = "variants/{sample}_longcalld.pass.vcf.gz",
                       vcf_small = "variants/{sample}_longcalld.pass.small.vcf.gz",
                       vcf_sv = "variants/{sample}_longcalld.pass.sv.vcf.gz",
                       cls={"small","sv"}, build="GRCh38"),
-    "sniffles":    dict(vcf="variants/{sample}.sniffles.grch38.vcf.gz",  cls={"sv"},         build="GRCh38"),
-    "sniffles37":  dict(vcf="variants/{sample}.sniffles.vcf.gz",         cls={"sv"},         build="GRCh37"),
-    "trgt":        dict(vcf="variants/{sample}_trgt.sorted.norm.vcf.gz", cls={"tr"},         build="GRCh38"),
+    "sniffles":    dict(vcf="variants/{sample}.sniffles.grch38.pass.vcf.gz",  cls={"sv"},         build="GRCh38"),
+    "sniffles37":  dict(vcf="variants/{sample}.sniffles.pass.vcf.gz",         cls={"sv"},         build="GRCh37"),
+    "trgt":        dict(vcf="variants/{sample}_trgt.sorted.norm.pass.vcf.gz", cls={"tr"},         build="GRCh38"),
 }
 
 ## For Allelic imbalance analysis
 ALIB_CALLERS = config.get("alib_callers", ["deepvariant", "longcalld"])
-ALIB_CELLS   = [(c, s) for c in ALIB_CALLERS for s in samples]
 
 ENGINES   = {"happy": {"small"}, "truvari": {"sv", "tr"}, "aardvark": {"small", "sv"}}
 REFERENCE = {"GRCh38": reference_seq_gz, "GRCh37": reference_seq2}

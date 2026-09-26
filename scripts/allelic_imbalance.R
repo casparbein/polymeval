@@ -185,7 +185,8 @@ dropout_tbl <- cls[, .(n_truth_het = .N,
                    by = .(sample, var_class)]
 dropout_tbl[, `:=`(recovery_rate = recovered / n_truth_het,
                    fn_rate       = 1 - recovered / n_truth_het,
-                   dropout_ratio = hom_ref / pmax(1, hom_alt))]
+                   dropout_ratio_strict = hom_ref / pmax(1, hom_alt)          # confident calls only
+                   dropout_ratio_all    = (hom_ref + hom_ref_filtered) / pmax(1, hom_alt)]
 write_tsv(dropout_tbl[order(sample, var_class)], out_dropout)
 
 ## ---------------------------------------------------------------- VAF and dispersion
@@ -287,7 +288,7 @@ p_gcdrop <- cls[!is.na(gc)][
        x = "GC fraction of the flanking window", y = NULL, colour = NULL) +
   base_theme + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-p_asym <- ggplot(dropout_tbl, aes(factor(sample, levels = sample_names), dropout_ratio,
+p_asym <- ggplot(dropout_tbl, aes(factor(sample, levels = sample_names), dropout_ratio_all,
                                   fill = factor(sample, levels = sample_names))) +
   geom_col(width = 0.6) +
   geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
