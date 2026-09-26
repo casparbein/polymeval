@@ -5,15 +5,16 @@ CELLS      = snakemake.params.cells
 BENCHMARKS = snakemake.params.benchmarks
 
 CANON = {
-    "SNP": "SNP", "Snv": "SNP",
-    "INDEL": "INDEL", "Indel": "INDEL",
-    "SV": "SV", "JointStructuralVariant": "SV",
+    "SNP": "SNP",
+    "INDEL": "INDEL",
+    "SV": "SV",
+    "JOINTSTRUCTURALVARIANT": "SV",
     "TR": "TR",
-    "ALL": "ALL", "All": "ALL",
+    "ALL": "ALL",
 }
 
 AARDVARK_TYPE = {"Snv": "SNP", "Indel": "INDEL"}
-FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "stratum", "filter",
+FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "stratum", "stratum_tool", "filter",
           "truth_total", "tp", "fn", "query_total", "fp", "recall", "precision", "f1"]
 
 
@@ -74,7 +75,7 @@ for engine, caller, truth, sample, path in CELLS:
         parsed = read_aardvark(path)
     for stratum, filt, metrics in parsed:
         rows.append(dict(sample=sample, engine=engine, caller=caller, benchmark=truth,
-                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""), stratum_detail=stratum, filter=filt, **metrics))
+                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""),  stratum_tool=stratum, filter=filt, **metrics))
 
 rows.sort(key=lambda r: tuple(str(r[k]) for k in
                               ("sample", "caller", "benchmark", "stratum", "filter", "engine")))
@@ -89,6 +90,8 @@ engines = sorted({r["engine"] for r in rows})
 index = ["sample", "caller", "benchmark", "stratum", "filter"]
 grid = {}
 for r in rows:
+    if not r["stratum"]:
+        continue
     grid.setdefault(tuple(r[k] for k in index), {})[r["engine"]] = r["f1"]
 
 with open(snakemake.output.matrix, "w", newline="") as fh:
