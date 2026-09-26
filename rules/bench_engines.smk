@@ -5,8 +5,10 @@ bcftools_view_wrapper     = f"{wrapper_versions['bcftools']}/bio/bcftools/view"
 
 ## For longcalld small vcf
 def q_vcf(wc):
-    c = CALLERS[wc.caller]
-    key = "vcf_small" if BENCHMARKS[wc.truth]["cls"] == "small" and "vcf_small" in c else "vcf"
+    c   = CALLERS[wc.caller]
+    cls = BENCHMARKS[wc.truth]["cls"]
+    key = ("vcf_small" if cls == "small" and "vcf_small" in c else
+           "vcf_sv"    if cls == "sv"    and "vcf_sv"    in c else "vcf")
     return c[key].format(sample=wc.sample)
 
 def q_tbi(wc):   return q_vcf(wc) + ".tbi"
@@ -14,6 +16,21 @@ def t_vcf(wc):   return f"benchmarks/truth/{wc.truth}.vcf.gz"
 def t_tbi(wc):   return f"benchmarks/truth/{wc.truth}.vcf.gz.tbi"
 def t_bed(wc):   return BENCHMARKS[wc.truth]["bed"]
 def t_build(wc): return BENCHMARKS[wc.truth]["build"]
+
+## Filter only passed variants
+rule pass_only_vcf:
+    input:   
+        "variants/{vcf}.vcf.gz"
+    output:  
+        "variants/{vcf}.pass.vcf.gz"
+    wildcard_constraints:
+        vcf = r".+(?<!\.pass)"
+    params:  
+        extra = "-f PASS"
+    log:     
+        "logs/pass_only_vcf/{vcf}.log"
+    wrapper: 
+        bcftools_view_wrapper
 
 
 rule tabix_vcf:
@@ -74,20 +91,6 @@ rule truth_tbi:
         "logs/truth_tbi/{truth}.log"
     wrapper: 
         tabix_wrapper_generic
-
-## longcalld emits small variants and SVs in one VCF, small-variant cells get a size-filtered copy.
-rule small_only_vcf:
-    input:   
-        "variants/{sample}_longcalld.vcf.gz"
-    output:  
-        "variants/{sample}_longcalld.small.vcf.gz"
-    params:  
-        extra = "-e 'abs(ILEN)>=50'"
-    log:     
-        "logs/small_only_vcf/{sample}.log"
-    wrapper: 
-        bcftools_view_wrapper
-
 
 ## Happy benchmark
 rule bench_happy:

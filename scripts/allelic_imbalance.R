@@ -33,7 +33,8 @@ HOM_REF <- c("0/0", "0|0")
 HOM_ALT <- c("1/1", "1|1")
 NOCALL  <- c("./.", ".|.")
 STATUS  <- c("het_pass", "het_lowdp", "het_lowgq", "het_filtered",
-             "hom_ref", "hom_alt", "alt_mismatch", "no_call", "missing")
+              "hom_ref", "hom_ref_filtered", "hom_alt", "alt_mismatch", "alt_nocall",
+              "no_call", "missing")
 CLASSES <- c("SNV", "INS", "DEL", "MNP")
 
 ## ---------------------------------------------------------------- statistics
@@ -151,6 +152,7 @@ classify <- function(query_path, depth_path, nm) {
         is.na(gt) &  any_at_pos,                         "alt_mismatch",
         is.na(gt),                                       "missing",
         gt %in% NOCALL,                                  "no_call",
+        gt %in% HOM_REF & !is.na(filter) & filter != "PASS", "hom_ref_filtered",
         gt %in% HOM_REF,                                 "hom_ref",
         gt %in% HOM_ALT,                                 "hom_alt",
         gt %in% HET & !is.na(filter) & filter != "PASS", "het_filtered",

@@ -4,9 +4,18 @@ import json
 CELLS      = snakemake.params.cells
 BENCHMARKS = snakemake.params.benchmarks
 
+CANON = {
+    "SNP": "SNP", "Snv": "SNP",
+    "INDEL": "INDEL", "Indel": "INDEL",
+    "SV": "SV", "JointStructuralVariant": "SV",
+    "TR": "TR",
+    "ALL": "ALL", "All": "ALL",
+}
+
 AARDVARK_TYPE = {"Snv": "SNP", "Indel": "INDEL"}
 FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "stratum", "filter",
           "truth_total", "tp", "fn", "query_total", "fp", "recall", "precision", "f1"]
+
 
 def num(x):
     """hap.py leaves cells empty and writes literal nan; keep those as blanks."""
@@ -65,7 +74,7 @@ for engine, caller, truth, sample, path in CELLS:
         parsed = read_aardvark(path)
     for stratum, filt, metrics in parsed:
         rows.append(dict(sample=sample, engine=engine, caller=caller, benchmark=truth,
-                         build=b["build"], cls=b["cls"], stratum=stratum, filter=filt, **metrics))
+                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""),stratum_detail=stratum. filter=filt, **metrics))
 
 rows.sort(key=lambda r: tuple(str(r[k]) for k in
                               ("sample", "caller", "benchmark", "stratum", "filter", "engine")))

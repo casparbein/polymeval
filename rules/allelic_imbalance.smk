@@ -61,18 +61,25 @@ rule alib_site_gc:
         rm -f {output}.bed
         """
 
+## LongcallD and Deepvariant calls
+def alib_query_vcf(wc):
+    c = CALLERS[wc.caller]
+    return (c["vcf_small"] if "vcf_small" in c else c["vcf"]).format(sample=wc.sample)
+
 ## Get calls for query deepvariant vcf files at truth positions
 rule alib_query_at_hets:
     input:
+        query = alib_query_vcf,
+        qidx  = lambda wc: alib_query_vcf(wc) + ".tbi",
         query = "variants/{sample}_longcalld.small.vcf.gz",
         qidx  = "variants/{sample}_longcalld.small.vcf.gz.tbi",
         sites = "allelic_imbalance/truth_het.vcf.gz",
         sidx  = "allelic_imbalance/truth_het.vcf.gz.tbi",
         ref   = reference_seq,
     output: 
-        "allelic_imbalance/{sample}.query_at_hets.tsv"
+        "allelic_imbalance/{caller}/{sample}.query_at_hets.tsv"
     log: 
-        "logs/alib_query_at_hets/{sample}.log"
+        "logs/alib_query_at_hets/{caller}.{sample}.log"
     conda: 
         "../envs/htslib.yaml"
     shell:
@@ -110,26 +117,25 @@ rule alib_site_depth:
         rm -f {output}.bed
         """
 
+## Run twice for callers
 rule alib_analysis:
     input:
-        query  = expand("allelic_imbalance/{sample}.query_at_hets.tsv", sample=samples),
-        depth  = expand("allelic_imbalance/{sample}.site_depth.tsv",    sample=samples),
+        query  = expand("allelic_imbalance/{{caller}}/{sample}.query_at_hets.tsv", sample=samples),
+        depth  = expand("allelic_imbalance/{sample}.site_depth.tsv",sample=samples),
         sites  = "allelic_imbalance/truth_het_sites.tsv",
         gc     = "allelic_imbalance/truth_het_sites.gc.tsv",
     output:
-        vaf     = "allelic_imbalance/alib_vaf_summary.tsv",
-        dropout = "allelic_imbalance/alib_dropout.tsv",
-        sig     = "allelic_imbalance/alib_significant_sites.tsv",
-        plots   = "allelic_imbalance/alib_plots.pdf",
+        vaf     = "allelic_imbalance/{caller}/alib_vaf_summary.tsv",
+        dropout = "allelic_imbalance/{caller}/alib_dropout.tsv",
+        sig     = "allelic_imbalance/{caller}/alib_significant_sites.tsv",
+        plots   = "allelic_imbalance/{caller}/alib_plots.pdf",
     params:
         sample_names = samples,
         colors       = config["colors"],
         min_dp       = config.get("ai_min_dp", 1),
         min_gq       = config.get("ai_min_gq", 1),
-    resources: 
-        mem_mb = 40000
-    log: "logs/alib_analysis/analysis.log"
-    conda: 
-        "../envs/alib_stats.yaml"
-    script: 
-        "../scripts/allelic_imbalance.R"
+        vaf_min_dp   = config.get("ai_vaf_min_dp", 1),
+    resources: mem_mb = 40000
+    log: "logs/alib_analysis/{caller}.log"
+    conda: "../envs/alib_stats.yaml"
+    script: "../scripts/allelic_imbalance.R"
