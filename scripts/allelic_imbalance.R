@@ -359,12 +359,14 @@ p_fit <- ggplot(obs_long, aes(read_count, overall_prop)) +
              colour = "grey20", linewidth = 0.3) +
   facet_grid(var_class ~ sample) +
   scale_fill_manual(values = custom_colors, guide = "none") +
-  scale_alpha_manual(values = c(ar = 0.30, k = 0.70),
+  scale_alpha_manual(values = c(ar = 0.35, k = 1),
                      labels = c(ar = "cov - alt", k = "alt")) +
   scale_linetype_manual(values = c(ar = "dotted", k = "solid"),
                         labels = c(ar = "cov - alt", k = "alt")) +
   labs(x = "reads (at alt + ref = median(depth))", y = "density", alpha = NULL, linetype = NULL) +
-  theme_bw() + theme(legend.position = "bottom")
+  theme_bw() + 
+  coord_cartesian(xlim = c(0, 1.5 * max(depth_tbl$depth_fit))) +
+  theme(legend.position = "bottom")
 
 
 ## calculate the ratio of alt to all mapped reads (according to samtools)
@@ -409,7 +411,7 @@ p_fit_all <- ggplot(obs_all_long, aes(read_count, main_prop)) +
   scale_linetype_manual(values = c(ar = "dotted", k = "solid"),
                         labels = c(ar = "cov - alt", k = "alt")) +
   labs(x = "reads (at alt + ref = median(depth))", y = "density", alpha = NULL, linetype = NULL) +
-  coord_cartesian(xlim = c(0, 2 * max(depth_tbl$depth_fit))) +
+  coord_cartesian(xlim = c(0, 1.5 * max(depth_tbl$depth_fit))) +
   #xlim(c(0, depth_tbl$depth_fit*2)) + 
   theme_bw() + theme(legend.position = "bottom")
 
@@ -421,7 +423,7 @@ p_gcvaf <- dat[!is.na(gc)][
     , .(med = median(vaf), lo = quantile(vaf, 0.25),
         hi = quantile(vaf, 0.75), n = .N), by = .(sample, var_class, gc_bin)][n >= 100] %>%
   ggplot(aes(gc_bin, med, colour = sample, group = sample, fill = sample)) +
-  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, colour = NA) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), fill = NA) +
   geom_line() + geom_point(size = 0.8) +
   geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
