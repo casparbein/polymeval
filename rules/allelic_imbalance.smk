@@ -127,6 +127,8 @@ rule alib_analysis:
         dropout = "allelic_imbalance/{caller}/alib_dropout.tsv",
         sig     = "allelic_imbalance/{caller}/alib_significant_sites.tsv",
         plots   = "allelic_imbalance/{caller}/alib_plots.pdf",
+        shift = "allelic_imbalance/{caller}/alib_shift.tsv",
+        assign =  "allelic_imbalance/{caller}/alib_assign.tsv",
     params:
         sample_names = samples,
         colors       = config["colors"],
