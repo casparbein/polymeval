@@ -291,7 +291,7 @@ gc_labels <- as.character(head(gc_breaks, -1) * 100)   # 20 labels, unconditiona
 p_gcdrop <- cls[!is.na(gc)][
   , gc_bin := cut(gc, breaks = gc_breaks, 
                   labels = gc_labels,
-                  include.lowest = TRUE))][
+                  include.lowest = TRUE)][
     , .(rate = mean(status == "het_pass"),
         drop = mean(status %in% c("hom_alt")),
         ref_hom = mean(status %in% c("missing", "hom_ref")),
@@ -417,7 +417,7 @@ p_fit_all <- ggplot(obs_all_long, aes(read_count, main_prop)) +
 p_gcvaf <- dat[!is.na(gc)][
   , gc_bin := cut(gc, breaks = gc_breaks, 
                   labels = gc_labels,
-                  include.lowest = TRUE))][
+                  include.lowest = TRUE)][
     , .(med = median(vaf), lo = quantile(vaf, 0.25),
         hi = quantile(vaf, 0.75), n = .N), by = .(sample, var_class, gc_bin)][n >= 100] %>%
   ggplot(aes(gc_bin, med, colour = sample, group = sample, fill = sample)) +
