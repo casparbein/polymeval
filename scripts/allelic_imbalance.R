@@ -1,4 +1,3 @@
-library(VGAM)
 library(tidyverse)
 library(data.table)
 library(RColorBrewer)
@@ -195,14 +194,13 @@ dat[, p_binom   := binom_p_half(ad_alt, n)]
 dat[, fdr_binom := p.adjust(p_binom, method = "BH"), by = .(sample, var_class)]
 
 ## Median depth as reported by the caller here, not the samtools depth cov
-vaf_tbl <- dat[, {
-  ci <- median_ci(vaf)
+vaf_tbl <- dat[,
   .(n_sites          = .N,
     median_depth     = as.numeric(median(n)),
     median_assigned  = median(assigned_frac, na.rm = TRUE),
+    median_vaf = median(vaf),
     frac_fdr05       = mean(fdr_binom < 0.05),
-    n_fdr05          = sum(fdr_binom < 0.05))
-}, by = .(sample, var_class)]
+    n_fdr05          = sum(fdr_binom < 0.05)), by = .(sample, var_class)]
 
 write_tsv(vaf_tbl[order(sample, var_class)], out_vaf)
 
