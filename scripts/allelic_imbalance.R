@@ -13,8 +13,7 @@ gc_file      <- snakemake@input[["gc"]]
 sample_names <- unlist(strsplit(as.character(snakemake@params[["sample_names"]]), ","))
 in_colors    <- snakemake@params[["colors"]]
 min_dp       <- as.integer(snakemake@params[["min_dp"]])
-min_gq       <- as.integer(snakemake@params[["min_gq"]])
-in_colors    <- "" 
+min_gq       <- as.integer(snakemake@params[["min_gq"]]) 
 vaf_min_dp   <- 1 
 min_gq_hom <- 1
 out_vaf      <- snakemake@output[["vaf"]]
@@ -176,7 +175,7 @@ dropout_tbl <- cls[, .(n_truth_het = .N,
                        alt_mismatch = sum(status == "alt_mismatch"),
                        alt_nocall  = sum(status == "alt_nocall"),
                        missing     = sum(status == "missing"),
-                       median_cov  = as.numeric(median(cov))),
+                       median_cov  = as.numeric(median(cov, na.rm = TRUE))),
                    by = .(sample, var_class)]
 dropout_tbl[, `:=`(
   recovery_rate = recovered / n_truth_het,
@@ -284,15 +283,17 @@ p_cov <- cls[!is.na(cov_plot), .(rate = mean(status == "het_pass"), n = .N),
   base_theme
 
 ## For labelling the GC axis
-cats <- length(unique(cut(cls$gc, breaks = seq(0, 1, by = 0.05),
-    include.lowest = TRUE)))
+#cats <- length(unique(cut(cls$gc, breaks = seq(0, 1, by = 0.05),
+#    include.lowest = TRUE)))
+#label_cats <- cats * 5
 
-label_cats <- cats * 5
+gc_breaks <- seq(0, 1, by = 0.05)
+gc_labels <- as.character(head(gc_breaks, -1) * 100)   # 20 labels, unconditionally
 
 p_gcdrop <- cls[!is.na(gc)][
-  , gc_bin := cut(gc, breaks = seq(0, 1, by = 0.05), 
-                  labels = paste(seq(0, label_cats, by = 5)),
-                  include.lowest = TRUE)][
+  , gc_bin := cut(gc, breaks = gc_breaks, 
+                  labels = gc_labels,
+                  include.lowest = TRUE))][
     , .(rate = mean(status == "het_pass"),
         drop = mean(status %in% c("hom_alt")),
         ref_hom = mean(status %in% c("missing", "hom_ref")),
@@ -372,7 +373,7 @@ p_fit <- ggplot(obs_long, aes(read_count, overall_prop)) +
 dat[, depth := n]
 depth_grid <- dat[var_class %in% core, .N, by = .(sample, var_class, depth)][N >= 50]
 setorder(depth_grid, sample, var_class, -N)
-depth_grid <- depth_grid[, head(.SD, 2*depth_tbl$depth_fit), by = .(sample, var_class)]
+depth_grid <- depth_grid[, head(.SD, 2L * max(depth_tbl$depth_fit)), by = .(sample, var_class)]
 
 obs_all <- dat[depth_grid[, .(sample, var_class, depth)],
                on = .(sample, var_class, depth)][
@@ -410,14 +411,15 @@ p_fit_all <- ggplot(obs_all_long, aes(read_count, main_prop)) +
   scale_linetype_manual(values = c(ar = "dotted", k = "solid"),
                         labels = c(ar = "cov - alt", k = "alt")) +
   labs(x = "reads (at alt + ref = median(depth))", y = "density", alpha = NULL, linetype = NULL) +
-  xlim(c(0, depth_tbl$depth_fit*2)) + 
+  coord_cartesian(xlim = c(0, 2 * max(depth_tbl$depth_fit))) +
+  #xlim(c(0, depth_tbl$depth_fit*2)) + 
   theme_bw() + theme(legend.position = "bottom")
 
 ## Calibration: a correct null is uniform on (0,1), so its ECDF is the diagonal, and one
 p_gcvaf <- dat[!is.na(gc)][
-  , gc_bin := cut(gc, breaks = seq(0, 1, by = 0.05), 
-                            labels = paste(seq(0, label_cats, by = 5)),
-                            include.lowest = TRUE)][
+  , gc_bin := cut(gc, breaks = gc_breaks, 
+                  labels = gc_labels,
+                  include.lowest = TRUE))][
     , .(med = median(vaf), lo = quantile(vaf, 0.25),
         hi = quantile(vaf, 0.75), n = .N), by = .(sample, var_class, gc_bin)][n >= 100] %>%
   ggplot(aes(gc_bin, med, colour = sample, group = sample, fill = sample)) +
