@@ -6,8 +6,8 @@ BENCHMARKS = snakemake.params.benchmarks
 
 
 FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "truth_set",
-          "stratum", "filter", "truth_total", "tp", "fn", "query_total", "fp",
-          "recall", "precision", "f1"]
+          "comparison", "stratum", "filter", "truth_total", "tp", "fn",
+          "query_total", "fp", "recall", "precision", "f1", "fn_gt", "fp_gt"]
 
 def num(x):
     """hap.py leaves cells empty and writes literal nan; keep those as blanks."""
@@ -44,15 +44,25 @@ def read_truvari(path, cls):
 def read_aardvark(path):
     with open(path, newline="") as fh:
         for r in csv.DictReader(fh, delimiter="\t"):
-            ## BASEPAIR rows count bases, not variants, and would not be comparable
-            ## with the other two engines. Stratification regions are kept separately.
-            if r["comparison"] != "GT" or r["region_label"] != "ALL":
+            ## region_label indexes stratification regions; with no stratification BED
+            ## there is only ALL, and anything else answers a different question
+            if r["region_label"] != "ALL":
                 continue
-            yield AARDVARK_TYPE.get(r["variant_type"], r["variant_type"].upper()), r["filter"], dict(
-                truth_total=num(r["truth_total"]), tp=num(r["truth_tp"]), fn=num(r["truth_fn"]),
-                query_total=num(r["query_total"]), fp=num(r["query_fp"]),
-                recall=num(r["metric_recall"]), precision=num(r["metric_precision"]),
-                f1=num(r["metric_f1"]))
+            ## the label verbatim: aardvark splits by size into Insertion/SvInsertion and
+            ## puts truth and query under different ones depending on the truth set, so
+            ## any remapping here is right for one cell and wrong for the next
+            yield r["variant_type"], r["filter"], dict(
+                comparison  = r["comparison"],                 # GT or BASEPAIR
+                truth_total = num(r["truth_total"]),
+                tp          = num(r["truth_tp"]),
+                fn          = num(r["truth_fn"]),
+                query_total = num(r["query_total"]),
+                fp          = num(r["query_fp"]),
+                recall      = num(r["metric_recall"]),
+                precision   = num(r["metric_precision"]),
+                f1          = num(r["metric_f1"]),
+                fn_gt       = num(r.get("truth_fn_gt", "")),
+                fp_gt       = num(r.get("query_fp_gt", "")))
 
 
 rows = []
@@ -69,7 +79,7 @@ for engine, caller, truth, sample, path in CELLS:
                          build=b["build"], cls=b["cls"], stratum=stratum, filter=filt, **metrics))
 
 rows.sort(key=lambda r: tuple(str(r[k]) for k in
-                              ("sample", "caller", "benchmark", "stratum", "filter", "engine")))
+          ("sample", "caller", "benchmark", "stratum", "comparison", "filter", "engine")))
 
 with open(snakemake.output.long, "w", newline="") as fh:
     w = csv.DictWriter(fh, FIELDS, delimiter="\t", extrasaction="ignore")
