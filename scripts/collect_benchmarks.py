@@ -78,7 +78,7 @@ for engine, caller, truth, sample, path in CELLS:
         rows.append(dict(sample=sample, engine=engine, caller=caller, benchmark=truth,
                          build=b["build"], cls=b["cls"], stratum=stratum, filter=filt, **metrics))
 
-rows.sort(key=lambda r: tuple(str(r[k]) for k in
+rows.sort(key=lambda r: tuple(str(r.get(k, "")) for k in
           ("sample", "caller", "benchmark", "stratum", "comparison", "filter", "engine")))
 
 with open(snakemake.output.long, "w", newline="") as fh:
