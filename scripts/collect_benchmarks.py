@@ -4,19 +4,10 @@ import json
 CELLS      = snakemake.params.cells
 BENCHMARKS = snakemake.params.benchmarks
 
-CANON = {
-    "SNP": "SNP",
-    "INDEL": "INDEL",
-    "SV": "SV",
-    "JOINTSTRUCTURALVARIANT": "SV",
-    "TR": "TR",
-    "ALL": "ALL",
-}
 
-AARDVARK_TYPE = {"Snv": "SNP", "Indel": "INDEL"}
-FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "stratum", "stratum_tool", "filter",
-          "truth_total", "tp", "fn", "query_total", "fp", "recall", "precision", "f1"]
-
+FIELDS = ["sample", "engine", "caller", "benchmark", "build", "cls", "truth_set",
+          "stratum", "filter", "truth_total", "tp", "fn", "query_total", "fp",
+          "recall", "precision", "f1"]
 
 def num(x):
     """hap.py leaves cells empty and writes literal nan; keep those as blanks."""
@@ -75,7 +66,7 @@ for engine, caller, truth, sample, path in CELLS:
         parsed = read_aardvark(path)
     for stratum, filt, metrics in parsed:
         rows.append(dict(sample=sample, engine=engine, caller=caller, benchmark=truth,
-                         build=b["build"], cls=b["cls"], stratum=CANON.get(stratum, ""),  stratum_tool=stratum, filter=filt, **metrics))
+                         build=b["build"], cls=b["cls"], stratum=stratum, filter=filt, **metrics))
 
 rows.sort(key=lambda r: tuple(str(r[k]) for k in
                               ("sample", "caller", "benchmark", "stratum", "filter", "engine")))
@@ -86,16 +77,16 @@ with open(snakemake.output.long, "w", newline="") as fh:
     w.writerows(rows)
 
 ## Wide view: one row per cell, one column per engine, F1 as the value.
-engines = sorted({r["engine"] for r in rows})
-index = ["sample", "caller", "benchmark", "stratum", "filter"]
-grid = {}
-for r in rows:
-    if not r["stratum"]:
-        continue
-    grid.setdefault(tuple(r[k] for k in index), {})[r["engine"]] = r["f1"]
+#engines = sorted({r["engine"] for r in rows})
+#index = ["sample", "caller", "benchmark", "stratum", "filter"]
+#grid = {}
+#for r in rows:
+#    if not r["stratum"]:
+#        continue
+#    grid.setdefault(tuple(r[k] for k in index), {})[r["engine"]] = r["f1"]
 
-with open(snakemake.output.matrix, "w", newline="") as fh:
-    w = csv.writer(fh, delimiter="\t")
-    w.writerow(index + engines)
-    for key in sorted(grid):
-        w.writerow(list(key) + [grid[key].get(e, "") for e in engines])
+#with open(snakemake.output.matrix, "w", newline="") as fh:
+#    w = csv.writer(fh, delimiter="\t")
+#    w.writerow(index + engines)
+#    for key in sorted(grid):
+#        w.writerow(list(key) + [grid[key].get(e, "") for e in engines])

@@ -17,6 +17,23 @@ def t_tbi(wc):   return f"benchmarks/truth/{wc.truth}.vcf.gz.tbi"
 def t_bed(wc):   return BENCHMARKS[wc.truth]["bed"]
 def t_build(wc): return BENCHMARKS[wc.truth]["build"]
 
+
+## Aardvark should run on whole longcallD for SV benchmarking:
+def av_query(wc):
+    c = CALLERS[wc.caller]
+    key = ("vcf" if BENCHMARKS[wc.truth]["cls"] == "sv" else
+           "vcf_small" if "vcf_small" in c else "vcf")
+    return c[key].format(sample=wc.sample)
+
+def av_truth(wc):
+    if BENCHMARKS[wc.truth]["cls"] == "sv" and CALLERS[wc.caller].get("scope") == "sv":
+        return f"benchmarks/truth/{wc.truth}.sv50.vcf.gz"
+    return f"benchmarks/truth/{wc.truth}.vcf.gz"
+
+def av_qtbi(wc): return av_query(wc) + ".tbi"
+def av_ttbi(wc): return av_truth(wc) + ".tbi"
+
+
 ## Filter only passed variants
 rule pass_only_vcf:
     input:   
@@ -32,7 +49,6 @@ rule pass_only_vcf:
     wrapper: 
         bcftools_view_wrapper
 
-
 rule tabix_vcf:
     input:  
         "variants/{vcf}.vcf.gz"
@@ -41,6 +57,29 @@ rule tabix_vcf:
     log:    
         "logs/tabix_vcf/{vcf}.log"
     params: "-p vcf"
+    wrapper: 
+        tabix_wrapper_generic
+
+## Remove SNVs and small InDels from v5.0 stvar benchmark         
+rule truth_sv_only:
+    input:   
+        "benchmarks/truth/{truth}.vcf.gz"
+    output:  
+        "benchmarks/truth/{truth}.sv50.vcf.gz"
+    params:  
+        extra = "-i 'abs(ILEN)>=50'"
+    log:     
+        "logs/truth_sv_only/{truth}.log"
+    wrapper: 
+        bcftools_view_wrapper
+
+rule truth_sv_only_tbi:
+    input:   
+        "benchmarks/truth/{truth}.sv50.vcf.gz"
+    output:  
+        "benchmarks/truth/{truth}.sv50.vcf.gz.tbi"
+    log:     
+        "logs/truth_sv_only_tbi/{truth}.log"
     wrapper: 
         tabix_wrapper_generic
 
@@ -186,10 +225,10 @@ rule bench_truvari_refine:
 ## Aardvark benchmarking
 rule bench_aardvark:
     input:
-        query       = q_vcf,
-        query_index = q_tbi,
-        truth       = t_vcf,
-        truth_index = t_tbi,
+        query       = av_query,
+        query_index = av_qtbi,
+        truth       = av_truth,
+        truth_index = av_ttbi,
         regions     = t_bed,
         ref      = lambda wc: REFERENCE[t_build(wc)],
         ref_fai  = lambda wc: REFERENCE[t_build(wc)] + ".fai",
@@ -198,7 +237,7 @@ rule bench_aardvark:
         "benchmarks/aardvark/{caller}/{truth}/{sample}/summary.tsv"
     params:
         out   = "benchmarks/aardvark/{caller}/{truth}/{sample}/",
-        gap   = lambda wc: 1000 if BENCHMARKS[wc.truth]["cls"] == "sv" else 100,
+        #gap   = lambda wc: 1000 if BENCHMARKS[wc.truth]["cls"] == "sv" else 50,
     log: 
         "logs/bench_aardvark/{caller}.{truth}.{sample}.log"
     threads: 4
@@ -215,9 +254,10 @@ rule bench_aardvark:
           --query-vcf {input.query} \
           --regions {input.regions} \
           -o {params.out} \
-          --min-variant-gap {params.gap} \
           --compare-label {wildcards.caller} 2> {log}
         """
+
+## used to hold: --min-variant-gap {params.gap} 
 
 ## Summarize all output tables
 rule benchmark_table:
@@ -225,7 +265,7 @@ rule benchmark_table:
         [f for *_, f in BENCH_FILES]
     output:
         long   = "out/benchmarks/all_benchmarks.tsv",
-        matrix = "out/benchmarks/benchmark_matrix.tsv",
+        #matrix = "out/benchmarks/benchmark_matrix.tsv",
     params:
         cells      = BENCH_FILES,
         benchmarks = BENCHMARKS,
