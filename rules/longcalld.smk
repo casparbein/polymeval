@@ -32,15 +32,15 @@ rule run_longcalld:
 ## longcalld emits small variants and SVs in one VCF, small-variant cells get a size-filtered copy.
 rule small_only_vcf:
     input:   
-        "variants/{sample}.vcf.gz"
+        "variants/{vcf}.vcf.gz"
     output:  
-        "variants/{sample}.small.vcf.gz"
+        "variants/{vcf}.small.vcf.gz"
     wildcard_constraints:
         vcf = r".+_longcalld(\.pass)?"
     params:  
         extra = "-i 'abs(ILEN)<50'"
     log:     
-        "logs/small_only_vcf/{sample}.log"
+        "logs/small_only_vcf/{vcf}.log"
     wrapper: 
         bcftools_view_wrapper
 

@@ -138,7 +138,7 @@ classify <- function(query_path, depth_path, nm) {
     ## a RefCall, or a 0/0 the caller had no confidence in, is an abstention rather
     ## than a confident homozygous-reference call. Both count as not-recovered, but
     ## only the confident one belongs in dropout_ratio.
-    gt %in% HOM_REF & (is.na(filter) | filter != "PASS" | !(filter %in% HOMREF_OK) |
+    gt %in% HOM_REF & (is.na(filter) | !(filter %in% HOMREF_OK) |
                          is.na(gq) | gq < min_gq_hom), "hom_ref_filtered",
     gt %in% HOM_REF,                                 "hom_ref",
     gt %in% HOM_ALT,                                 "hom_alt",
