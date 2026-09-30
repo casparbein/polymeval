@@ -238,7 +238,7 @@ potential_levels <- c(
 
 
 
-overall$status <- factor(overall$status, levels = rev(potential_levels[potential_levels %in% unique(overall$status)]), 
+overall$status <- factor(overall$status, levels = potential_levels[potential_levels %in% unique(overall$status)], 
                          ordered = TRUE)
 
 overall_sort_order <- overall %>%
@@ -274,7 +274,8 @@ p_stack <- ggplot(overall_mut, aes(frac, sample , fill = status)) +
   scale_x_continuous(labels = pct) +
   labs(title = "Fate of every true heterozygous site",
        x = NULL, y = "fraction of truth-het sites", fill = NULL) +
-  base_theme
+  base_theme +
+  guides(fill = guide_legend(nrow = 1))
 
 ## recovery against coverage is what separates "this polymerase loses hets" from
 ## "this sample was sequenced less deeply"
