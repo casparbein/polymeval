@@ -93,7 +93,7 @@ classify <- function(query_path, depth_path, nm) {
   dep[, key2 := paste0(chrom, "_", pos)]
   
   q[, matched := TRUE]
-  d <- merge(sites, q[, .(key4, matched, filter, gt, dp, ad_ref, ad_alt, gq)],
+  d <- merge(sites, q[, .(key4, matched, filter, gt, dp, ad_ref, ad_alt, gq, vaf_caller)],
              by = "key4", all.x = TRUE)
   d <- merge(d, dep[, .(key2, cov)], by = "key2", all.x = TRUE)
   
@@ -328,25 +328,25 @@ p_gcdrop <- cls[!is.na(gc)][
   base_theme
 
 ## VAF density plots
-p_density <- ggplot(dat, aes(vaf, colour = sample)) +
+p_density <- ggplot(cls, aes(ad_alt/(ad_alt + ad_ref), colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
   scale_colour_manual(values = custom_colors) +
   coord_cartesian(xlim = c(0, 1)) +
-  labs(title = "Recomputed VAF at recovered heterozygous sites",
+  labs(title = "VAF at recovered heterozygous sites",
        subtitle = "dashed line = unbiased expectation (0.5)",
        x = "alt / (ref + alt)", y = "density", colour = NULL) +
   base_theme
 
 ## The Caller's density
-p_density_caller <- ggplot(dat, aes(vaf_caller, colour = sample)) +
+p_density_caller <- ggplot(cls, aes(vaf_caller, colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
   scale_colour_manual(values = custom_colors) +
   coord_cartesian(xlim = c(0, 1)) +
-  labs(title = "Caller VAF at recovered heterozygous sites",
+  labs(title = "VAF at recovered heterozygous sites",
        subtitle = "dashed line = unbiased expectation (0.5) if all reads were assigned",
        x = "alt / depth", y = "density", colour = NULL) +
   base_theme
