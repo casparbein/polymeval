@@ -342,7 +342,7 @@ p_gcdrop <- cls[!is.na(gc)][
   base_theme
 
 ## VAF density plots
-p_density <- ggplot(cls, aes(ad_alt/(ad_alt + ad_ref), colour = sample)) +
+p_density <- ggplot(dat, aes(vaf, colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
@@ -354,7 +354,7 @@ p_density <- ggplot(cls, aes(ad_alt/(ad_alt + ad_ref), colour = sample)) +
   base_theme
 
 ## The Caller's density
-p_density_caller <- ggplot(cls, aes(vaf_caller, colour = sample)) +
+p_density_caller <- ggplot(dat, aes(vaf_caller, colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
