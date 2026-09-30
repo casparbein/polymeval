@@ -463,5 +463,5 @@ p_gcvaf <- dat[!is.na(gc)][
 
 pdf(out_plots, width = 11, height = 6)
 print(p_stack); print(p_cov); print(p_gcdrop);
-print(p_density); print(p_density_caller), print(p_fit); print(p_fit_all); print(p_gcvaf)
+print(p_density); print(p_density_caller); print(p_fit); print(p_fit_all); print(p_gcvaf)
 dev.off()
