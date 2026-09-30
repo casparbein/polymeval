@@ -135,9 +135,6 @@ classify <- function(query_path, depth_path, nm) {
     gt %in% HOM_REF & other_called &
       !is.na(ad_alt) & ad_alt > 0L,                "alt_outcompeted",
     gt %in% HOM_REF & other_called,                  "alt_mismatch",
-    ## a RefCall, or a 0/0 the caller had no confidence in, is an abstention rather
-    ## than a confident homozygous-reference call. Both count as not-recovered, but
-    ## only the confident one belongs in dropout_ratio.
     gt %in% HOM_REF & (is.na(filter) | !(filter %in% HOMREF_OK) |
                          is.na(gq) | gq < min_gq_hom), "hom_ref_filtered",
     gt %in% HOM_REF,                                 "hom_ref",
@@ -331,25 +328,25 @@ p_gcdrop <- cls[!is.na(gc)][
   base_theme
 
 ## VAF density plots
-p_density <- ggplot(cls, aes(ad_alt/(ad_alt + ad_ref), colour = sample)) +
+p_density <- ggplot(dat, aes(vaf, colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
   scale_colour_manual(values = custom_colors) +
   coord_cartesian(xlim = c(0, 1)) +
-  labs(title = "VAF at recovered heterozygous sites",
+  labs(title = "Recomputed VAF at recovered heterozygous sites",
        subtitle = "dashed line = unbiased expectation (0.5)",
        x = "alt / (ref + alt)", y = "density", colour = NULL) +
   base_theme
 
 ## The Caller's density
-p_density_caller <- ggplot(cls, aes(vaf_caller, colour = sample)) +
+p_density_caller <- ggplot(dat, aes(vaf_caller, colour = sample)) +
   geom_density(linewidth = 0.7) +
   geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +
   scale_colour_manual(values = custom_colors) +
   coord_cartesian(xlim = c(0, 1)) +
-  labs(title = "VAF at recovered heterozygous sites",
+  labs(title = "Caller VAF at recovered heterozygous sites",
        subtitle = "dashed line = unbiased expectation (0.5) if all reads were assigned",
        x = "alt / depth", y = "density", colour = NULL) +
   base_theme
