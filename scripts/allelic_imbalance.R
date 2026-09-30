@@ -12,9 +12,9 @@ gc_file      <- snakemake@input[["gc"]]
 sample_names <- unlist(strsplit(as.character(snakemake@params[["sample_names"]]), ","))
 in_colors    <- snakemake@params[["colors"]]
 min_dp       <- as.integer(snakemake@params[["min_dp"]])
-min_gq       <- as.integer(snakemake@params[["min_gq"]]) 
-vaf_min_dp   <- 1 
-min_gq_hom <- 1
+min_gq       <- as.integer(snakemake@params[["min_gq"]])
+min_gq_hom   <- as.integer(snakemake@params[["min_gq_hom"]])
+vaf_min_dp   <- as.integer(snakemake@params[["vaf_min_dp"]])
 out_vaf      <- snakemake@output[["vaf"]]
 out_dropout  <- snakemake@output[["dropout"]]
 out_sig      <- snakemake@output[["sig"]]
@@ -41,6 +41,7 @@ STATUS  <- c("het_pass", "het_lowdp", "het_lowgq", "het_filtered",
              "hom_ref", "hom_ref_filtered", "hom_alt",
              "alt_outcompeted", "alt_mismatch", "alt_nocall", "no_call", "missing")
 CLASSES <- c("SNV", "INS", "DEL", "MNP")
+HOMREF_OK <- c("PASS", "RefCall", ".")
 
 ## ---------------------------------------------------------------- statistics
 
@@ -66,7 +67,7 @@ sites  <- merge(sites, gc_tbl, by = "key2", all.x = TRUE)
 classify <- function(query_path, depth_path, nm) {
   ## AD arrives as "ref,alt" since bcftools norm -m -any leaves every record biallelic..
   q <- fread(query_path, na.strings = c(".", "", "NA"),
-             dec = ".", colClasses = c(ad = "character"))
+             dec = ".", colClasses = c(ad = "character", vaf_caller = "character"))
   ## fread can silently parse "," as a decimal sep, so stop when this happens
   if (!any(grepl(",", q$ad, fixed = TRUE)))
     stop("no comma-separated AD values in ", query_path,
@@ -82,6 +83,7 @@ classify <- function(query_path, depth_path, nm) {
            ad_alt = ad_alt,
            dp     = as.integer(dp),
            gq     = as.integer(gq),
+           vaf_caller = as.numeric(vaf_caller),
            key4   = paste(chrom, pos, ref, alt, sep = "_"),
            key2   = paste0(chrom, "_", pos))]
   q <- unique(q, by = "key4")
@@ -136,7 +138,7 @@ classify <- function(query_path, depth_path, nm) {
     ## a RefCall, or a 0/0 the caller had no confidence in, is an abstention rather
     ## than a confident homozygous-reference call. Both count as not-recovered, but
     ## only the confident one belongs in dropout_ratio.
-    gt %in% HOM_REF & (is.na(filter) | filter != "PASS" |
+    gt %in% HOM_REF & (is.na(filter) | filter != "PASS" | !(filter %in% HOMREF_OK) |
                          is.na(gq) | gq < min_gq_hom), "hom_ref_filtered",
     gt %in% HOM_REF,                                 "hom_ref",
     gt %in% HOM_ALT,                                 "hom_alt",
@@ -187,6 +189,7 @@ write_tsv(dropout_tbl[order(sample, var_class)], out_dropout)
 ## Table for het_pass variants (those that would have been included in truth benchmarks)
 dat <- cls[status == "het_pass" & ad_tot >= vaf_min_dp]
 dat[, vaf := ad_alt / ad_tot]
+
 setnames(dat, "ad_tot", "n")
 
 ## Binomial test for each site, and a FDR test for each site as well
@@ -198,6 +201,7 @@ vaf_tbl <- dat[,
   .(n_sites          = .N,
     median_depth     = as.numeric(median(n)),
     median_assigned  = median(assigned_frac, na.rm = TRUE),
+    median_vaf_caller = median(vaf_caller, na.rm = TRUE),
     median_vaf = median(vaf),
     frac_fdr05       = mean(fdr_binom < 0.05),
     n_fdr05          = sum(fdr_binom < 0.05)), by = .(sample, var_class)]
@@ -240,10 +244,23 @@ overall_sort_order <- overall %>%
 overall_mut <- overall%>% 
   mutate(sample = factor(sample, levels = overall_sort_order$sample, ordered = TRUE))
 
+## From Spectral: Colors for stack plot
+stack_colors <- c("alt_nocall" = "#9E0142",
+                  "alt_mismatch" = "#F46D43",
+                  "missing" = "#D53E4F",
+                  "no_call" = "#FDAE61",
+                  "hom_ref_filtered" = "#FEE08B",
+                  "hom_ref" =  "#FFFFBF",
+                  "hom_alt" = "#E6F598",
+                  "het_filtered" = "#ABDDA4",
+                  "het_lowdp" =  "#66C2A5",
+                  "het_lowgq" = "#5E4FA2",
+                  "het_pass" = "#3288BD")
+
 p_stack <- ggplot(overall_mut, aes(frac, sample , fill = status)) +
   geom_col(width = 0.65) +
   facet_wrap(~ var_class, nrow = 1) +
-  scale_fill_brewer(palette = "Spectral", direction = 1) +
+  scale_fill_manual(values = stack_colors) +
   scale_x_continuous(labels = pct) +
   labs(title = "Fate of every true heterozygous site",
        x = NULL, y = "fraction of truth-het sites", fill = NULL) +
@@ -323,6 +340,18 @@ p_density <- ggplot(cls, aes(ad_alt/(ad_alt + ad_ref), colour = sample)) +
   labs(title = "VAF at recovered heterozygous sites",
        subtitle = "dashed line = unbiased expectation (0.5)",
        x = "alt / (ref + alt)", y = "density", colour = NULL) +
+  base_theme
+
+## The Caller's density
+p_density_caller <- ggplot(cls, aes(vaf_caller, colour = sample)) +
+  geom_density(linewidth = 0.7) +
+  geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey40") +
+  facet_wrap(~ var_class, nrow = 1) +
+  scale_colour_manual(values = custom_colors) +
+  coord_cartesian(xlim = c(0, 1)) +
+  labs(title = "VAF at recovered heterozygous sites",
+       subtitle = "dashed line = unbiased expectation (0.5) if all reads were assigned",
+       x = "alt / depth", y = "density", colour = NULL) +
   base_theme
 
 
@@ -437,5 +466,5 @@ p_gcvaf <- dat[!is.na(gc)][
 
 pdf(out_plots, width = 11, height = 6)
 print(p_stack); print(p_cov); print(p_gcdrop);
-print(p_density); print(p_fit); print(p_fit_all); print(p_gcvaf)
+print(p_density); print(p_density_caller), print(p_fit); print(p_fit_all); print(p_gcvaf)
 dev.off()

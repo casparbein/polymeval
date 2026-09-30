@@ -19,19 +19,39 @@ def t_build(wc): return BENCHMARKS[wc.truth]["build"]
 
 
 ## Aardvark should run on whole longcallD for SV benchmarking:
+# def av_query(wc):
+#     c = CALLERS[wc.caller]
+#     key = ("vcf" if BENCHMARKS[wc.truth]["cls"] == "sv" else
+#            "vcf_small" if "vcf_small" in c else "vcf")
+#     return c[key].format(sample=wc.sample)
+
+# def av_truth(wc):
+#     if BENCHMARKS[wc.truth]["cls"] == "sv" and emits(wc.caller) == "sv":
+#         return f"benchmarks/truth/{wc.truth}.sv50.vcf.gz"
+#     return f"benchmarks/truth/{wc.truth}.vcf.gz"
+
+# def av_qtbi(wc): return av_query(wc) + ".tbi"
+# def av_ttbi(wc): return av_truth(wc) + ".tbi"
+
 def av_query(wc):
-    c = CALLERS[wc.caller]
-    key = ("vcf" if BENCHMARKS[wc.truth]["cls"] == "sv" else
-           "vcf_small" if "vcf_small" in c else "vcf")
+    c, b  = CALLERS[wc.caller], BENCHMARKS[wc.truth]
+    holds = b.get("contains")
+    if   holds == "sv":    key = "vcf_sv"    if "vcf_sv"    in c else "vcf"
+    elif holds == "small": key = "vcf_small" if "vcf_small" in c else "vcf"
+    else:                  key = "vcf"          # complete truth -> complete query
     return c[key].format(sample=wc.sample)
 
+def av_qtbi(wc):  return av_query(wc) + ".tbi"
+
 def av_truth(wc):
-    if BENCHMARKS[wc.truth]["cls"] == "sv" and CALLERS[wc.caller].get("scope") == "sv":
+    b = BENCHMARKS[wc.truth]
+    ## the truth is narrowed only when it is the broad side AND the caller cannot be
+    ## completed -- one cell in the whole matrix meets both conditions
+    if b.get("contains") is None and b["cls"] == "sv" and emits(wc.caller) == "sv":
         return f"benchmarks/truth/{wc.truth}.sv50.vcf.gz"
     return f"benchmarks/truth/{wc.truth}.vcf.gz"
 
-def av_qtbi(wc): return av_query(wc) + ".tbi"
-def av_ttbi(wc): return av_truth(wc) + ".tbi"
+def av_ttbi(wc):  return av_truth(wc) + ".tbi"
 
 
 ## Filter only passed variants

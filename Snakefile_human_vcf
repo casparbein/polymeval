@@ -32,26 +32,29 @@ v5_stvar_bed = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_stvar.benchmark.b
 ## Benchmark Matrix
 BENCHMARKS = {
     "v5.0q_smvar": dict(vcf=v5_smvar_vcf, bed=v5_smvar_bed, cls="small", build="GRCh38",
-                        happy_extra="--verbose --pass-only --gender male"),
+                        happy_extra="--verbose --pass-only --gender male", contains="small"),
     "v5.0q_stvar": dict(vcf=v5_stvar_vcf, bed=v5_stvar_bed, cls="sv", build="GRCh38",
                         truvari_extra="--passonly --dup-to-ins --sizemin 50"),
     "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
-                        happy_extra="--verbose"),
+                        happy_extra="--verbose", contains="small"),
     "cmrg_sv":     dict(vcf=cmrg_sv_vcf, bed=cmrg_sv_bed, cls="sv", build="GRCh38",
-                        truvari_extra="--dup-to-ins --sizemin 50"),
+                        truvari_extra="--dup-to-ins --sizemin 50", contains="sv"),
     "tr_v1.0.1":   dict(vcf=tandem_repeats_truvari, bed=tandem_repeats_truvari_bed,
                         cls="tr", build="GRCh38",
                         truvari_extra="--sizemin 5 --pick ac", refine=True),
     "v4.2.1":      dict(vcf=vcf_benchmark, bed=vcf_truth_bed, cls="small", build="GRCh38",
-                        happy_extra="--verbose --pass-only"),
+                        happy_extra="--verbose --pass-only", contains="small"),
     "sv_v0.6":     dict(vcf=sv_ground_vcf, bed=sv_ground_bed, cls="sv", build="GRCh37",
-                        truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50"),
+                        truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50", contains="sv"),
 }
 
 CALLERS = {
-    "deepvariant": dict(vcf="variants/{sample}.pass.vcf.gz",                  cls={"small"},      build="GRCh38"),
+    "deepvariant": dict(vcf="variants/{sample}.pass.vcf.gz",
+                        vcf_all="variants/{sample}.vcf.gz",
+                        cls={"small"},      build="GRCh38"),
     "longcalld": dict(vcf = "variants/{sample}_longcalld.pass.vcf.gz",
                       vcf_small = "variants/{sample}_longcalld.pass.small.vcf.gz",
+                      vcf_small_all = "variants/{sample}_longcalld.small.vcf.gz",
                       vcf_sv = "variants/{sample}_longcalld.pass.sv.vcf.gz",
                       cls={"small","sv"}, build="GRCh38"),
     "sniffles":    dict(vcf="variants/{sample}.sniffles.grch38.pass.vcf.gz",  cls={"sv"},         build="GRCh38", scope="sv"),
@@ -78,6 +81,14 @@ def enabled(name):
     if b["cls"] == "sv" and not config["structural_variants"]:      return False
     if b["cls"] == "tr" and not config["tandem_repeats"]:           return False
     return True
+
+
+## what the caller has in its VCF
+def emits(caller):
+    """What a caller puts in its VCF. True for all five callers -- revisit if one is ever
+    deliberately benchmarked on a subset of what it produces."""
+    cls = CALLERS[caller]["cls"]
+    return next(iter(cls)) if len(cls) == 1 else None
 
 def cells():
     for cn, c in CALLERS.items():
@@ -119,17 +130,21 @@ def gather_targets():
 ## Truvari trgt is not informative, since refine is used on top of it
 NO_REPORT = {("truvari", "trgt", "tr_v1.0.1")}
 
+
 ## Which output files the benchmarking tools create, copy of gather_targets
 def bench_files():
     out = []
     for engine, caller, truth in CELLS:
+        ts = ("sv50" if engine == "aardvark"
+                     and BENCHMARKS[truth]["cls"] == "sv"
+                     and emits(caller) == "sv" else "full")
         for s in samples:
             if (engine, caller, truth) not in NO_REPORT:
-                out.append((engine, caller, truth, s,
+                out.append((engine, caller, truth, ts, s,
                             f"benchmarks/{engine}/{caller}/{truth}/{s}/"
                             + SUMMARY[engine].format(sample=s)))
             if engine == "truvari" and BENCHMARKS[truth].get("refine"):
-                out.append(("truvari_refine", caller, truth, s,
+                out.append(("truvari_refine", caller, truth, "full", s,
                             f"benchmarks/truvari/{caller}/{truth}/{s}/refine.variant_summary.json"))
     return out
 

@@ -66,7 +66,7 @@ def read_aardvark(path):
 
 
 rows = []
-for engine, caller, truth, sample, path in CELLS:
+for engine, caller, truth, truth_set, sample, path in CELLS:
     b = BENCHMARKS[truth]
     if engine == "happy":
         parsed = read_happy(path)

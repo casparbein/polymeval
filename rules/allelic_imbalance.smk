@@ -64,7 +64,7 @@ rule alib_site_gc:
 ## LongcallD and Deepvariant calls
 def alib_query_vcf(wc):
     c = CALLERS[wc.caller]
-    return (c["vcf_small"] if "vcf_small" in c else c["vcf"]).format(sample=wc.sample)
+    return (c["vcf_small_all"] if "vcf_small_all" in c else c["vcf_all"]).format(sample=wc.sample)
 
 ## Get calls for query deepvariant vcf files at truth positions
 rule alib_query_at_hets:
@@ -83,10 +83,10 @@ rule alib_query_at_hets:
     shell:
         """
         set -o pipefail
-        printf 'chrom\tpos\tref\talt\tfilter\tgt\tdp\tad\tgq\n' > {output}
+        printf 'chrom\tpos\tref\talt\tfilter\tgt\tdp\tad\tgq\tvaf_caller\n' > {output}
         bcftools norm -f {input.ref} -m -any {input.query} 2>> {log} \
         | bcftools view -T {input.sites} 2>> {log} \
-        | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%FILTER[\t%GT\t%DP\t%AD\t%GQ]\n' \
+        | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%FILTER[\t%GT\t%DP\t%AD\t%GQ\t%VAF]\n' \
           >> {output} 2>> {log}
         """
 
@@ -134,6 +134,7 @@ rule alib_analysis:
         colors       = config["colors"],
         min_dp       = config.get("ai_min_dp", 1),
         min_gq       = config.get("ai_min_gq", 1),
+        min_gq_hom   = config.get("ai_min_gq_hom", 1),
         vaf_min_dp   = config.get("ai_vaf_min_dp", 1),
     resources: mem_mb = 40000
     log: "logs/alib_analysis/{caller}.log"
