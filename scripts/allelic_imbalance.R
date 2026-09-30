@@ -222,9 +222,21 @@ present <- CLASSES[CLASSES %in% unique(as.character(cls$var_class))]
 core    <- intersect(c("SNV", "INS", "DEL"), present)
 
 ## Get level order and sample order right
-potential_levels <- c("het_pass","hom_alt","hom_ref","alt_outcompeted",
-                               "alt_mismatch","missing","hom_ref_filtered","het_filtered",
-                               "het_lowdp","het_lowgq", "no_call")
+potential_levels <- c(
+                  "missing",
+                  "alt_nocall",
+                  "alt_mismatch",
+                  "no_call",
+                  "alt_outcompeted", 
+                  "hom_ref_filtered",
+                  "hom_ref",
+                  "hom_alt",
+                  "het_filtered",
+                  "het_lowdp",
+                  "het_lowgq",
+                  "het_pass")
+
+
 
 overall$status <- factor(overall$status, levels = rev(potential_levels[potential_levels %in% unique(overall$status)]), 
                          ordered = TRUE)
@@ -246,6 +258,7 @@ stack_colors <- c("alt_nocall" = "#9E0142",
                   "alt_mismatch" = "#F46D43",
                   "missing" = "#D53E4F",
                   "no_call" = "#FDAE61",
+                  "alt_outcompeted" = "#FEF09B", 
                   "hom_ref_filtered" = "#FEE08B",
                   "hom_ref" =  "#FFFFBF",
                   "hom_alt" = "#E6F598",
