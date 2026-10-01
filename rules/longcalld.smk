@@ -30,6 +30,7 @@ rule run_longcalld:
         """
 
 ## longcalld emits small variants and SVs in one VCF, small-variant cells get a size-filtered copy.
+## Sniffles by default will annotate SVs > 30 bp, so filter accordingly.
 rule small_only_vcf:
     input:   
         "variants/{vcf}.vcf.gz"
@@ -45,6 +46,7 @@ rule small_only_vcf:
         bcftools_view_wrapper
 
 ## longcalld emits small variants and SVs in one VCF, SV cells also get a size-filtered copy.
+## Sniffles by default will annotate SVs > 30 bp, so filter accordingly.
 rule sv_only_vcf:
     input:   
         "variants/{sample}_longcalld.pass.vcf.gz"

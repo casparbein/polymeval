@@ -53,6 +53,24 @@ def av_truth(wc):
 
 def av_ttbi(wc):  return av_truth(wc) + ".tbi"
 
+## SVType in cmrg sv for aardvark:
+rule truth_svinfo:
+    input:   
+        "benchmarks/truth/{truth}.vcf.gz"
+    output:  
+        "benchmarks/truth/{truth}.svinfo.vcf.gz"
+    log:     
+        "logs/truth_svinfo/{truth}.log"
+    conda:   
+        "../envs/truvari.yaml"
+    shell:   
+        """
+        truvari \
+        anno \
+        svinfo \
+        -i {input} \
+        -o {output} 2> {log}
+        """
 
 ## Filter only passed variants
 rule pass_only_vcf:
@@ -80,12 +98,13 @@ rule tabix_vcf:
     wrapper: 
         tabix_wrapper_generic
 
-## Remove SNVs and small InDels from v5.0 stvar benchmark         
+## Remove SNVs and small InDels from v5.0 stvar benchmark
+## Sniffles by default will annotate SVs > 30 bp, so filter accordingly          
 rule truth_sv_only:
     input:   
         "benchmarks/truth/{truth}.vcf.gz"
     output:  
-        "benchmarks/truth/{truth}.sv50.vcf.gz"
+        "benchmarks/truth/{truth}.sv30.vcf.gz"
     params:  
         extra = "-e 'abs(ILEN)<30'"
     log:     
@@ -95,9 +114,9 @@ rule truth_sv_only:
 
 rule truth_sv_only_tbi:
     input:   
-        "benchmarks/truth/{truth}.sv50.vcf.gz"
+        "benchmarks/truth/{truth}.sv30.vcf.gz"
     output:  
-        "benchmarks/truth/{truth}.sv50.vcf.gz.tbi"
+        "benchmarks/truth/{truth}.sv30.vcf.gz.tbi"
     log:     
         "logs/truth_sv_only_tbi/{truth}.log"
     wrapper: 
