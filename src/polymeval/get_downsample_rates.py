@@ -93,8 +93,8 @@ def adjust_min_max(readset_dict, restrict, min_frac):
     if restrict and readset_dict[min_read_set] < readset_dict[max_read_set] / min_frac:
         logger.warning("Only %d read sets remain, so %s is kept as the downsampling target "
                        "despite being below 1/%s of %s. Every other sample will be reduced "
-                       "to %d nt.", len(readset_dict), min_rs, min_frac, max_rs,
-                       readset_dict[min_rs])
+                       "to %d nt.", len(readset_dict), min_read_set, min_frac, max_read_set,
+                       readset_dict[min_read_set])
         readset_dict.pop(min_read_set)
 
         return adjust_min_max(readset_dict, restrict,min_frac)
@@ -102,7 +102,7 @@ def adjust_min_max(readset_dict, restrict, min_frac):
     else:
         return min_read_set
 
-def read_seq_stats(path, restrict,min_frac):
+def read_seq_stats(path, restrict, min_frac):
     readset_dict = {}
     all_sample_list = []
     with open(path) as s:
@@ -118,6 +118,12 @@ def read_seq_stats(path, restrict,min_frac):
                 nucs = int(stat_line[4])
                 readset_dict[name] = nucs
                 all_sample_list.append(name)
+
+    ## Guard against sinlge-read entries:
+    if len(readset_dict) < 2:
+        logger.critical("Downsampling needs at least two read sets; %s describes %d.",
+                        path, len(readset_dict))
+        sys.exit(1)
 
     ## Get minimum read set            
     min_read_set = min(readset_dict, key=readset_dict.get)
