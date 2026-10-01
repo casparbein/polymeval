@@ -1,4 +1,4 @@
-form polymeval import get_downsample_rates
+from polymeval import get_downsample_rates
 import re
 
 configfile: "DEF.yaml"
