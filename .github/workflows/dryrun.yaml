@@ -83,9 +83,18 @@ jobs:
           cd "$GITHUB_WORKSPACE" && python - "$bench" <<'EOF'
           import re, sys, pathlib
           root = pathlib.Path(sys.argv[1])
-          t = (pathlib.Path("src/polymeval/workflow/Snakefile_human_vcf")).read_text()
+          t = pathlib.Path("src/polymeval/workflow/Snakefile_human_vcf").read_text()
+
           names = set(re.findall(r'config\["benchmark_path"\]\s*\+\s*"/([^"]+)"', t))
+
+          ## reference artefacts are built at runtime as REFERENCE[build] + ".fai"/".gzi",
+          ## so they never appear as literals. ref_targets() in Snakefile_fetch is the
+          ## authoritative set: <base>, .fai, .gz, .gz.fai, .gz.gzi
+          for base in ("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna", "hs37d5.fa"):
+              names |= {base, base + ".fai", base + ".gz", base + ".gz.fai", base + ".gz.gzi"}
+
           names |= {n + ".tbi" for n in names if n.endswith((".vcf.gz", ".bed.gz"))}
+
           for n in sorted(names):
               (root / n).touch()
           print(f"touched {len(names)} placeholder files")
