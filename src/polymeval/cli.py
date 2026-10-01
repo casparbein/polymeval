@@ -221,16 +221,6 @@ def run_snakemake(snake_file,
         default_snakemake_args = ["--rerun-incomplete", "--keep-going"]
         cmd += default_snakemake_args
 
-    #print_cmd = " ".join(cmd)
-    #print("The following command will be run for the polymeval pipeline: {}".format(print_cmd))
-
-    ## Run pipeline proper
-    #try:
-    #    result1 = subprocess.run(cmd, check=True)
-    #    print(result1.stdout)
-    #except subprocess.CalledProcessError as e:
-    #    print(f"Command failed with return code {e.returncode}")
-
     print_cmd = " ".join(cmd)
     logger.info("The following command will be run for the polymeval pipeline: %s", print_cmd)
 
@@ -264,8 +254,14 @@ polymeval - a snakemake pipeline to streamline benchmarking and comparing PacBio
 
 def argument_parser():
     """Parse CMD args."""
-    app = argparse.ArgumentParser(description=DESCRIPTION)
-    #app = argparse.ArgumentParser(description=DESCRIPTION)
+    app = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    g_in = app.add_argument_group("Input and output")
+    g_asm = app.add_argument_group("Assembly (standard, downsample, combine)")
+    g_down = app.add_argument_group("Downsampling-specific arguments (downsample, combine)")
+    g_ref = app.add_argument_group("Reference-based evaluation (reference)")
+    g_var = app.add_argument_group("Variant benchmarks (variant_calling, fetch_benchmarks)")
+    g_run = app.add_argument_group("Execution")
 
     ## In which mode should the pipeline be run
     run_mode = app.add_mutually_exclusive_group(
@@ -338,7 +334,7 @@ def argument_parser():
     This can be run before a variant benchmarking run is started to have all necessary ground truth files present and in the right format.
     ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-A", 
     "--assembler",
     action="store", 
@@ -350,7 +346,7 @@ def argument_parser():
     compared in the summary plot.
     """)
 
-    app.add_argument(
+    g_down.add_argument(
     "-pw",
     "--pairwise", 
     action="store_true",
@@ -361,7 +357,7 @@ def argument_parser():
     """
     )
 
-    app.add_argument(
+    g_in.add_argument(
     "-i", 
     "--input_reads",
     action="store",
@@ -374,7 +370,7 @@ def argument_parser():
     (Example: sample1.1.fastq.gz or sample1-1.fastq.gz does not work, but sample1.fastq.gz does).
     ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-du", 
     "--remove_dups",
     action="store_true",
@@ -385,7 +381,7 @@ def argument_parser():
     just SAMPLE.fastq.gz. Only works in standard mode.
     ''')
 
-    app.add_argument(
+    g_ref.add_argument(
     "-ia", 
     "--input_assemblies",
     action="store",
@@ -397,7 +393,7 @@ def argument_parser():
     will work out naturally.
     ''')
 
-    app.add_argument(
+    g_ref.add_argument(
     "-rsq", 
     "--reference_sequence",
     action="store",
@@ -409,7 +405,7 @@ def argument_parser():
     in fasta format.
     ''')
 
-    app.add_argument(
+    g_in.add_argument(
     "-db", 
     "--compleasm_db",
     action="store",
@@ -421,7 +417,7 @@ def argument_parser():
     see --compleasm_db_path
     ''')
 
-    app.add_argument(
+    g_in.add_argument(
     "-dbp", 
     "--compleasm_db_path",
     action="store",
@@ -433,7 +429,7 @@ def argument_parser():
     compleasm will download libraries on the fly and put it on the user's cache, which takes time and disk space.
     ''')
 
-    app.add_argument(
+    g_in.add_argument(
     "-co", 
     "--colors",
     action="store",
@@ -446,7 +442,7 @@ def argument_parser():
     If not provided, will automatically create a color scale in R.
     ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-hi", 
     "--hifieval",
     action="store_true",
@@ -455,7 +451,7 @@ def argument_parser():
     '''Turn on hifieval
     ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-hg", 
     "--hg_size",
     action="store",
@@ -465,7 +461,7 @@ def argument_parser():
     Should be in k,m or g (for instance: 2g or 700m).
     ''')
 
-    app.add_argument(   
+    g_asm.add_argument(   
     "--lja_path", 
     action="store", 
     dest="lja_path", 
@@ -475,7 +471,7 @@ def argument_parser():
     ''')
 
     ## Define exactly what the output files would be here
-    app.add_argument(
+    g_asm.add_argument(
     "-rd", 
     "--readstats",
     action="store_true",
@@ -485,7 +481,7 @@ def argument_parser():
     Read length histogram, QC histogram, rdeval dump and associated plots
     ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-k", 
     "--kmc",
     action="store_true",
@@ -513,7 +509,7 @@ def argument_parser():
     # '''In case pandepth is installed but not in the user's $PATH, provide absolute path to pandepth.
     # ''')
 
-    app.add_argument(
+    g_asm.add_argument(
     "-km", 
     "--kmer_length",
     action="store",
@@ -523,7 +519,7 @@ def argument_parser():
     '''K-mer length used by meryl and KMC (if enabled). Default is 25.
     ''')
 
-    app.add_argument(
+    g_down.add_argument(
     "-se", 
     "--seed",
     action="store",
@@ -533,24 +529,24 @@ def argument_parser():
     '''Seed for rasusa downsampling.
     ''')
 
-    app.add_argument(
+    g_var.add_argument(
     "-bp", 
     "--benchmark_path",
     action="store",
     dest="benchmark_path",
     default=None,
     help=
-    '''Path to where benchmark files for human variant calling are stored.
+    '''Path to where benchmark files for human variant calling are stored, and where they are fetched for benchmarking.
     ''')
     
-    app.add_argument(
+    g_var.add_argument(
     "--benchmark_releases", 
     default="v5.0q,cmrg,tandem_repeats",
     help=
     '''Comma-separated GIAB releases to fetch: v5.0q, v4.2.1, cmrg, tandem_repeats, NIST_SV_v0.6.
     ''')
 
-    app.add_argument(
+    g_var.add_argument(
     "-svc", 
     "--structural_variant_calling",
     action="store_true",
@@ -560,7 +556,7 @@ def argument_parser():
     '''Whether structural variants should be called and benchmarked with sniffles and truvari.
     ''')
 
-    app.add_argument(
+    g_var.add_argument(
     "-trc", 
     "--tandem_repeat_calling",
     action="store_true",
@@ -570,7 +566,7 @@ def argument_parser():
     '''Whether tandem repeats should be called and benchmarked with trgt and truvari.
     ''')
 
-    app.add_argument(
+    g_var.add_argument(
     "--cmrg", 
     action="store_true", 
     dest="cmrg", 
@@ -580,7 +576,7 @@ def argument_parser():
     Genes (CMRG v1.00) small-variant and SV benchmarks.
     ''')
 
-    app.add_argument(
+    g_var.add_argument(
     "--allelic_imbalance", 
     action="store_true", 
     dest="allelic_imbalance",
@@ -621,7 +617,7 @@ def argument_parser():
     # '''Turn off merqury (On by default)
     # ''')
 
-    app.add_argument(
+    g_down.add_argument(
     "-ol", 
     "--outlier",
     action="store",
@@ -631,7 +627,7 @@ def argument_parser():
     (meaning it is much smaller than the rest and can not be downsampled to each of the desired fractions).
     ''')
 
-    app.add_argument(
+    g_down.add_argument(
     "-t", 
     "--target_base_coverage",
     action="store",
@@ -642,7 +638,7 @@ def argument_parser():
     By default, will take the smallest read set present in the provided seqkit out-file as downsample target.
     ''')
 
-    app.add_argument(
+    g_down.add_argument(
     "-nre", 
     "--no_restrict",
     action="store_false",
@@ -654,7 +650,7 @@ def argument_parser():
     the next bigger read set is instead taken until one is found that is > 1/3 number of sequenced nucleotides of the biggest set.  
     ''')
 
-    app.add_argument(
+    g_run.add_argument(
     "-dr",
     "--dry_run",
     action="store_true",
@@ -664,7 +660,7 @@ def argument_parser():
     will be started either after creation of the working directory, or, if the working directory already exists, within that working directory.
     """)
 
-    app.add_argument(
+    g_run.add_argument(
     "-rs",
     "--run_snakemake",
     action="store_true",
@@ -675,7 +671,7 @@ def argument_parser():
     only a dry run will be started.
     """)
 
-    app.add_argument(
+    g_down.add_argument(
     "-sq",
     "--seqkit_file_path",
     action="store",
@@ -684,7 +680,7 @@ def argument_parser():
     """Path to seqkit file, based on which should be downsampled. (Will parse it and find the read set with the smallest output and that output)
     """)
 
-    app.add_argument(
+    g_down.add_argument(
     "-sa",
     "--samples",
     action="store",
@@ -694,7 +690,7 @@ def argument_parser():
     Comma separated list, for example: readsA, readsB, readsC.
     """)
 
-    app.add_argument(
+    g_run.add_argument(
     "-f",
     "--force_run",
     action="store_true",
@@ -704,7 +700,7 @@ def argument_parser():
     Be careful, as any existing DEF file will be overwritten.
         """)
     
-    app.add_argument(
+    g_in.add_argument(
     "--directory_name", 
     action="store",
     dest="directory_name",
@@ -715,7 +711,7 @@ def argument_parser():
     """
     ) 
 
-    app.add_argument(
+    g_run.add_argument(
     "--lo",
     "--local_run", 
     action="store_true",
@@ -725,7 +721,7 @@ def argument_parser():
     """
     )  
 
-    app.add_argument(
+    g_run.add_argument(
     "-rtt",
     "--rerun_triggers_mtime", 
     action="store_true",

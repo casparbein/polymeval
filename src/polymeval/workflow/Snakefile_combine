@@ -261,13 +261,15 @@ use rule samtools_faidx from standard as combine_samtools_faidx with:
 
 use rule run_compleasm from standard as combine_run_compleasm with:
     input:
-        "assemblies/{out}.fa"
+        asm = "assemblies/{out}.fa",
+        lib = [] if HAVE_LINEAGE else os.path.join(LIB, ".polymeval." + LINEAGE + ".ok"),
     output:
         "compleasm/{out}_compleasm/summary.txt",
         temp(directory(f"compleasm/{{out}}_compleasm/{config['compleasm_db']}/hmmer_output")),
     params:
         outname = "compleasm/{out}_compleasm",
         database = config["compleasm_db"],
+        db_path  = config["compleasm_db_path"],
     log:
         "logs/run_compleasm/{out}.log"
 

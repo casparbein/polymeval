@@ -51,7 +51,9 @@ jobs:
           cp -r "$GITHUB_WORKSPACE/tests/reads" .
           cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
           polymeval --downsample --dry_run --local_run \
-                    --input_reads $GITHUB_WORKSPACE/tests/reads --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv --directory_name ci
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
+                    --directory_name ci
 
       - name: Combine mode
         run: |
@@ -59,5 +61,48 @@ jobs:
           cp -r "$GITHUB_WORKSPACE/tests/reads" .
           cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
           polymeval --combine --dry_run --local_run \
-                    --input_reads $GITHUB_WORKSPACE/tests/reads --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
                     --samples LaTaq_Bluepippin_15,Terra_Bluepippin_15 --directory_name ci
+
+      - name: Reference mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          cp -r "$GITHUB_WORKSPACE/tests/reads" .
+          cp -r "$GITHUB_WORKSPACE/tests/assemblies" .
+          cp -r "$GITHUB_WORKSPACE/tests/reference/reference.fa" .
+          cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
+          polymeval --reference --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --input_assemblies $GITHUB_WORKSPACE/tests/assemblies \
+                    --reference_sequence "$GITHUB_WORKSPACE/tests/reference/reference.fa" \
+                    --directory_name ci
+
+      - name: Fetch mode
+        run: |
+          cd "$(mktemp -d)"
+          polymeval --fetch_benchmarks --dry_run --local_run \
+                    --benchmark_path "$(mktemp -d)" \
+                    --benchmark_releases v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6 \
+                    --directory_name ci
+
+      - name: Variant benchmark mode
+        run: |
+          cd "$(mktemp -d)"
+          bench=$(mktemp -d)
+          cd "$GITHUB_WORKSPACE" && python - "$bench" <<'EOF'
+          import re, sys, pathlib
+          root = pathlib.Path(sys.argv[1])
+          t = (pathlib.Path("src/polymeval/workflow/Snakefile_human_vcf")).read_text()
+          names = set(re.findall(r'config\["benchmark_path"\]\s*\+\s*"/([^"]+)"', t))
+          names |= {n + ".tbi" for n in names if n.endswith((".vcf.gz", ".bed.gz"))}
+          for n in sorted(names):
+              (root / n).touch()
+          print(f"touched {len(names)} placeholder files")
+          EOF
+          cd "$(mktemp -d)"
+          polymeval --variant_calling_benchmarks --dry_run --local_run \
+                    --input_reads "$GITHUB_WORKSPACE/tests/reads" \
+                    --benchmark_path "$bench" \
+                    --cmrg --structural_variant_calling --tandem_repeat_calling \
+                    --allelic_imbalance --directory_name ci
