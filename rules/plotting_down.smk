@@ -19,6 +19,7 @@ rule downsampled_final_output_stats:
         merqury_path = "merqury/",
         colors = config["colors"],
         sample_names = expand("{sample}", sample = samples),
+        asm_ids      = expand("{asm_id}", asm_id = asm_ids),
     threads:
         1
     resources:

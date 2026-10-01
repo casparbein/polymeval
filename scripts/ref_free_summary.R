@@ -13,12 +13,15 @@ safe <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
 input_path_faidx = snakemake@params[["faidx_path"]]
 input_path_compleasm = snakemake@params[["compleasm_path"]]
 compleasm_database_name = snakemake@params[["compleasm_database"]]
-input_path_seqkit_stats = snakemake@input[["seqkit"]]
 input_path_merqury = snakemake@params[["merqury_path"]]
 input_path_hifieval = snakemake@params[["hifieval_path"]]
 in_colors = snakemake@params[["colors"]]
 input_names = snakemake@params[["asm_ids"]]
 sample_names = snakemake@params[["sample_names"]]
+
+## whether there is seqkit data:
+input_path_seqkit_stats <- snakemake@input[["seqkit"]]
+has_seqkit <- length(input_path_seqkit_stats) > 0 && file.exists(input_path_seqkit_stats)
 
 ## output (N(x) + compleasm tables, final plot)
 output_ng_table = snakemake@output[["ng_table"]]
@@ -30,6 +33,7 @@ out_merqury_table = snakemake@output[["merqury_table"]]
 ## set colors for names
 input_names <- unlist(strsplit(input_names, split = ","))
 sample_names <- unlist(strsplit(c(sample_names), split = ","))
+
 
 ## one row per assembly: which sample it came from, and which assembler built it
 id_table <- tibble(asm_id = input_names) %>%
@@ -250,10 +254,8 @@ compleasm_summary <- function(path, compleasm_label, ids, scales) {
   #  mutate(polymerase = factor(polymerase))
   
   compl_all_mut <- compl_all%>% 
+    left_join(id_table, by = c("polymerase" = "asm_id"))  %>%
     mutate(polymerase = factor(polymerase, levels = sel_order_compl$polymerase, ordered = TRUE))
-  
-  compl_all_mut <- compl_all_mut %>%
-    left_join(id_table, by = c("polymerase" = "asm_id"))
   
   compleasm_plot <- ggplot(compl_all_mut, aes(X3, polymerase, fill = category)) +
     geom_col() +
@@ -482,7 +484,7 @@ merqury_asm_sum <- function(path, ids, scales)
 ## final output
 
 ## seqkit plot
-seqkit_giga <- read_seqkit(input_path_seqkit_stats, ".fastq.gz")
+seqkit_giga <- if (has_seqkit) read_seqkit(input_path_seqkit_stats, ".fastq.gz") else NULL
 
 all_len <- map_dfr(Sys.glob(paste(input_path_faidx, "*.fa.fai", sep = "/")),
                    ~ read_delim(.x, col_names = FALSE) %>% select(len = X2))
@@ -499,17 +501,22 @@ build_page <- function(asm) {
   merq <- merqury_asm_sum(input_path_merqury, ids, scales)
   ttl  <- if (length(assemblers) > 1) paste("Assembler:", asm) else NULL
 
-  if (!is.null(input_path_hifieval) && asm != "flye") {
-    hife <- output_hifieval_readstats(input_path_hifieval, ids, scales)
-    page <- seqkit_giga / n50[[2]] / comp[[2]] / merq[[1]] / hife[[1]] +
-            plot_layout(guides = "collect", heights = c(2,3,2,2,2))
-  } else {
-    page <- seqkit_giga / n50[[2]] / comp[[2]] / merq[[3]] +
-            plot_layout(guides = "collect", heights = c(2,3,2,2))
-  }
-  page + plot_annotation(tag_levels = "A", title = ttl)
-}
+  panels <- c(if (has_seqkit) list(seqkit_giga),
+              list(n50[[2]], comp[[2]]))
+  heights <- c(if (has_seqkit) 2, 3, 2)
 
+  if (!is.null(input_path_hifieval) && asm != "flye") {
+    hife    <- output_hifieval_readstats(input_path_hifieval, ids, scales)
+    panels  <- c(panels, list(merq[[1]], hife[[1]]))
+    heights <- c(heights, 2, 2)
+  } else {
+    panels  <- c(panels, list(merq[[3]]))
+    heights <- c(heights, 2)
+  }
+
+  page <- Reduce(`/`, panels) + plot_layout(guides = "collect", heights = heights)+ 
+    plot_annotation(tag_levels = "A", title = ttl)
+}
 
 ## Final Plot
 pdf(output_final_figure, width = 12, height = 14)

@@ -892,6 +892,11 @@ def main():
     if args.tandem_repeats:
         config["tandem_repeats"] = True
 
+    if args.downsample and args.hifieval:
+    logger.critical("--hifieval does not apply to --downsample: hifieval measures read "
+                    "correction, which should be done only with all-data assemblies")
+    sys.exit(1)
+
     ## Set up directory;
     READS_SUBDIR = "raw_reads"
     SUFFIXES = tuple(sorted((".dup.fastq.gz", ".dup.fastq", ".dup.fq.gz", ".dup.fq") if config["remove_dups"]
