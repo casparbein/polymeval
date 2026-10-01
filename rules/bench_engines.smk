@@ -44,23 +44,25 @@ def av_query(wc):
 def av_qtbi(wc):  return av_query(wc) + ".tbi"
 
 def av_truth(wc):
-    b = BENCHMARKS[wc.truth]
-    ## the truth is narrowed only when it is the broad side AND the caller cannot be
-    ## completed -- one cell in the whole matrix meets both conditions
+    b, stem = BENCHMARKS[wc.truth], wc.truth
     if b.get("contains") is None and b["cls"] == "sv" and emits(wc.caller) == "sv":
-        return f"benchmarks/truth/{wc.truth}.sv50.vcf.gz"
-    return f"benchmarks/truth/{wc.truth}.vcf.gz"
+        stem += ".sv50"
+    if b["cls"] == "sv":
+        stem += ".svinfo"
+    return f"benchmarks/truth/{stem}.vcf.gz"
 
 def av_ttbi(wc):  return av_truth(wc) + ".tbi"
 
-## SVType in cmrg sv for aardvark:
+## SVTYPE in cmrg sv for aardvark:
 rule truth_svinfo:
     input:   
-        "benchmarks/truth/{truth}.vcf.gz"
+        "benchmarks/truth/{stem}.vcf.gz"
     output:  
-        "benchmarks/truth/{truth}.svinfo.vcf.gz"
+        "benchmarks/truth/{stem}.svinfo.vcf.gz"
+    wildcard_constraints:
+        stem = r".+(?<!\.svinfo)"
     log:     
-        "logs/truth_svinfo/{truth}.log"
+        "logs/truth_svinfo/{stem}.log"
     conda:   
         "../envs/truvari.yaml"
     shell:   
@@ -112,13 +114,18 @@ rule truth_sv_only:
     wrapper: 
         bcftools_view_wrapper
 
-rule truth_sv_only_tbi:
+## TBI for SVTYPE and sv30
+rule truth_derived_tbi:
     input:   
-        "benchmarks/truth/{truth}.sv30.vcf.gz"
+        "benchmarks/truth/{stem}.vcf.gz"
     output:  
-        "benchmarks/truth/{truth}.sv30.vcf.gz.tbi"
+        "benchmarks/truth/{stem}.vcf.gz.tbi"
+    wildcard_constraints:
+        stem = r".+\.(sv30|svinfo)[a-z0-9.]*"
+    params:  
+        "-p vcf"
     log:     
-        "logs/truth_sv_only_tbi/{truth}.log"
+        "logs/truth_derived_tbi/{stem}.log"
     wrapper: 
         tabix_wrapper_generic
 
