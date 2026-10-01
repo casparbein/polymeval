@@ -38,11 +38,11 @@ jobs:
           polymeval --standard --dry_run --local_run \
                     --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
 
-      - name: Standard mode, all four assemblers
+      - name: Standard mode, all installable assemblers
         run: |
           work="$(mktemp -d)" && cd "$work"
           cp -r "$GITHUB_WORKSPACE/tests/reads" .
-          polymeval --standard --dry_run --local_run --assembler hifiasm,flye,lja,verkko \
+          polymeval --standard --dry_run --local_run --assembler hifiasm,flye,verkko \
                     --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
 
       - name: Downsample mode
