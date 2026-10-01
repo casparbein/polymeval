@@ -34,22 +34,18 @@ jobs:
       - name: Standard mode
         run: |
           work="$(mktemp -d)" && cd "$work"
-          cp -r "$GITHUB_WORKSPACE/tests/reads" .
           polymeval --standard --dry_run --local_run \
                     --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
 
       - name: Standard mode, all installable assemblers
         run: |
           work="$(mktemp -d)" && cd "$work"
-          cp -r "$GITHUB_WORKSPACE/tests/reads" .
           polymeval --standard --dry_run --local_run --assembler hifiasm,flye,verkko \
                     --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
 
       - name: Downsample mode
         run: |
           work="$(mktemp -d)" && cd "$work"
-          cp -r "$GITHUB_WORKSPACE/tests/reads" .
-          cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
           polymeval --downsample --dry_run --local_run \
                     --input_reads $GITHUB_WORKSPACE/tests/reads \
                     --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
@@ -58,8 +54,6 @@ jobs:
       - name: Combine mode
         run: |
           work="$(mktemp -d)" && cd "$work"
-          cp -r "$GITHUB_WORKSPACE/tests/reads" .
-          cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
           polymeval --combine --dry_run --local_run \
                     --input_reads $GITHUB_WORKSPACE/tests/reads \
                     --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
@@ -68,10 +62,6 @@ jobs:
       - name: Reference mode
         run: |
           work="$(mktemp -d)" && cd "$work"
-          cp -r "$GITHUB_WORKSPACE/tests/reads" .
-          cp -r "$GITHUB_WORKSPACE/tests/assemblies" .
-          cp -r "$GITHUB_WORKSPACE/tests/reference/reference.fa" .
-          cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
           polymeval --reference --dry_run --local_run \
                     --input_reads $GITHUB_WORKSPACE/tests/reads \
                     --input_assemblies $GITHUB_WORKSPACE/tests/assemblies \

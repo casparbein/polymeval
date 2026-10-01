@@ -201,7 +201,7 @@ def run_snakemake(snake_file,
         logger.warning("--use-conda is disabled and no conda prefix given. The pipeline will "
                        "fail unless every tool is already installed and on $PATH.")
 
-    if use_apptainer:
+    if use_apptainer and not dryrun:
         #apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
         cmd += ['--use-apptainer', '--apptainer-prefix', apptainer_path]
         if apptainer_args:
