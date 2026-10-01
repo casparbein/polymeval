@@ -95,11 +95,6 @@ def adjust_min_max(readset_dict, restrict, min_frac):
                        "despite being below 1/%s of %s. Every other sample will be reduced "
                        "to %d nt.", len(readset_dict), min_read_set, min_frac, max_read_set,
                        readset_dict[min_read_set])
-        readset_dict.pop(min_read_set)
-
-        return adjust_min_max(readset_dict, restrict,min_frac)
-    
-    else:
         return min_read_set
 
 def read_seq_stats(path, restrict, min_frac):
