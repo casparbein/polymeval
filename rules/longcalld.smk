@@ -38,7 +38,7 @@ rule small_only_vcf:
     wildcard_constraints:
         vcf = r".+_longcalld(\.pass)?"
     params:  
-        extra = "-i 'abs(ILEN)<50'"
+        extra = "-i 'abs(ILEN)<30'"
     log:     
         "logs/small_only_vcf/{vcf}.log"
     wrapper: 
@@ -51,7 +51,7 @@ rule sv_only_vcf:
     output:  
         "variants/{sample}_longcalld.pass.sv.vcf.gz"
     params:  
-        extra = "-e 'abs(ILEN)<50'"
+        extra = "-e 'abs(ILEN)<30'"
     log:     
         "logs/sv_only_vcf/{sample}.log"
     wrapper: 

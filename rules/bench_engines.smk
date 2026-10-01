@@ -87,7 +87,7 @@ rule truth_sv_only:
     output:  
         "benchmarks/truth/{truth}.sv50.vcf.gz"
     params:  
-        extra = "-i 'abs(ILEN)>=50'"
+        extra = "-e 'abs(ILEN)<30'"
     log:     
         "logs/truth_sv_only/{truth}.log"
     wrapper: 
