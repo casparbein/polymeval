@@ -22,10 +22,7 @@ classifiers = [
 
 
 dependencies = [
-    "ruamel.yaml>=0.18",
-    "tqdm",
-    "pysam",
-    "pyfastx",
+    "ruamel.yaml>=0.18"
 ]
 
 [project.optional-dependencies]

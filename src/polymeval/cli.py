@@ -183,7 +183,6 @@ def run_snakemake(snake_file,
 
     cmd += ['--directory', snakemake_dir]
 
-
     def _default_prefix(kind):
         root = (os.environ.get("POLYMEVAL_CACHE")
                 or os.environ.get("XDG_CACHE_HOME")
@@ -191,7 +190,7 @@ def run_snakemake(snake_file,
         return os.path.join(root, "polymeval", kind)
 
     conda_path     = conda_path     or _default_prefix("conda")
-    apptainer_path = apptainer_path or _default_prefix("singularity")
+    apptainer_path =  _default_prefix("singularity")
 
     if use_conda:
         cmd += ['--use-conda', '--conda-prefix', conda_path or _default_prefix("conda")]
@@ -830,7 +829,7 @@ def main():
             sys.exit(1)
         os.makedirs(os.path.abspath(args.benchmark_path), exist_ok=True)
         config["benchmark_manifest"] = SingleQuotedScalarString(
-            os.path.join(base_dir, "config", "benchmark.yaml"))
+            str(WORKFLOW / "config" / "benchmark.yaml"))
         config["benchmark_releases"] = format_list(
             [r.strip() for r in args.benchmark_releases.split(",") if r.strip()])
 
