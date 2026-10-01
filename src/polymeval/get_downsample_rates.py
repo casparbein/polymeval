@@ -77,19 +77,30 @@ suffix_dict = {1 : "single", 2 : "half", 3 : "third", 4 : "fourth", 5: "fifth"}
 combination_group_sizes = {"single" : 1, "half": 2, "third": 3, "fourth": 4, "fifth": 5}
 
 def adjust_min_max(readset_dict, restrict, min_frac):
+    while restrict and len(readset_dict) > 2:
+        min_rs = min(readset_dict, key=readset_dict.get)
+        max_rs = max(readset_dict, key=readset_dict.get)
+        if readset_dict[min_rs] >= readset_dict[max_rs] / min_frac:
+            break
+        logger.warning("Read set %s (%d nt) is below 1/%s of the largest, %s (%d nt). "
+                       "Excluding it; the next smallest becomes the downsampling target.",
+                       min_rs, readset_dict[min_rs], min_frac, max_rs, readset_dict[max_rs])
+        readset_dict.pop(min_rs)
+
     min_read_set = min(readset_dict, key=readset_dict.get)
     max_read_set = max(readset_dict, key=readset_dict.get)
 
     if restrict and readset_dict[min_read_set] < readset_dict[max_read_set] / min_frac:
-        logger.warning("WARNING: Minimum read set {} is smaller ({} nts) than 1/{} of the maximum {} ({} nts), setting minimum to the next suitable minimum".format(min_read_set, readset_dict[min_read_set], min_frac, max_read_set, readset_dict[max_read_set]))
-
+        logger.warning("Only %d read sets remain, so %s is kept as the downsampling target "
+                       "despite being below 1/%s of %s. Every other sample will be reduced "
+                       "to %d nt.", len(readset_dict), min_rs, min_frac, max_rs,
+                       readset_dict[min_rs])
         readset_dict.pop(min_read_set)
 
         return adjust_min_max(readset_dict, restrict,min_frac)
     
     else:
         return min_read_set
-
 
 def read_seq_stats(path, restrict,min_frac):
     readset_dict = {}
