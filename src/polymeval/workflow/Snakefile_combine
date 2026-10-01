@@ -70,9 +70,15 @@ module standard:
     snakefile:
         "Snakefile_standard"
 
+LIB     = config["compleasm_db_path"]
+LINEAGE = config["compleasm_db"]
+HAVE_LINEAGE = os.path.isdir(os.path.join(LIB, LINEAGE))
+
 ## downsampling rule
 include: "rules/rasusa.smk"
 include: "rules/plotting_combine.smk"
+
+use rule compleasm_download from standard as combine_compleasm_download
 
 ## import rules and redefine input if necessary
 if config["readstats"]:
