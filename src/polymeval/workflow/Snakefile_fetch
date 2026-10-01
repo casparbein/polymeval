@@ -1,0 +1,108 @@
+import os, re, yaml
+
+configfile: "DEF.yaml"
+MANIFEST = config["benchmark_manifest"]
+DEST     = config["benchmark_path"]
+WANTED   = config["benchmark_releases"]
+
+mani = yaml.safe_load(open(MANIFEST))
+
+FILES = {}
+for rel in WANTED:
+    spec = mani["releases"][rel]
+    for f in spec["files"]:
+        FILES[os.path.basename(f)] = f"{spec['base']}/{f}"
+
+REFS = {}
+for name, spec in mani["references"].items():
+    base = spec["basename"]
+    REFS[name] = base
+    FILES[base + ".src.gz"] = spec["url"]
+
+wildcard_constraints:
+    fname = "|".join(re.escape(f) for f in sorted(FILES, key=len, reverse=True)),
+    base  = "|".join(re.escape(b) for b in sorted(REFS.values(), key=len, reverse=True)),
+
+def ref_targets(b):
+    return [f"{DEST}/{b}", 
+            f"{DEST}/{b}.fai",
+            f"{DEST}/{b}.gz", 
+            f"{DEST}/{b}.gz.fai", 
+            f"{DEST}/{b}.gz.gzi"]
+
+rule all:
+    input:
+        [f"{DEST}/{f}" for f in FILES if not f.endswith(".src.gz")],
+        [t for b in REFS.values() for t in ref_targets(b)],
+
+localrules: download_file, ref_unpack, ref_faidx, ref_faidx_gz
+
+rule download_file:
+    output: 
+        protected(f"{DEST}/{{fname}}")
+    params: 
+        url = lambda wc: FILES[wc.fname]
+    retries: 3
+    log: 
+        f"logs/fetch/download_{{fname}}.log"
+    conda: 
+        "envs/fetch.yaml"
+    shell:
+        """
+        curl \
+        -fSL \
+        --retry 5 \
+        --retry-delay 10 \
+        -o {output} \
+        {params.url} 2> {log} &> {log}
+        """
+
+rule ref_unpack:
+    input:  
+        f"{DEST}/{{base}}.src.gz"
+    output: 
+        protected(f"{DEST}/{{base}}")
+    log:
+        "logs/fetch/unpack_{base}.log"
+    shell:  
+        """
+        gzip -dc {input} > {output} 2> {log}  || [ $? -eq 2 ]
+        """
+
+rule ref_bgzip:
+    input:  
+        f"{DEST}/{{base}}"
+    output: 
+        protected(f"{DEST}/{{base}}.gz")
+    threads: 8
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/bgzip_{base}.log"
+    shell:  
+        "bgzip -@ {threads} -c {input} > {output} 2> {log}"
+
+rule ref_faidx:
+    input: 
+        f"{DEST}/{{base}}"
+    output: 
+        protected(f"{DEST}/{{base}}.fai")
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/faidx_{base}.log"
+    shell:  
+        "samtools faidx {input} 2> {log}"
+
+rule ref_faidx_gz:
+    input:  
+        f"{DEST}/{{base}}.gz"
+    output: 
+        protected(f"{DEST}/{{base}}.gz.fai"), 
+        protected(f"{DEST}/{{base}}.gz.gzi")
+    conda:  
+        "envs/htslib.yaml"
+    log:    
+        "logs/fetch/faidx_gz_{base}.log"
+    shell:  
+        "samtools faidx {input} 2> {log}"

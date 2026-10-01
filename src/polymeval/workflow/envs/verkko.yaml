@@ -1,0 +1,6 @@
+name: verkko
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+    - verkko
