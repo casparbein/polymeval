@@ -255,7 +255,7 @@ compleasm_summary <- function(path, compleasm_label, ids, scales) {
   compl_all_mut <- compl_all_mut %>%
     left_join(id_table, by = c("polymerase" = "asm_id"))
   
-  compleasm_plot <- ggplot(compl_all_mut, aes(X3, sample, fill = category)) +
+  compleasm_plot <- ggplot(compl_all_mut, aes(X3, polymerase, fill = category)) +
     geom_col() +
     theme_bw() +
     theme(axis.text= element_text(size = 12),
@@ -337,8 +337,6 @@ output_hifieval_readstats <- function(path, ids, scales)
   ## convert to dataframe
   hifieval_list <- hifieval_list[lengths(hifieval_list) > 0]
   hifieval_df <- rbindlist(hifieval_list)
-  print(hifieval_df)
-  str(hifieval_df)
   
   ## collapse df
   hifieval_df_sum <- hifieval_df %>%
@@ -351,12 +349,16 @@ output_hifieval_readstats <- function(path, ids, scales)
                           overcorrected_bases), 
                  names_to = "correction_class",
                  values_to = "fraction") 
+
+  ## Add polymerase names:
+  hifieval_df_sum <- hifieval_df_sum %>%
+    left_join(id_table, by = c("polymerase" = "asm_id"))
   
   ## plot
   ## Only includes corrected bases (as proxy for error rate in reads)
   hifieval_plot <- ggplot(hifieval_df_sum %>%
                               filter(correction_class %in% c("corrected_bases")),
-                              aes(polymerase, fraction, fill = polymerase)) +
+                              aes(sample, fraction, fill = sample)) +
     #geom_col(position = "dodge2") +
     geom_col() +
     scale_y_continuous(labels = comma) +
@@ -424,10 +426,13 @@ merqury_asm_sum <- function(path, ids, scales)
     left_join(mq_com, by = c("X1" = "X1")) %>%
     rename(polymerase = X1)
   
-  print(merqury_all)
+  ## Add polymerase names:
+  merqury_all <- merqury_all %>%
+    left_join(id_table, by = c("polymerase" = "asm_id"))
+
     
-  er <- ggplot(merqury_all, aes(polymerase, error_rate)) +
-  geom_col(aes(fill = polymerase)) +
+  er <- ggplot(merqury_all, aes(sample, error_rate)) +
+  geom_col(aes(fill = sample)) +
   #ggtitle("Merqury assembly error rate") +
   ylab("error rate") + 
   theme_bw() +
@@ -436,8 +441,8 @@ merqury_asm_sum <- function(path, ids, scales)
         axis.text.y= element_text(size = 10),
         axis.title= element_text(size = 11))
 
-  qv <- ggplot(merqury_all, aes(polymerase, qv)) +
-  geom_col(aes(fill = polymerase)) +
+  qv <- ggplot(merqury_all, aes(sample, qv)) +
+  geom_col(aes(fill = sample)) +
   coord_cartesian(ylim = c(min(merqury_all$qv)-5, 60)) +
   #ggtitle("Merqury assembly quality value") +
   ylab("QV") + 
@@ -447,8 +452,8 @@ merqury_asm_sum <- function(path, ids, scales)
         axis.text.y= element_text(size = 10),
         axis.title= element_text(size = 11))
 
-  comp <- ggplot(merqury_all, aes(polymerase, completeness)) +
-  geom_col(aes(fill = polymerase)) +
+  comp <- ggplot(merqury_all, aes(sample, completeness)) +
+  geom_col(aes(fill = sample)) +
   coord_cartesian(ylim = c(min(merqury_all$completeness)-2, 100)) +
   #ggtitle("Merqury assembly completeness") +
   ylab("Completeness (%)") +
