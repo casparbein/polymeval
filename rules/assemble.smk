@@ -97,7 +97,8 @@ rule lja:
         {params.binary} \
         -o {params.outdir} \
         --reads {input} \
-        -t {threads} &> {log}
+        -t {threads} \
+        --diploid &> {log}
         """
 
 ## Verkko assembly (might not work since it is local)
