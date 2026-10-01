@@ -70,8 +70,9 @@ rule truth_svinfo:
         truvari \
         anno \
         svinfo \
-        -i {input} \
-        -o {output} 2> {log}
+        -m 30 \
+        -o {output} \
+        {input} 2> {log}
         """
 
 ## Filter only passed variants
