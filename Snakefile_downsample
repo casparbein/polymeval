@@ -32,7 +32,7 @@ module standard:
     config:
         {**config, "hifieval": False}
 
-use rule * from standard exclude read_output_stats as downsampled_*
+use rule * from standard as downsampled_*
 
 ## downsampling rule
 include: "rules/rasusa.smk"

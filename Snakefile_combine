@@ -84,17 +84,6 @@ if config["readstats"]:
         log:
             "logs/rdeval_dump/{sample}-{amount}.log",
 
-    # use rule get_readlen_hist from standard as combine_get_readlen_hist with:
-    #     input:
-    #         "raw_reads/{sample}-{amount}.fastq.gz",
-    #     output:
-    #         all_hist = "out/stats/{sample}-{amount}.readlen.hist.txt",
-    #         gc_hist = "out/stats/{sample}-{amount}.readlen.gc_hist.txt",
-    #     params:
-    #         out_base = "out/stats/{sample}-{amount}.readlen",
-    #     log:
-    #         "logs/get_readlen_hist/{sample}-{amount}.log",
-
     use rule nt_qc_hist from standard as combine_nt_qc_hist with:
         input:
             "raw_reads/{sample}-{amount}.fastq.gz",
@@ -279,7 +268,6 @@ use rule run_compleasm from standard as combine_run_compleasm with:
     params:
         outname = "compleasm/{out}_compleasm",
         database = config["compleasm_db"],
-        database_path = "/sgn/software/orthodb/odb12_latest/"
     log:
         "logs/run_compleasm/{out}.log"
 
