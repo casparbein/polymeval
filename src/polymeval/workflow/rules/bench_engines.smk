@@ -46,7 +46,7 @@ def av_qtbi(wc):  return av_query(wc) + ".tbi"
 def av_truth(wc):
     b, stem = BENCHMARKS[wc.truth], wc.truth
     if b.get("contains") is None and b["cls"] == "sv" and emits(wc.caller) == "sv":
-        stem += ".sv50"
+        stem += ".sv30"
     if b["cls"] == "sv":
         stem += ".svinfo"
     return f"benchmarks/truth/{stem}.vcf.gz"

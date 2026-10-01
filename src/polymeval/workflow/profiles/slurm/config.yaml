@@ -9,5 +9,4 @@ rerun-incomplete: True
 printshellcmds: True
 latency-wait: 120
 default-resources:
-    slurm_partition: "batch"
     runtime: 1200

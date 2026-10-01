@@ -1,0 +1,107 @@
+name: dry run
+
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+
+jobs:
+  dryrun:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge,bioconda
+          channel-priority: strict
+          environment-file: environment.yaml
+          activate-environment: polymeval
+
+      - name: Install the package
+        run: pip install .
+
+      - name: Smoke test
+        run: |
+          cd "$(mktemp -d)"
+          polymeval --version
+          polymeval --help
+
+      - name: Standard mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          polymeval --standard --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
+
+      - name: Standard mode, all installable assemblers
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          polymeval --standard --dry_run --local_run --assembler hifiasm,flye,verkko \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
+
+      - name: Downsample mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          polymeval --downsample --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
+                    --directory_name ci
+
+      - name: Combine mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          polymeval --combine --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --seqkit_file_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv \
+                    --samples LaTaq_Bluepippin_15,Terra_Bluepippin_15 --directory_name ci
+
+      - name: Reference mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          polymeval --reference --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads \
+                    --input_assemblies $GITHUB_WORKSPACE/tests/assemblies \
+                    --reference_sequence "$GITHUB_WORKSPACE/tests/reference/reference.fa" \
+                    --directory_name ci
+
+      - name: Fetch mode
+        run: |
+          cd "$(mktemp -d)"
+          polymeval --fetch_benchmarks --dry_run --local_run \
+                    --benchmark_path "$(mktemp -d)" \
+                    --benchmark_releases v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6 \
+                    --directory_name ci
+
+      - name: Variant benchmark mode
+        run: |
+          cd "$(mktemp -d)"
+          bench=$(mktemp -d)
+          cd "$GITHUB_WORKSPACE" && python - "$bench" <<'EOF'
+          import re, sys, pathlib
+          root = pathlib.Path(sys.argv[1])
+          t = pathlib.Path("src/polymeval/workflow/Snakefile_human_vcf").read_text()
+
+          names = set(re.findall(r'config\["benchmark_path"\]\s*\+\s*"/([^"]+)"', t))
+
+          ## reference artefacts are built at runtime as REFERENCE[build] + ".fai"/".gzi",
+          ## so they never appear as literals. ref_targets() in Snakefile_fetch is the
+          ## authoritative set: <base>, .fai, .gz, .gz.fai, .gz.gzi
+          for base in ("GCA_000001405.15_GRCh38_no_alt_analysis_set.fna", "hs37d5.fa"):
+              names |= {base, base + ".fai", base + ".gz", base + ".gz.fai", base + ".gz.gzi"}
+
+          names |= {n + ".tbi" for n in names if n.endswith((".vcf.gz", ".bed.gz"))}
+
+          for n in sorted(names):
+              (root / n).touch()
+          print(f"touched {len(names)} placeholder files")
+          EOF
+          cd "$(mktemp -d)"
+          polymeval --variant_calling_benchmarks --dry_run --local_run \
+                    --input_reads "$GITHUB_WORKSPACE/tests/reads" \
+                    --benchmark_path "$bench" \
+                    --cmrg --structural_variant_calling --tandem_repeat_calling \
+                    --allelic_imbalance --directory_name ci
