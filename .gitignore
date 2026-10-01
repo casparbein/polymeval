@@ -2,3 +2,8 @@
 .cache
 __pycache__
 prof_human/config.yaml
+DEF.yaml
+dist/
+build/
+*.egg-info/
+.Rproj.user

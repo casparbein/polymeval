@@ -8,8 +8,16 @@ import subprocess
 import shutil
 import signal
 
-## import helper script
-import get_downsample_rates
+## Version
+from polymeval import __version__
+
+## to find Snakefiles etc and get_downsample
+import importlib.util
+from importlib.resources import files
+
+WORKFLOW = files("polymeval") / "workflow"
+
+from polymeval import get_downsample_rates
 
 ## Logging
 logger = logging.getLogger("polymeval")
@@ -120,16 +128,13 @@ def link_assemblies(src, dst, down_list=None):
                        skip_bases_ending=".ec", kind="assembly")
 
 def get_snakefile_path(name="Snakefile"):
-    snakefile = os.path.join(base_dir, name)
-    return snakefile
+    return str(WORKFLOW / name)
 
 def get_cluster_configfile_path(name="config.yaml"):
-    cluster_configfile =  os.path.join(base_dir, "prof")
-    return cluster_configfile
+    return str(WORKFLOW / "profiles" / "slurm")
 
 def get_kmc_prep_path(name="prepare_kmc.py"):
-    kmc_prep_file =  os.path.join(base_dir, "scripts", name)
-    return kmc_prep_file
+    return str(WORKFLOW / "scripts" / name)
 
 def format_list(in_list):
     format_list = comments.CommentedSeq(in_list)
@@ -178,20 +183,27 @@ def run_snakemake(snake_file,
 
     cmd += ['--directory', snakemake_dir]
 
-    if use_conda and not conda_path:
-        conda_path = os.path.join(base_dir, ".snakemake/conda")
-        cmd += ['--use-conda', '--conda-prefix', conda_path]
-    elif use_conda and conda_path:
-        cmd += ['--use-conda', '--conda-prefix', conda_path]
-    elif not use_conda and conda_path:
-        logger.critical("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
+
+    def _default_prefix(kind):
+        root = (os.environ.get("POLYMEVAL_CACHE")
+                or os.environ.get("XDG_CACHE_HOME")
+                or os.path.join(os.path.expanduser("~"), ".cache"))
+        return os.path.join(root, "polymeval", kind)
+
+    conda_path     = conda_path     or _default_prefix("conda")
+    apptainer_path = apptainer_path or _default_prefix("singularity")
+
+    if use_conda:
+        cmd += ['--use-conda', '--conda-prefix', conda_path or _default_prefix("conda")]
+    elif conda_path:
+        logger.critical("A conda prefix was given but --use-conda is disabled. Pick one.")
         sys.exit(1)
-        #sys.exit("--use-conda was not specified, but a reference conda path given. Since use_conda is activated by default, do not activate it if you also pass a conda path")
-    elif not use_conda and not conda_path:
-        logger.warning("WARNING: --use-conda is deactivated and no conda path is found. Most likely the pipeline will fail, unless all tools are installed on the user's machine and availabe in $PATH")
+    else:
+        logger.warning("--use-conda is disabled and no conda prefix given. The pipeline will "
+                       "fail unless every tool is already installed and on $PATH.")
 
     if use_apptainer:
-        apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
+        #apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
         cmd += ['--use-apptainer', '--apptainer-prefix', apptainer_path]
         if apptainer_args:
             cmd += ['--apptainer-args', apptainer_args]
@@ -723,7 +735,14 @@ def argument_parser():
     help="""FOR DEVELOPMENT: If something in the polymeval code was changed, should reruns be done only on rules that have not yet produced proper output?
     (Snakemake --rerun-triggers mtime flag)
     """
-    )  
+    )
+
+    app.add_argument(
+    "-V", 
+    "--version", 
+    action="version",
+    version=f"polymeval {__version__}"
+    )
 
     args = app.parse_args()
     return args
@@ -814,6 +833,13 @@ def main():
             os.path.join(base_dir, "config", "benchmark.yaml"))
         config["benchmark_releases"] = format_list(
             [r.strip() for r in args.benchmark_releases.split(",") if r.strip()])
+
+    ## Abs path for in reads/assemblies:
+    if args.in_reads:
+        args.in_reads = os.path.abspath(os.path.expanduser(args.in_reads))
+
+    if args.in_assemblies:
+        args.in_assemblies = os.path.abspath(os.path.expanduser(args.in_assemblies))
 
     ## Additional parameters:
     if (args.downsample or args.combine) and args.seqkit_path:
