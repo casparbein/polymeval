@@ -1,0 +1,3 @@
+file	format	type	num_seqs	sum_len	min_len	avg_len	max_len	Q1	Q2	Q3	sum_gap	N50	N50_num	Q20(%)	Q30(%)	AvgQual	GC(%)	sum_n
+raw_reads/LaTaq_Bluepippin_15.fastq.gz	FASTQ	DNA	17896	163824105	73	9154.2	25669	4386	10026	13069	0	12463	3411	99	98	30.23	39.16	0
+raw_reads/Terra_Bluepippin_15.fastq.gz	FASTQ	DNA	69375	811670287	294	11699.8	31731	9663	12642	14643	0	13613	6209	99	98	29.81	39.03	0

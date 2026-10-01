@@ -1,0 +1,54 @@
+name: dry run
+
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+
+jobs:
+  dryrun:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge,bioconda
+          channel-priority: strict
+          environment-file: environment.yaml
+          activate-environment: polymeval
+
+      - name: Install the package
+        run: pip install .
+
+      - name: Smoke test
+        run: |
+          cd "$(mktemp -d)"
+          polymeval --version
+          polymeval --help
+
+      - name: Standard mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          cp -r "$GITHUB_WORKSPACE/tests/reads" .
+          polymeval --standard --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
+
+      - name: Standard mode, all four assemblers
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          cp -r "$GITHUB_WORKSPACE/tests/reads" .
+          polymeval --standard --dry_run --local_run --assembler hifiasm,flye,lja,verkko \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads --directory_name ci
+
+      - name: Downsample mode
+        run: |
+          work="$(mktemp -d)" && cd "$work"
+          cp -r "$GITHUB_WORKSPACE/tests/reads" .
+          cp "$GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv" .
+          polymeval --downsample --dry_run --local_run \
+                    --input_reads $GITHUB_WORKSPACE/tests/reads --seqkit_path $GITHUB_WORKSPACE/tests/tables/seqkit_all.tsv --directory_name ci
