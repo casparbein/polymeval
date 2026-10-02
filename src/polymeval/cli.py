@@ -129,7 +129,7 @@ def resolve_compleasm_lib(arg):
 def link_reads(src, dst, suffixes, down_list=None, skip_bases_ending=None):
     return link_inputs(src, dst, suffixes, down_list, skip_bases_ending, kind="read")
 
-def link_assemblies(src, dst, down_list=None):
+def link_assemblies(src, dst, down_list=None, strip_base_suffix=None):
     return link_inputs(src, dst, ASM_SUFFIXES, down_list,
                        skip_bases_ending=".ec", strip_base_suffix=strip_base_suffix, kind="assembly")
 
