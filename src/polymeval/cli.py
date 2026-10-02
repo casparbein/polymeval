@@ -64,7 +64,7 @@ def get_apptainer_bind_args(paths):
 
 
 def link_inputs(src_path, dst_path, suffixes, down_list=None,
-                skip_bases_ending=None, kind="input"):
+                skip_bases_ending=None, strip_base_suffix=None, kind="input"):
     """Link every accepted file from src_path into dst_path under its canonical name.
 
     suffixes           accepted source extensions; matched longest-first
@@ -84,6 +84,12 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
         if base is None:
             continue
         if skip_bases_ending and base.endswith(skip_bases_ending):
+            continue
+        if strip_base_suffix:
+            if not base.endswith(strip_base_suffix):
+                continue                       ## a different assembler's output
+            base = base[: -len(strip_base_suffix)]
+        if down_list is not None and base not in down_list:
             continue
         if down_list is not None and base not in down_list:
             continue
@@ -125,7 +131,22 @@ def link_reads(src, dst, suffixes, down_list=None, skip_bases_ending=None):
 
 def link_assemblies(src, dst, down_list=None):
     return link_inputs(src, dst, ASM_SUFFIXES, down_list,
-                       skip_bases_ending=".ec", kind="assembly")
+                       skip_bases_ending=".ec", strip_base_suffix=strip_base_suffix, kind="assembly")
+
+## Helper to make assemblies usable for reference mode
+def scan_assemblies(src, suffixes=ASM_SUFFIXES):
+    """-> (sorted assembler tags, count of untagged assemblies) in an input directory."""
+    tags, untagged = set(), 0
+    for name in os.listdir(src):
+        base, _ = split_suffix(name, suffixes)
+        if base is None or base.endswith(".ec"):
+            continue
+        if "__" in base:
+            tags.add(base.rsplit("__", 1)[1])
+        else:
+            untagged += 1
+    return sorted(tags), untagged
+
 
 def get_snakefile_path(name="Snakefile"):
     return str(WORKFLOW / name)
@@ -930,10 +951,31 @@ def main():
             config["samples"] = basenames(found)
 
     elif args.reference:
+        tags, untagged = scan_assemblies(args.in_assemblies)
+
+        if tags:
+            if len(asms) != 1:
+                logger.critical("Reference mode compares one assembler at a time, but --assembler "
+                                "got %d (%s). %s holds: %s",
+                                len(asms), ", ".join(asms), args.in_assemblies, ", ".join(tags))
+                sys.exit(1)
+            if asms[0] not in tags:
+                logger.critical("No %r assemblies in %s. Found: %s%s",
+                                asms[0], args.in_assemblies, ", ".join(tags),
+                                "; plus %d untagged" % untagged if untagged else "")
+                sys.exit(1)
+            if untagged:
+                logger.warning("Ignoring %d untagged assembly file(s) in %s; only __%s is used.",
+                               untagged, args.in_assemblies, asms[0])
+            strip = f"__{asms[0]}"
+        else:
+            strip = None                       ## pre-asm_id layout, or a hifiasm-only run
+
         path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
                                                     skip_bases_ending=".dup")
         path_for_link_asm = os.path.join(work_dir, "assemblies")
-        asm_found = link_assemblies(args.in_assemblies, path_for_link_asm)
+        asm_found = link_assemblies(args.in_assemblies, path_for_link_asm,
+                                    strip_base_suffix=strip)
 
         reads = {b for b, _ in found}
         asms  = {b for b, _ in asm_found}
