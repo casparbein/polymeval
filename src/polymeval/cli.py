@@ -314,9 +314,14 @@ def argument_parser():
     dest="variant_calling",
     help=
     """IMPORTANT: Only works for human data sequenced from the HG002 sample.
-    Call variants of (amplified) HiFi reads against the hg38 (hg37 for structural variants) with deepvariant (sniffles) and
-    evaluate against benchmark sets with happy (truvari). If structural variant accuracy should also be evaluated, set 
-    --structural_variant_calling flag. All reference benchmark files must be in a path that can be set with --benchmark_path.
+    Call variants of HG002 (amplified) HiFi reads against the GIAB benchmarks (fetch with --fetch_benchmarks).
+    Calls with deepvariant, longcallD (short variants), sniffles, longcallD (SVs) and trgt (TRs); 
+    Evaluate against benchmark sets with aardvark, happy and truvari. 
+    If structural variant accuracy should also be evaluated, set --structural_variant_calling flag. 
+    If Tandem Repeat accuracy should be evaluated, set ----tandem_repeat_calling.
+    If variants should be evaluated against the Challenging Medically Relevant Genes (CMRG) truth set, set --cmrg.
+    If allelic imbalance at true het sites should be evaluated, set --allelic_imbalance (requires v5.0q truth set).
+    All reference benchmark files must be in a path that can be set with --benchmark_path.
     """
     )
 
@@ -326,7 +331,7 @@ def argument_parser():
     action="store_true",
     help=
     '''Download and prepare all human variant benchmark data into --benchmark_path, then exit.
-    This can be run before a variant benchmarking run is started to have all necessary ground truth files present and in the right format.
+    This should be run before a variant benchmarking run is started to have all necessary ground truth files present and in the right format.
     ''')
 
     g_asm.add_argument(
@@ -339,6 +344,7 @@ def argument_parser():
     """Comma-separated list of assemblers: hifiasm, flye, lja, verkko.
     Default: hifiasm. Multiple assemblers are run on every sample and
     compared in the summary plot.
+    For reference mode: Add this to let polymeval know which assemblies should be aligned when standard was run with more than hifiasm.
     """)
 
     g_down.add_argument(
@@ -519,7 +525,7 @@ def argument_parser():
     "--benchmark_releases", 
     default="v5.0q,cmrg,tandem_repeats",
     help=
-    '''Comma-separated GIAB releases to fetch: v5.0q, v4.2.1, cmrg, tandem_repeats, NIST_SV_v0.6.
+    '''Comma-separated GIAB releases to fetch: v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6.
     ''')
 
     g_var.add_argument(
@@ -529,7 +535,7 @@ def argument_parser():
     dest="structural_variants",
     default=False,
     help=
-    '''Whether structural variants should be called and benchmarked with sniffles and truvari.
+    '''Whether structural variants should be called and benchmarked with longcallD/sniffles and aardvark/truvari.
     ''')
 
     g_var.add_argument(
@@ -549,7 +555,7 @@ def argument_parser():
     default=False,
     help=
     '''Additionally benchmark against the GIAB Challenging Medically Relevant
-    Genes (CMRG v1.00) small-variant and SV benchmarks.
+    Genes (CMRG v1.00) small-variant and SV truth sets.
     ''')
 
     g_var.add_argument(
@@ -558,9 +564,8 @@ def argument_parser():
     dest="allelic_imbalance",
     default=False,
     help=
-    '''Screen for allelic imbalance and het dropout at GIAB true-het sites, 
-    using the DeepVariant calls and the aligned reads. 
-    Requires --variant_calling_benchmarks.
+    '''Screen for allelic imbalance and het dropout at GIAB true-het sites (v5.0q), 
+    using the DeepVariant/longcallD calls and the aligned reads.
     ''')
 
     g_down.add_argument(
@@ -582,6 +587,7 @@ def argument_parser():
     help=
     '''For combine and downsample: To which target base coverage (number of nucleotides) will be downsampled.
     By default, will take the smallest read set present in the provided seqkit out-file as downsample target.
+    Should be set when running pairwise, otherwise pairs will be given 2x lowest input.
     ''')
 
     g_down.add_argument(

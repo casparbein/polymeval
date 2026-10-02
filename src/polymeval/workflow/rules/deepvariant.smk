@@ -12,7 +12,7 @@ rule run_deepvariant:
         in_ref = "/reference/{}".format(reference_seq_gz.split('/')[-1]),
         out_vcf = "/output/{sample}.vcf.gz",
         out_gvcf = "/output/{sample}.gvcf.gz",
-    container: "docker://google/deepvariant:1.10.0-beta",
+    container: "docker://google/deepvariant:1.10.0",
     threads:
         32
     resources:
