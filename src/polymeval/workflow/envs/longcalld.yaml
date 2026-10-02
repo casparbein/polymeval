@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - longcalld
+    - longcalld=0.0.11

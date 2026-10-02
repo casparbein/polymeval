@@ -202,14 +202,9 @@ def run_snakemake(snake_file,
                        "fail unless every tool is already installed and on $PATH.")
 
     if use_apptainer and not dryrun:
-        #apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
         cmd += ['--use-apptainer', '--apptainer-prefix', apptainer_path]
         if apptainer_args:
             cmd += ['--apptainer-args', apptainer_args]
-
-    #if use_apptainer:
-    #    apptainer_path = os.path.join(base_dir, ".snakemake/singularity")
-    #    cmd += ['--use-apptainer','--apptainer-prefix', apptainer_path, '--apptainer-args', f'"{apptainer_args}"']
 
     if dryrun:
         cmd.append('--dry-run')
@@ -490,25 +485,6 @@ def argument_parser():
     '''Turn on KMC kmer counting. Genomescope will be run on resulting kmer histograms.
     ''')
 
-    # app.add_argument(
-    # "-pa", 
-    # "--pandepth",
-    # action="store_true",
-    # dest="pandepth",
-    # help=
-    # '''Turn on Pandepth depth mapping. Most reference mode analyses will need this.
-    # ''')
-
-    # app.add_argument(
-    # "-pp", 
-    # "--pandepth_path",
-    # action="store",
-    # dest="pandepth_path",
-    # default = "",
-    # help=
-    # '''In case pandepth is installed but not in the user's $PATH, provide absolute path to pandepth.
-    # ''')
-
     g_asm.add_argument(
     "-km", 
     "--kmer_length",
@@ -586,36 +562,6 @@ def argument_parser():
     using the DeepVariant calls and the aligned reads. 
     Requires --variant_calling_benchmarks.
     ''')
-
-    # app.add_argument(
-    # "-hm", 
-    # "--hifiasm",
-    # action="store_false",
-    # dest="hifiasm",
-    # default = True,
-    # help=
-    # '''Turn off hifiasm (On by default)
-    # ''')
-
-    # app.add_argument(
-    # "-cm", 
-    # "--compleasm",
-    # action="store_false",
-    # dest="compleasm",
-    # default = True,
-    # help=
-    # '''Turn off compleasm (On by default)
-    # ''')
-
-    # app.add_argument(
-    # "-m", 
-    # "--merqury",
-    # action="store_false",
-    # dest="merqury",
-    # default = True,
-    # help=
-    # '''Turn off merqury (On by default)
-    # ''')
 
     g_down.add_argument(
     "-ol", 
@@ -774,16 +720,16 @@ def main():
         "structural_variants": False,
         "tandem_repeats": False,
         "wrapper_versions": {
-            "meryl":"v9.4.2",
-            "minimap":"v9.9.0",
-            "bcftools":"v9.4.1",
-            "tabix": "v9.4.1",
+            "meryl":"v9.15.0",
+            "minimap":"v9.15.0",
+            "bcftools":"v9.15.0",
+            "tabix": "v9.14.0",
             "genomescope": "v9.4.2",
             "happy": "v7.0.0",
             "hifiasm": "v9.4.2",
-            "samtools": "v9.4.2",
+            "samtools": "v9.15.0",
             "bbtools": "v9.16.0",
-            "seqkit": "v9.4.2",
+            "seqkit": "v9.15.0",
             "seqtk": "v7.0.0",
             "sniffles": "v9.18.0",
         }
@@ -1086,7 +1032,10 @@ def main():
 
     ## get apptainer arguments
     if args.variant_calling:
-        apptainer_args = f"-B ./alignments:/input -B {benchmark_path}:/reference -B ./variants:/output"
+        ## absolute paths
+        apptainer_args = (f"-B {work_dir}/alignments:/input "
+                          f"-B {benchmark_path}:/reference "
+                          f"-B {work_dir}/variants:/output")
     elif args.reference:
         apptainer_args = get_apptainer_bind_args([
             args.reference_seq,

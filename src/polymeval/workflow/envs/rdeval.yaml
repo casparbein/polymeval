@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - rdeval
+    - rdeval=0.0.9

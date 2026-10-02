@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - verkko
+    - verkko=2.3.2

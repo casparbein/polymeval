@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python >=3.10
   - pip
-  - snakemake
+  - snakemake >=9.0
   - snakemake-executor-plugin-slurm
   - snakedeploy
-  - ruamel.yaml
+  - ruamel.yaml >=0.18

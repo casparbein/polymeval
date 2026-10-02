@@ -3,6 +3,6 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - pysam
-    - tqdm
-    - pyfastx
+    - pysam=0.24.1
+    - tqdm=4.70.1
+    - pyfastx=2.3.1

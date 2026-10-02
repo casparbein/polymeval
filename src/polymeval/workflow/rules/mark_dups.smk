@@ -1,3 +1,5 @@
+seqkit_wrapper = f"{wrapper_versions['seqkit']}/bio/seqkit"
+
 def get_input_reads(wildcards):
     if config["gzipped"]:
         return "raw_reads/{sample}.dup.fastq.gz"

@@ -8,12 +8,12 @@ rule run_rasusa:
     resources:
         mem_mb=50000
     log:
-        "logs/run_ranusa/{sample}.log"
+        "logs/run_rasusa/{sample}.log"
     params:
         downsample_nts = downsample_nucs,
         seed = config["seed"]
     conda:
-        "../envs/ranusa.yaml"
+        "../envs/rasusa.yaml"
     shell:
         """
         rasusa \
@@ -35,12 +35,12 @@ rule run_rasusa_combinations:
     resources:
         mem_mb=50000
     log:
-        "logs/run_ranusa/{sample}-{amount}.log"
+        "logs/run_rasusa/{sample}-{amount}.log"
     params:
         downsample_nts = lambda wildcards: downsample_dict[wildcards.amount],
         seed = config["seed"]
     conda:
-        "../envs/ranusa.yaml"
+        "../envs/rasusa.yaml"
     shell:
         """
         rasusa \

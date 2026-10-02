@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - merqury
+    - merqury=1.4.1

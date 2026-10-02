@@ -1,6 +1,6 @@
-name: ranusa
+name: rasusa
 channels:
   - conda-forge
   - bioconda
 dependencies:
-    - rasusa
+    - rasusa=5.1.0

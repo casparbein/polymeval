@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-    - aardvark
+    - aardvark=1.0.0
