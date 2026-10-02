@@ -268,6 +268,7 @@ compleasm_summary <- function(path, compleasm_label, ids, scales) {
   
   ## Compleasm Summary
   compl_all_out_table <- compl_all_mut %>%
+    mutate(polymerase = as.character(polymerase)) %>%
     group_by(polymerase) %>%
     pivot_wider(names_from=BUSCO_class,values_from = c(X3,X2))%>%
     summarise(across(everything(), ~ max(.x, na.rm = TRUE))) %>%

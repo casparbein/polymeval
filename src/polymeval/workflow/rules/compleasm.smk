@@ -47,6 +47,7 @@ rule run_compleasm:
         "../envs/compleasm.yaml"
     shell:
         """
+        rm -rf {params.outname}
         compleasm \
         run \
         -a {input.asm} \

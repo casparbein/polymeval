@@ -352,7 +352,7 @@ def argument_parser():
     action="store_true",
     dest="pairwise",
     help=
-    """For combine mode: If only pairwise combinations should be run (instead of the default: all combos). Allows up to 8 input samples
+    """For combine mode: If only pairwise combinations should be run (instead of the default: all combos). Allows up to 10 input samples
     instead of 5 in default combine.
     """
     )
