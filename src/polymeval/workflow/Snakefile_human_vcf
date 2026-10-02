@@ -1,4 +1,5 @@
-import re
+import os,re
+from snakemake.exceptions import WorkflowError
 
 configfile: "DEF.yaml"
 samples = config["samples"]
@@ -31,20 +32,20 @@ v5_stvar_bed = config["benchmark_path"] + "/HG002_GRCh38_v5.0q_stvar.benchmark.b
 
 ## Benchmark Matrix
 BENCHMARKS = {
-    "v5.0q_smvar": dict(vcf=v5_smvar_vcf, bed=v5_smvar_bed, cls="small", build="GRCh38",
+    "v5.0q_smvar": dict(vcf=v5_smvar_vcf, release="v5.0q", bed=v5_smvar_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose --pass-only --gender male", contains="small"),
-    "v5.0q_stvar": dict(vcf=v5_stvar_vcf, bed=v5_stvar_bed, cls="sv", build="GRCh38",
+    "v5.0q_stvar": dict(vcf=v5_stvar_vcf, release="v5.0q", bed=v5_stvar_bed, cls="sv", build="GRCh38",
                         truvari_extra="--passonly --dup-to-ins --sizemin 50"),
-    "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
+    "cmrg_smvar":  dict(vcf=cmrg_smallvar_vcf, release="cmrg", bed=cmrg_smallvar_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose", contains="small"),
-    "cmrg_sv":     dict(vcf=cmrg_sv_vcf, bed=cmrg_sv_bed, cls="sv", build="GRCh38",
+    "cmrg_sv":     dict(vcf=cmrg_sv_vcf, release="cmrg", bed=cmrg_sv_bed, cls="sv", build="GRCh38",
                         truvari_extra="--dup-to-ins --sizemin 30", contains="sv"),
-    "tr_v1.0.1":   dict(vcf=tandem_repeats_truvari, bed=tandem_repeats_truvari_bed,
+    "tr_v1.0.1":   dict(vcf=tandem_repeats_truvari, release = "tandem_repeats", bed=tandem_repeats_truvari_bed,
                         cls="tr", build="GRCh38",
                         truvari_extra="--sizemin 5 --pick ac", refine=True),
-    "v4.2.1":      dict(vcf=vcf_benchmark, bed=vcf_truth_bed, cls="small", build="GRCh38",
+    "v4.2.1":      dict(vcf=vcf_benchmark, release = "v4.2.1", bed=vcf_truth_bed, cls="small", build="GRCh38",
                         happy_extra="--verbose --pass-only", contains="small"),
-    "sv_v0.6":     dict(vcf=sv_ground_vcf, bed=sv_ground_bed, cls="sv", build="GRCh37",
+    "sv_v0.6":     dict(vcf=sv_ground_vcf, release = "NIST_SV_v0.6", bed=sv_ground_bed, cls="sv", build="GRCh37",
                         truvari_extra="--passonly -r 1000 -p 0.0 --sizemin 50", contains="sv"),
 }
 
@@ -101,6 +102,32 @@ def cells():
                     yield en, cn, bn
 
 CELLS = list(cells())
+
+## which benchmarks exist:
+missing_by_release, missing_refs = {}, []
+
+for name in {t for _, _, t in CELLS}:
+    b = BENCHMARKS[name]
+    for f in (b["vcf"], b["bed"]):
+        if not os.path.exists(f):
+            missing_by_release.setdefault(b["release"], set()).add(f)
+
+for build in {BENCHMARKS[t]["build"] for _, _, t in CELLS}:
+    for f in (REFERENCE[build], REF_PLAIN[build], REF_FAI[build]):
+        if not os.path.exists(f):
+            missing_refs.append(f)
+
+if missing_by_release or missing_refs:
+    files = sorted({f for fs in missing_by_release.values() for f in fs} | set(missing_refs))
+    need  = ",".join(sorted(missing_by_release)) or "v5.0q"
+    raise WorkflowError(
+        "Missing benchmark files in {}:\n  {}\n\n"
+        "Fetch them with:\n"
+        "  polymeval --fetch_benchmarks --benchmark_path {} --benchmark_releases {}\n"
+        "(reference genomes are fetched by any --fetch_benchmarks run)".format(
+            config["benchmark_path"], "\n  ".join(files),
+            config["benchmark_path"], need))
+
 
 wildcard_constraints:
     sample   = "|".join(re.escape(s) for s in sorted(samples, key=len, reverse=True)),

@@ -455,7 +455,6 @@ p_fit_all <- ggplot(obs_all_long, aes(read_count, main_prop)) +
   #xlim(c(0, depth_tbl$depth_fit*2)) + 
   theme_bw() + theme(legend.position = "bottom")
 
-## Calibration: a correct null is uniform on (0,1), so its ECDF is the diagonal, and one
 p_gcvaf <- dat[!is.na(gc)][
   , gc_bin := cut(gc, breaks = gc_breaks, 
                   labels = gc_labels,
@@ -463,7 +462,7 @@ p_gcvaf <- dat[!is.na(gc)][
     , .(med = median(vaf), lo = quantile(vaf, 0.25),
         hi = quantile(vaf, 0.75), n = .N), by = .(sample, var_class, gc_bin)][n >= 100] %>%
   ggplot(aes(gc_bin, med, colour = sample, group = sample, fill = sample)) +
-  geom_ribbon(aes(ymin = lo, ymax = hi), fill = NA) +
+  geom_ribbon(aes(ymin = lo, ymax = hi, fill =  sample), alpha = 0.05) +
   geom_line() + geom_point(size = 0.8) +
   geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey40") +
   facet_wrap(~ var_class, nrow = 1) +

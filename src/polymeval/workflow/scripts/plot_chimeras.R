@@ -144,7 +144,7 @@ chimera_histograms <- function(path) {
   out_df <- rbindlist(chimera_list)
   ## For x axis scaling
   x_max <- mean(out_df$X1[out_df$read_type == "raw"]) + 1.5 * sd(out_df$X1[out_df$read_type == "raw"])
-  y_max <- mean(out_df$X2[out_df$read_type == "raw"]) + 0.75 * sd(out_df$X2[out_df$read_type == "raw"])
+  y_max <- max(out_df$X2) + 10
 
   out_plot <- ggplot() +
     geom_col(out_df %>%
@@ -157,15 +157,9 @@ chimera_histograms <- function(path) {
     scale_fill_manual(values = custom_colors) +
     scale_color_manual(name = "alignment type", values = c("red", "blue"), 
                        labels = c("primary", "supplementary (chimeric)")) +
-    ## CHANGED
-    xlim(c(1,x_max)) +
-    #ylim(c(0, max(out_df$X2) * 1.05)) +
-    #xlim(c(1,20000)) +
-    ylim(c(0,y_max)) +
+    coord_cartesian(xlim = c(0, x_max), ylim = c(0, y_max)) +
     theme_bw() +
     guides(fill = "none") +
-    ## CHANGED
-    #theme(legend.position = "none") + 
     xlab("read/alignment length") +
     ylab("count") +
     facet_wrap(~polymerase, ncol = 1)

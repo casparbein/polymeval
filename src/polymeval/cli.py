@@ -544,7 +544,7 @@ def argument_parser():
     
     g_var.add_argument(
     "--benchmark_releases", 
-    default="v5.0q,cmrg,tandem_repeats",
+    default="v5.0q,v4.2.1",
     help=
     '''Comma-separated GIAB releases to fetch: v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6.
     ''')
