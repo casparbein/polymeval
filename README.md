@@ -1,7 +1,7 @@
 # polymeval
 POLYMerase EVALuation (**polymeval**) is: <br/><br/>
 **(1)** A [Snakemake](https://snakemake.readthedocs.io/en/stable/) pipeline to evaluate polymerase-amplified HiFi read sets for any organism. <br/><br/>
-**(2)** A one-catch-all solution to benchmark **HG002 PacBio HiFi read variant calling performance** (small, tandem repeats, structural variation) against all popular gold-standard truth sets -> see [here](#variant-calling-benchmarking-mode)
+**(2)** A one-catch-all solution to benchmark **HG002 PacBio HiFi read variant calling performance** (small, tandem repeats, structural variation) against all popular gold-standard truth sets -> see [here](#new-feature-fully-automated-variant-calling-benchmark-mode)
 
 ## Installation
 
@@ -22,6 +22,47 @@ Polymeval is implemented with the slurm scheduling system. If you do not use slu
 > **Note:**. 
 Note that polymeval will install additionally packages the first time they are invoked into the user's .cache/ directory. Make sure that there is enough storage (~20GB) available if all dependencies should be used.
 
+## New Feature: Fully automated variant calling benchmark mode
+
+This is a stand-alone part of polymeval that only needs HiFi from the **HG002 GIAB** sample and runs all downloads, mapping, calling and benchmarks in a standardized way, without the user having to intervene. 
+
+**Important** for variant calling benchmarking is to set up a directory where the relevant files are stored, ideally using `polymeval --fetch_benchmarks`. <br/>
+Files listed here: [benchmark.yaml](src/polymeval/workflow/config/benchmark.yaml) can be downloaded like this:
+```bash
+polymeval \
+--fetch_benchmarks \
+--benchmark_path human_benchmark_data/ \
+--benchmark_releases v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6 ## all available benchmarks
+```
+
+Depending on the machine and connection, this should finish within ~30 minutes.
+Now, you just have to provide that path to polymeval (with `--benchmark_path`) again, the rest will be done automatically.
+Run the pipeline on your HG002 reads (let's say they are stored in human_reads) like so:
+
+```bash
+polymeval \
+--variant_calling_benchmarks \
+--benchmark_path path/to/human_benchmark_data \
+--directory_name test_human_vcf \
+--input_reads human_reads/ \
+--structural_variant_calling \ ## to benchmark structural variants
+--tandem_repeat_calling \ ## to benchmark tandem repeats
+--cmrg \ ## to benchmark against cmrg
+--allelic_imbalance \ ## report on het allele recovery (needs v5.0q)
+--dry_run
+```
+With state-of-the-art tools: 
+- mapping:
+  - [minimap2](https://github.com/lh3/minimap2)
+- variant calling:
+  - [deepavariant](https://github.com/google/deepvariant)
+  - [longcallD](https://github.com/yangao07/longcallD)
+  - [trgt](https://github.com/PacificBiosciences/trgt)
+  - [sniffles2](https://github.com/fritzsedlazeck/Sniffles)
+- evaluation:
+  - [hap.py](https://github.com/Illumina/hap.py)
+  - [aardvark](https://github.com/PacificBiosciences/aardvark)
+  - [truvari](https://github.com/ACEnglish/truvari) 
 
 ## Background
 For quite some samples, it is challenging to extract sufficient amounts of DNA to prepare PacBio High-Fidelity (HiFi) sequencing libraries. Examples include tissue biopsies, small-bodied organisms, or ethanol-preserved specimens where the DNA can be severely fragmented and long fragments might be rare.
@@ -286,39 +327,6 @@ Bottom: Polymerase-specific median normalized coverage and 25%/75% quantiles (fi
 <img width="394" height="913" alt="grafik" src="https://github.com/user-attachments/assets/b6719441-0508-42c3-bb61-759776a3d55b" /><br/>
 Normalized read coverage stratified by GC-content of non-overlapping, 200 bp windows. Right: Density of normalized coverage. Colors as in the above plot. 
 Grey density on top is reference-wide GC content density.<br/>
-
-## Variant calling benchmarking mode
-
-This is a stand-alone part of polymeval that only needs HiFi from the HG002 GIAB sample and runs all downloads, mapping and benchmarks in a standardized way, without the user having to intervene. 
-**Important** for variant calling benchmarking is to set up a directory where the relevant files are stored, ideally using `polymeval --fetch_benchmarks`. <br/>
-Files listed here: [benchmark.yaml](./src/workflow/config/benchmark.yaml) can be downloaded like this:
-```bash
-polymeval \
---fetch_benchmarks \
---benchmark_path human_benchmark_data/ \
---benchmark_releases v5.0q,v4.2.1,cmrg,tandem_repeats,NIST_SV_v0.6 ## all available benchmarks
-```
-
-Depending on the machine and connection, this should finish within ~30 minutes.
-Now, you just have to provide that path to polymeval (with `--benchmark_path`) again, the rest will be done automatically.
-Run the pipeline on your HG002 reads (let's say they are stored in human_reads) like so:
-
-```bash
-polymeval \
---variant_calling_benchmarks \
---benchmark_path path/to/human_benchmark_data \
---directory_name test_human_vcf \
---input_reads human_reads/ \
---structural_variant_calling \ ## to benchmark structural variants
---tandem_repeat_calling \ ## to benchmark tandem repeats
---cmrg \ ## to benchmark against cmrg
---allelic_imbalance \ ## report on het allele recovery (needs v5.0q)
---dry_run
-```
-
-
-
-
 
 
 
