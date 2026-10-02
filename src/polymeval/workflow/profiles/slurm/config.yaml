@@ -8,5 +8,7 @@ restart-times: 2
 rerun-incomplete: True
 printshellcmds: True
 latency-wait: 120
+quiet:
+  - rules
 default-resources:
     runtime: 1200
