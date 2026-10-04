@@ -10,6 +10,7 @@ rule compleasm_download:
         touch(os.path.join(LIB, ".polymeval." + LINEAGE + ".ok"))
     params:
         lib     = LIB,
+        lineage_dir = LINEAGE,
         lineage = LINEAGE.rsplit("_odb", 1)[0],
         odb     = "odb" + LINEAGE.rsplit("_odb", 1)[1],
     retries: 3
@@ -19,17 +20,19 @@ rule compleasm_download:
         "../envs/compleasm.yaml"
     shell:
         """
+        rm -f "{params.lib}/{params.lineage_dir}.tmp" "{params.lib}/file_versions.tsv.tmp"
         compleasm download \
         -L {params.lib} \
         --odb {params.odb} \
         {params.lineage} &> {log}
+        test -f "{params.lib}/{params.lineage_dir}.done"
         """
 
 ## Run compleasm
 rule run_compleasm:
     input:
         asm = "assemblies/{asm_id}.fa",
-        lib = [] if HAVE_LINEAGE else os.path.join(LIB, ".polymeval." + LINEAGE + ".ok"),
+        lib = os.path.join(LIB, ".polymeval." + LINEAGE + ".ok"),
     output:
         "compleasm/{asm_id}_compleasm/summary.txt",
         temp(directory(f"compleasm/{{asm_id}}_compleasm/{config['compleasm_db']}/hmmer_output")),

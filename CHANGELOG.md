@@ -3,7 +3,7 @@
 ## [0.1.0] - 2026-10-02
 
 ### Added
-- First prerelease.
+- First release.
   - pinned all pinnable packages in src/polymeval/workflow/envs and environment.yaml
   - snakemake wrappers updated to available versions from 2026-10-02 (cli.py)
   - wd-related bindings for deepvariant container

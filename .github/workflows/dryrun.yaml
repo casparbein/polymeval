@@ -25,6 +25,13 @@ jobs:
       - name: Install the package
         run: pip install .
 
+      - name: Tag matches __version__
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(python -c "import polymeval; print(polymeval.__version__)")
+          [ "${{ github.ref }}" = "refs/tags/v$v" ] \
+            || { echo "tag ${{ github.ref }} does not match __version__ $v"; exit 1; }
+
       - name: Smoke test
         run: |
           cd "$(mktemp -d)"

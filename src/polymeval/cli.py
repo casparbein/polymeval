@@ -762,6 +762,7 @@ def main():
         }
     }
 
+
     ## Which assemblers are used in standard (and downsample mode)
     VALID = {"hifiasm", "flye", "lja", "verkko"}
     asms = [a.strip().lower() for a in args.assemblers.split(",") if a.strip()]
@@ -777,7 +778,7 @@ def main():
     config["verkko_extra"] = ""
 
     ## LJA binary wire-in
-    if "lja" in asms:
+    if "lja" in asms and not args.reference:
         lja_bin = os.path.abspath(os.path.expanduser(args.lja_path)) if args.lja_path else "lja"
         if not (os.path.isfile(lja_bin) and os.access(lja_bin, os.X_OK)) and not shutil.which(lja_bin):
             logger.critical("LJA binary %r not found or not executable. Build it from source and pass "
