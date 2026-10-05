@@ -311,7 +311,7 @@ def argument_parser():
     dest="combine",
     help=
     """combine/downsample different read sets to see whether they complement each other.
-    By default takes a set of up to 5 read sets, finds the smallest, downsamples to 1/n of that number of nucleotides
+    By default takes a set of up to 6 read sets, finds the smallest, downsamples to 1/n of that number of nucleotides
     and creates hifiasm assembly, compleasm stats, merqury for those assemblies.
     """
     )
@@ -374,8 +374,8 @@ def argument_parser():
     action="store_true",
     dest="pairwise",
     help=
-    """For combine mode: If only pairwise combinations should be run (instead of the default: all combos). Allows up to 10 input samples
-    instead of 5 in default combine.
+    """For combine mode: If only pairwise combinations should be run (instead of the default: all combos). Allows up to 15 input samples
+    instead of 6 in default combine.
     """
     )
 
@@ -601,12 +601,12 @@ def argument_parser():
 
     g_down.add_argument(
     "-t", 
-    "--target_base_coverage",
+    "--target_bases",
     action="store",
     dest="coverage",
     type = int,
     help=
-    '''For combine and downsample: To which target base coverage (number of nucleotides) will be downsampled.
+    '''For combine and downsample: What is the number of target bases (number of nucleotides) for downsampling.
     By default, will take the smallest read set present in the provided seqkit out-file as downsample target.
     Should be set when running pairwise, otherwise pairs will be given 2x lowest input.
     ''')

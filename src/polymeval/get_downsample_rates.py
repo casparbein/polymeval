@@ -73,8 +73,69 @@ def parse_args():
 
 ## Global variables
 ## names for input files in combination trials and number of files to be combined for those names
-suffix_dict = {1 : "single", 2 : "half", 3 : "third", 4 : "fourth", 5: "fifth"}
-combination_group_sizes = {"single" : 1, "half": 2, "third": 3, "fourth": 4, "fifth": 5}
+suffix_dict = {1 : "single", 2 : "half", 3 : "third", 4 : "fourth", 5: "fifth", 6: "sixth"}
+combination_group_sizes = {"single" : 1, "half": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6}
+
+def read_seq_stats(path, restrict, min_frac, samples=None):
+    readset_dict = {}
+    all_sample_list = []
+    with open(path) as s:
+        for line in s:
+            if line.startswith("file"):
+                continue
+            else:
+                stat_line = line.strip().split('\t')
+                if "/" in stat_line[0]:
+                    name = stat_line[0].split('/')[1].split('.')[0]
+                else:
+                    name = stat_line[0].split('.')[0]
+                nucs = int(stat_line[4])
+                readset_dict[name] = nucs
+                all_sample_list.append(name)
+
+    if samples is not None:
+        missing = [s for s in samples if s not in readset_dict]
+        if missing:
+            logger.critical("Requested sample(s) not in %s: %s\n  present: %s",
+                            path, ", ".join(sorted(missing)), ", ".join(sorted(readset_dict)))
+            sys.exit(1)
+
+        ignored = [s for s in readset_dict if s not in samples]
+        if ignored:
+            logger.info("Using the %d requested read set(s); ignoring %d other row(s) in %s: %s",
+                        len(samples), len(ignored), path, ", ".join(sorted(ignored)))
+
+        readset_dict = {s: readset_dict[s] for s in samples}
+
+        ## An explicit list is a choice, not a candidate pool. Report the spread, drop nothing.
+        lo_k = min(readset_dict, key=readset_dict.get)
+        hi_k = max(readset_dict, key=readset_dict.get)
+        if restrict and readset_dict[lo_k] < readset_dict[hi_k] / min_frac:
+            logger.warning("%s (%s nt) is below 1/%s of %s (%s nt). It was named explicitly, so it "
+                           "is kept and sets the target; every other read set is reduced to it. "
+                           "Drop it from --samples, or pass --target_bases, if that is not "
+                           "what you want.",
+                           lo_k, f"{readset_dict[lo_k]:,}", min_frac,
+                           hi_k, f"{readset_dict[hi_k]:,}")
+        restrict = False
+
+
+    ## Guard against sinlge-read entries:
+    if len(readset_dict) < 2:
+        logger.critical("Downsampling needs at least two read sets; %s describes %d.",
+                        path, len(readset_dict))
+        sys.exit(1)
+
+    min_read_set = adjust_min_max(readset_dict, restrict, min_frac)
+    min_read_set_size = readset_dict[min_read_set]
+
+    logger.info("Downsample target: %s nt (smallest of %d read set(s): %s)",
+            f"{min_read_set_size:,}", len(readset_dict), min_read_set)
+
+    samples_out = [r for r in readset_dict if r != min_read_set]
+    removed = [r for r in all_sample_list if r not in readset_dict]
+    return readset_dict, samples_out, removed, min_read_set_size
+    
 
 def adjust_min_max(readset_dict, restrict, min_frac):
     while restrict and len(readset_dict) > 2:
@@ -97,53 +158,8 @@ def adjust_min_max(readset_dict, restrict, min_frac):
                        readset_dict[min_read_set])
     return min_read_set
 
-def read_seq_stats(path, restrict, min_frac):
-    readset_dict = {}
-    all_sample_list = []
-    with open(path) as s:
-        for line in s:
-            if line.startswith("file"):
-                continue
-            else:
-                stat_line = line.strip().split('\t')
-                if "/" in stat_line[0]:
-                    name = stat_line[0].split('/')[1].split('.')[0]
-                else:
-                    name = stat_line[0].split('.')[0]
-                nucs = int(stat_line[4])
-                readset_dict[name] = nucs
-                all_sample_list.append(name)
-
-    ## Guard against sinlge-read entries:
-    if len(readset_dict) < 2:
-        logger.critical("Downsampling needs at least two read sets; %s describes %d.",
-                        path, len(readset_dict))
-        sys.exit(1)
-
-    ## Get minimum read set            
-    min_read_set = min(readset_dict, key=readset_dict.get)
-    max_read_set = max(readset_dict, key=readset_dict.get)
-    
-    ## Restrict minimum
-    min_read_set = adjust_min_max(readset_dict, restrict,min_frac)
-    min_read_set_size = readset_dict[min_read_set]
-
-    ## Print which read set is smallest
-    logger.info('{} was found to be the smallest input read set with {} sequenced nucleotides'.format(min_read_set, min_read_set_size))
-
-    ## Write output to list and string for donwstream processing
-    samples = [read_set for read_set in readset_dict.keys() if read_set != min_read_set]
-    removed_samples = [read_set for read_set in all_sample_list if read_set not in samples]
-
-    ## Print out which nucleotides are not being used
-    #print('The following read sets are smaller than the minimum number of nucleotides for downsampling and will not be processed: {}'.format(removed_samples))
-
-    downsample_nucs = min_read_set_size
-    return readset_dict, samples, removed_samples, downsample_nucs
-
 def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pairwise_single=False):
     number_combos = len(read_sets)
-    logger.info('{} combinations will be run with {}'.format(number_combos, read_sets))
 
     if pairwise_single:
         logger.info("Only pairwise combinations will be run")
@@ -155,7 +171,7 @@ def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pa
         logger.info("minimum downsampling target is {}".format(minimum))
 
     ## Cases than cannot be handled
-    max_combos = 10 if pairwise_single else 5
+    max_combos = 15 if pairwise_single else 6
     if number_combos > max_combos:
         logger.critical(f"You can at most combine {max_combos} read sets")
         sys.exit(1)
@@ -164,19 +180,31 @@ def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pa
         logger.critical("There are fewer than one read sets available, please inset at least two read sets to be combined/downsampled")
         sys.exit(1)
 
+    ## Tell the user about potentially exploding combinations
+    warn_if_large(number_combos, pairwise_single)
+
     new_readset_dict = {key: readset_dict[key] for key in read_sets}
     new_min_read_set = min(new_readset_dict, key=new_readset_dict.get)
 
     if minimum:
-        new_min_read_set_size = minimum
+        target_total  = minimum
+        target_source = "--target_bases"
+        #new_min_read_set_size = minimum
 
     elif outlier and new_min_read_set == outlier:
         tmp_readset_dict = {key: readset_dict[key] for key in read_sets if key != outlier}
         new_min_read_set = min(tmp_readset_dict, key=tmp_readset_dict.get)
-        new_min_read_set_size = tmp_readset_dict[new_min_read_set]
+        target_total   = tmp_readset_dict[new_min_read_set]
+        target_source = f"smallest non-outlier: {new_min_read_set}"
+        
     else:
-        new_min_read_set_size = new_readset_dict[new_min_read_set]
+        target_total   = new_readset_dict[new_min_read_set]
+        target_source = f"smallest selected read set: {new_min_read_set}"
     
+    ## Pairwise standard mode is that half the target cov is used
+    files_per_combo = 2 if pairwise_single else 1
+    base_per_file   = target_total // files_per_combo
+
     downsample_nucs = []
     downsample_dict = {}
     downsample_read_dict = defaultdict(list)
@@ -188,16 +216,16 @@ def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pa
 
     ## Standard mode: divisors go from 1 to n
     ## Pairwise mode: Divisors go from 1 to 2 (1/2)
-    
+
     divisors = range(1, number_combos + 1)
     if pairwise_single:
         divisors = range(1,2)
     
     for div in divisors:
         if div == 1:
-            n_nucs = new_min_read_set_size
+            n_nucs = base_per_file
         else:
-            n_nucs = int(new_min_read_set_size / div)
+            n_nucs = int(base_per_file / div)
         
         suffix = suffix_dict[div]
         nuc_list.append(n_nucs)
@@ -206,15 +234,26 @@ def create_combination_downsamples(readset_dict, read_sets, outlier, minimum, pa
         downsample_nucs.append(n_nucs)
 
     ## downsample operations:
-    for read_set in new_readset_dict.keys():
+    skipped = defaultdict(list)
+    for read_set, size in new_readset_dict.items():
         for number in nuc_list:
-            if int(new_readset_dict[read_set]) < int(number):
+            if size < number:
+                skipped[read_set].append(turned_nuc_dict[number])
                 continue
-            else:
-                downsample_read_dict[read_set].append(number)
-                downsample_read_frac[read_set].append(turned_nuc_dict[number])
+            downsample_read_dict[read_set].append(number)
+            downsample_read_frac[read_set].append(turned_nuc_dict[number])
 
-    return downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict
+    ## Plan for logging:
+    plan = dict(
+        readset_dict    = dict(new_readset_dict),
+        target_total    = target_total,
+        target_source   = target_source,
+        downsample_dict = dict(downsample_dict),
+        pairwise_single = pairwise_single,
+        skipped         = dict(skipped),
+    )
+
+    return downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict, plan
 
 
 def form_combinations(downsample_dict, downsample_read_frac, pairwise_single=False):
@@ -256,6 +295,51 @@ def form_combinations(downsample_dict, downsample_read_frac, pairwise_single=Fal
     
     return(all_combos)
 
+## Warning message for large combos:
+def warn_if_large(number_combos, pairwise_single):
+    """Say what the matrix will cost before building it."""
+    if pairwise_single:
+        n_combos = number_combos * (number_combos - 1) // 2
+        rasusa   = number_combos
+        kind     = "pairwise"
+    else:
+        n_combos = 2 ** number_combos - 1
+        rasusa   = number_combos ** 2
+        kind     = "all-vs-all"
+
+    if n_combos > 50:
+        logger.warning("%d read sets give %d %s combinations: %d assemblies, %d compleasm "
+                       "runs, ~%d jobs. Check this is intended.",
+                       number_combos, n_combos, kind, n_combos, n_combos,
+                       7 * n_combos + rasusa + 3)
+
+## Comprehensive Logging 
+def log_plan(plan, n_combos):
+    readset_dict    = plan["readset_dict"]
+    downsample_dict = plan["downsample_dict"]
+    pairwise_single = plan["pairwise_single"]
+    target_total    = plan["target_total"]
+    target_source   = plan["target_source"]
+    skipped         = plan["skipped"]
+    files_per = {s: (2 if pairwise_single else combination_group_sizes[s])
+                 for s in downsample_dict}
+
+    logger.info("Downsampling plan (%s)", "pairwise" if pairwise_single else "combine")
+    logger.info("  read sets (%d):", len(readset_dict))
+    for k, v in sorted(readset_dict.items(), key=lambda kv: -kv[1]):
+        logger.info("    %-28s %15s nt", k, f"{v:,}")
+    logger.info("  target per combination: %s nt (%s)", f"{target_total:,}", target_source)
+    logger.info("  levels:")
+    for suffix in sorted(downsample_dict, key=lambda s: combination_group_sizes[s]):
+        per, n = downsample_dict[suffix], files_per[suffix]
+        logger.info("    %-7s %d file(s) x %15s nt = %15s nt",
+                    suffix, n, f"{per:,}", f"{per * n:,}")
+    logger.info("  %d combination(s) will be built", n_combos)
+
+    for read_set, levels in sorted(skipped.items()):
+        logger.warning("  %s (%s nt) is too small for level(s) %s and will not appear in them.",
+                       read_set, f"{readset_dict[read_set]:,}", ", ".join(levels))
+
 ## Not used for now
 def main():
     args = parse_args()
@@ -269,9 +353,10 @@ def main():
     readset_dict, samples, removed_samples, downsample_nucs = read_seq_stats(seqkit, restrict)
     
     if args.combinations:
-        downsample_dict, new_min_read_set, new_min_read_set_size = create_combination_downsamples(readset_dict, combinations)
-
+        downsample_dict, new_min_read_set, new_min_read_set_size, plan = create_combination_downsamples(readset_dict, combinations)
         form_combinations(downsample_dict)
+
+    log_plan
 
 if __name__ == '__main__':
     main()

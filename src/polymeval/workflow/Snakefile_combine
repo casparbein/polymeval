@@ -12,13 +12,22 @@ wrapper_versions = config["wrapper_versions"]
 
 ## Get minimum downsampling rate and dictionary:
 ## variable "downsample_nucs" is used in the rasusa downsampling rule
-readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(seqkit_path, restrict = config["restrict_downsampling"], min_frac = config["min_frac"])
+readset_dict, downsample_samples, removed_samples, downsample_nucs = get_downsample_rates.read_seq_stats(seqkit_path, 
+                                                                                                        restrict = config["restrict_downsampling"], 
+                                                                                                        min_frac = config["min_frac"],
+                                                                                                        samples  = samples)
 
 ## Get combinations for combined assemblies
-downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict = get_downsample_rates.create_combination_downsamples(readset_dict, samples, outlier, sample_base_target, config["combo_pairwise"])
-
+downsample_read_dict, downsample_read_frac, downsample_nucs, downsample_dict, plan = get_downsample_rates.create_combination_downsamples(readset_dict, 
+                                                                                                                                        samples, 
+                                                                                                                                        outlier, 
+                                                                                                                                        sample_base_target, 
+                                                                                                                                        config["combo_pairwise"])
 ## Create dictionaty that will be used in some rules to fetch downsampling amount etc.
 combo_dict = get_downsample_rates.form_combinations(downsample_read_dict, downsample_read_frac, config["combo_pairwise"])
+
+## Logging:
+get_downsample_rates.log_plan(plan, len(combo_dict))
 
 ## How much will be downsampled
 if config["combo_pairwise"]:

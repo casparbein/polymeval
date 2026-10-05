@@ -100,7 +100,7 @@ This is how polymeval works in **combine mode**:
 
 (Pairwise combinations - All-to-all combinations get computationally intractable at some point, so pairwise combinations can help here)
 1. select up to 10 samples. All pairwise combinations will be built
-2. downsample to the smallest coverage of all selected samples (otherwise, set with `--target_base_coverage`)
+2. downsample to the smallest coverage of all selected samples (otherwise, set with `--target_bases`)
 3. as in standard mode
 
 ### Reference Mode
