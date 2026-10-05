@@ -6,12 +6,12 @@ def get_input_reads(wildcards):
     else:
         return "raw_reads/{sample}.dup.fastq"
 
-## remove empty reads (pbmarkdups chokes on this):
+## Remove empty reads (pbmarkdups chokes on this):
 rule seqkit_filter:
     input:
         fasta=get_input_reads
     output:
-        fasta="raw_reads/{sample}.tmp.dup.fastq.gz"
+        fasta=temp("raw_reads/{sample}.tmp.dup.fastq.gz")
     log:
         "logs/seqkit_filter/{sample}.seqkit_filter.log",
     params:
@@ -49,21 +49,38 @@ rule mark_dups:
         2> {log} 
         """
 
-## Gzip deduped reads
-rule gzip_dedup:
+## Remove duplicate names (Flye chokes on this)
+rule seqkit_rmdup_name:
     input:
-        "raw_reads/{sample}.fastq",
+        fastx="raw_reads/{sample}.fastq",
     output:
-        "raw_reads/{sample}.fastq.gz",
-    threads:
-        40
-    resources:
-        mem_mb = 20000
-    conda:
-        "../envs/pigz.yaml",
+        fastx= "raw_reads/{sample}.fastq.gz",
+        dup_num="out/rmdup/{sample}.num.txt",
+        dup_seqs="out/rmdup/{sample}.seq.txt",
     log:
-        "logs/gzip_dedup/{sample}.log",
-    shell:
-        """
-        pigz -f -p {threads} {input}
-        """
+        "logs/seqkit_rmdup_name/{sample}.rmdup_name.log",
+    params:
+        command="rmdup",
+        extra="",
+    threads: 8
+    wrapper:
+        seqkit_wrapper
+
+## Gzip deduped reads (obsolete if seqkit rmdup is used)
+# rule gzip_dedup:
+#     input:
+#         "raw_reads/{sample}.fastq",
+#     output:
+#         "raw_reads/{sample}.fastq.gz",
+#     threads:
+#         40
+#     resources:
+#         mem_mb = 20000
+#     conda:
+#         "../envs/pigz.yaml",
+#     log:
+#         "logs/gzip_dedup/{sample}.log",
+#     shell:
+#         """
+#         pigz -f -p {threads} {input}
+#         """
