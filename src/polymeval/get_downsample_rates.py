@@ -9,6 +9,7 @@ logger = logging.getLogger("downsample_rates")
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("[%(levelname)-8s] %(message)s"))
 logger.addHandler(handler)
+logger.setLevel(logging.INFO) 
 logger.propagate = False  # ← critical: stops messages bubbling up to root logger
 
 DESCRIPTION = ""
