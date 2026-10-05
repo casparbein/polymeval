@@ -39,7 +39,7 @@ rule run_compleasm:
     threads:
         10
     resources:
-        mem_mb=50000
+        mem_mb=100000
     params:
         outname = "compleasm/{asm_id}_compleasm",
         database = config["compleasm_db"],

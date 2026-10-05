@@ -42,7 +42,7 @@ rule hifiasm:
         extra=f"--primary -l 3 --write-ec --hg-size {config['hg_size']}" if config["hifieval"] and config["hg_size"] else " --primary -l 3  --write-ec " if config["hifieval"] and not config["hg_size"] else  f" --primary -l 3 --hg-size {config['hg_size']}" if not config["hifieval"] and config["hg_size"] else "--primary -l 3",
     threads: 32
     resources:
-        mem_mb=200000,
+        mem_mb=400000,
     wrapper:
        hifiasm_wrapper
 
@@ -65,7 +65,8 @@ rule flye:
         gsize  = f"--genome-size {config['hg_size']}" if config.get("hg_size") else "",
         extra  = config.get("flye_extra", ""),
     threads: 32
-    resources: mem_mb = 200000
+    resources: 
+        mem_mb = 400000
     conda: "../envs/flye.yaml"
     log: "logs/flye/{sample}.log"
     shell:
