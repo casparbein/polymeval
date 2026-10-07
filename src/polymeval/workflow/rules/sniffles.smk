@@ -14,7 +14,7 @@ rule run_sniffles2:
     resources:
         mem_mb = 100000
     params:
-        extra="--report-seq", 
+        extra="--report_seq", 
     wrapper:
         sniffles_wrapper
 
@@ -30,6 +30,6 @@ rule run_sniffles2_grch38:
     resources: 
         mem_mb = 100000
     params:
-        extra="--report-seq",  
+        extra="--report_seq",  
     wrapper:
         sniffles_wrapper
