@@ -13,7 +13,7 @@ rule meryl_count:
         extra="k=21",
     threads: 20
     resources:
-        mem_mb=40000,
+        mem_mb=100000,
     wrapper:
         meryl_wrapper
 
