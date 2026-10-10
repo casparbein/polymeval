@@ -967,8 +967,10 @@ def main():
                 logger.warning("Ignoring %d untagged assembly file(s) in %s; only __%s is used.",
                                untagged, args.in_assemblies, asms[0])
             strip = f"__{asms[0]}"
+            chosen_asm = asms[0]
         else:
             strip = None                       ## pre-asm_id layout, or a hifiasm-only run
+            chosen_asm = None
 
         path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
                                                     skip_bases_ending=".dup")
@@ -977,7 +979,7 @@ def main():
                                     path_for_link_asm,
                                     down_list=wanted,
                                     strip_base_suffix=strip)
-                                    
+
         asm_names = {b for b, _ in asm_found}
         if wanted:
             missing_asm = wanted - asm_names
