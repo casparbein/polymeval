@@ -144,7 +144,7 @@ chimera_histograms <- function(path) {
   out_df <- rbindlist(chimera_list)
   ## For x axis scaling
   x_max <- mean(out_df$X1[out_df$read_type == "raw"]) + 1.5 * sd(out_df$X1[out_df$read_type == "raw"])
-  y_max <- max(out_df$X2) + 10
+  y_max <- max(out_df$X2[out_df$read_type == "raw"]) + 100
 
   out_plot <- ggplot() +
     geom_col(out_df %>%

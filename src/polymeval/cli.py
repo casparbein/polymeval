@@ -91,8 +91,6 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
             base = base[: -len(strip_base_suffix)]
         if down_list is not None and base not in down_list:
             continue
-        if down_list is not None and base not in down_list:
-            continue
         if base in found:
             logger.critical("Two %s files map to sample %r in %s: %s and %s. Keep one.",
                             kind, base, src_path, found[base][1], name)
@@ -975,8 +973,19 @@ def main():
         path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
                                                     skip_bases_ending=".dup")
         path_for_link_asm = os.path.join(work_dir, "assemblies")
-        asm_found = link_assemblies(args.in_assemblies, path_for_link_asm,
+        asm_found = link_assemblies(args.in_assemblies, 
+                                    path_for_link_asm,
+                                    down_list=wanted,
                                     strip_base_suffix=strip)
+                                    
+        asm_names = {b for b, _ in asm_found}
+        if wanted:
+            missing_asm = wanted - asm_names
+            if missing_asm:
+                logger.critical("Requested sample(s) have no assembly in %s: %s%s",
+                                args.in_assemblies, ", ".join(sorted(missing_asm)),
+                                f" (looking for __{chosen_asm})" if chosen_asm else "")
+                sys.exit(1)
 
         reads = {b for b, _ in found}
         asms  = {b for b, _ in asm_found}
