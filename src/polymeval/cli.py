@@ -973,6 +973,7 @@ def main():
             chosen_asm = None
 
         path_for_link_rds, found = link_and_discover(args.in_reads, work_dir, GZ,
+                                                    wanted=wanted,
                                                     skip_bases_ending=".dup")
         path_for_link_asm = os.path.join(work_dir, "assemblies")
         asm_found = link_assemblies(args.in_assemblies, 
