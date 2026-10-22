@@ -1,0 +1,24 @@
+{
+  "title": "polymeval: evaluation of polymerase-amplified HiFi read sets and benchmarking HG002 HiFi read variant calling",
+  "description": "Snakemake pipeline for benchmarking DNA polymerases used in PacBio HiFi library amplification: assembly, reference-free and reference-based evaluation, and variant calling benchmarking against HG002 truth sets.",
+  "license": "MIT",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Bein, Bernhard",
+      "affiliation": "Senckenberg Society for Nature Research",
+      "orcid": "0000-0002-2379-9148"
+    }
+  ],
+  "keywords": [
+    "bioinformatics", "PacBio HiFi", "genome assembly", "polymerase",
+    "Snakemake", "variant calling", "benchmarking"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/casparbein/polymeval",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
