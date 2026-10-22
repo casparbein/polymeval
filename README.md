@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/1094934323.svg)](https://doi.org/10.5281/zenodo.23570095)
 # polymeval
 POLYMerase EVALuation (**polymeval**) is: <br/><br/>
 **(1)** A [Snakemake](https://snakemake.readthedocs.io/en/stable/) pipeline to evaluate polymerase-amplified HiFi read sets for any organism. <br/><br/>
