@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1] - 2026-10-22
+
+- zenodo release, now with a DOI: 10.5281/zenodo.23570096
+
 ## [0.2.0] - 2026-10-22
 
 ### Added
