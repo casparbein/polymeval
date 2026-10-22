@@ -65,22 +65,3 @@ rule seqkit_rmdup_name:
     threads: 8
     wrapper:
         seqkit_wrapper
-
-## Gzip deduped reads (obsolete if seqkit rmdup is used)
-# rule gzip_dedup:
-#     input:
-#         "raw_reads/{sample}.fastq",
-#     output:
-#         "raw_reads/{sample}.fastq.gz",
-#     threads:
-#         40
-#     resources:
-#         mem_mb = 20000
-#     conda:
-#         "../envs/pigz.yaml",
-#     log:
-#         "logs/gzip_dedup/{sample}.log",
-#     shell:
-#         """
-#         pigz -f -p {threads} {input}
-#         """

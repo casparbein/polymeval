@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - compleasm=0.2.9
+  - compleasm=0.2.10
