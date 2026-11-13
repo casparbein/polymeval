@@ -329,6 +329,11 @@ Bottom: Polymerase-specific median normalized coverage and 25%/75% quantiles (fi
 Normalized read coverage stratified by GC-content of non-overlapping, 200 bp windows. Right: Density of normalized coverage. Colors as in the above plot. 
 Grey density on top is reference-wide GC content density.<br/>
 
+## Citation
+
+Polymeval was developed as part of the benchmarking study:<br/>
+
+Bein, B., Gerheim, C., Gscheidel, N., Canesin, L., Ben Hamadou, A., Schneider, C., Schell, T., Yi, X., Galia-Camps, C., Hechavarria-Cueria, J., Lake, J. A., McLaughlin, I., Winkler, S., Greve, C., & Hiller, M. (2026). Systematic benchmarks reveal DNA polymerase combinations for high-quality genome assembly. bioRxiv. https://doi.org/10.64898/2026.11.12.766154 
 
 
 
