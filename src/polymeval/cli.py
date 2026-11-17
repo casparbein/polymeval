@@ -7,6 +7,7 @@ from ruamel.yaml.scalarstring import SingleQuotedScalarString, DoubleQuotedScala
 import subprocess
 import shutil
 import signal
+import re
 
 ## Version
 from polymeval import __version__
