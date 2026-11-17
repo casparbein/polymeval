@@ -79,12 +79,14 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
     suffixes = tuple(sorted(suffixes, key=len, reverse=True))
 
     found = {}
+    skipped = 0
     for name in sorted(os.listdir(real_src)):
         base, suf = split_suffix(name, suffixes)
         if base is None:
             continue
         if skip_bases_ending and base.endswith(skip_bases_ending):
             continue
+            skipped += 1
         if strip_base_suffix:
             if not base.endswith(strip_base_suffix):
                 continue                       ## a different assembler's output
@@ -103,7 +105,7 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
         if not os.path.lexists(dst_file):
             os.symlink(os.path.join(real_src, name), dst_file)
 
-    return sorted((b, c) for b, (c, _) in found.items())
+    return sorted((b, c) for b, (c, _) in found.items()), skipped
 
 ## Check whether compleasm lib is available, otherwise, write to user cache
 def resolve_compleasm_lib(arg):
@@ -865,6 +867,11 @@ def main():
         color_path = None
 
     if args.hg_size:
+        if not re.fullmatch(r"[0-9]+(\.[0-9]+)?[kKmMgG]", args.hg_size):
+            logger.critical(
+                "--hg_size %r is not a valid genome size. Give a number followed by "
+                "k, m or g, for instance 2.2g, 700m or 150k.", args.hg_size)
+            sys.exit(1)
         config["hg_size"] = args.hg_size
 
     if args.pairwise:
@@ -898,11 +905,14 @@ def main():
 
     def link_and_discover(src, work_dir, suffixes, wanted=None, reference_run=False, skip_bases_ending=None):
         dest = os.path.join(work_dir, READS_SUBDIR)
-        found = link_reads(src, dest, suffixes, down_list=wanted,
+        found, skipped = link_reads(src, dest, suffixes, down_list=wanted,
                         skip_bases_ending=skip_bases_ending)
 
-        if not found:
+        if not found and not skipped:
             logger.critical("No files ending in %s found in %s.", " or ".join(suffixes), src)
+            sys.exit(1)
+        elif not found and skipped:
+            logger.critical("Files ending in %s were found in %s., but they all contain a duplication suffix (or similar). Run with --remove_dups or remove", " or ".join(suffixes), src)
             sys.exit(1)
 
         if wanted is not None:
