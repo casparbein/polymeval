@@ -4,3 +4,4 @@ channels:
   - bioconda
 dependencies:
   - compleasm=0.2.10
+  - pandas <3
