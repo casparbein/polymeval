@@ -73,7 +73,7 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
     skip_bases_ending  ignore files whose basename ends with this (".ec", ".dup")
     kind               noun used in error messages
 
-    Returns [(basename, canonical_suffix), ...] sorted by basename.
+    Returns [(basename, canonical_suffix), ...] sorted by basename plus number of skipped files.
     """
     os.makedirs(dst_path, exist_ok=True)
     real_src = os.path.realpath(os.path.abspath(src_path))
@@ -86,8 +86,8 @@ def link_inputs(src_path, dst_path, suffixes, down_list=None,
         if base is None:
             continue
         if skip_bases_ending and base.endswith(skip_bases_ending):
-            continue
             skipped += 1
+            continue
         if strip_base_suffix:
             if not base.endswith(strip_base_suffix):
                 continue                       ## a different assembler's output
@@ -987,7 +987,7 @@ def main():
                                                     wanted=wanted,
                                                     skip_bases_ending=".dup")
         path_for_link_asm = os.path.join(work_dir, "assemblies")
-        asm_found = link_assemblies(args.in_assemblies, 
+        asm_found, _  = link_assemblies(args.in_assemblies, 
                                     path_for_link_asm,
                                     down_list=wanted,
                                     strip_base_suffix=strip)
