@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2] - 2026-11-18
+
+- compleasm version bump bug fix:
+  - compleasm environment yaml now pins pandas <3, otherwise the program fails
+  - compleasm output summary has changed slightly, now is read correctly by the pipeline
+- extended warning messages:
+  - if the user inadvertendly passes 'dup' reads without specifying `--remove-dups`, the program will complain and exit
+  - `--hg_size` accepted strings on which hifiasm would choke downstream. Fixed so the program error exits if a corrupted string is passed
+
 ## [0.2.1] - 2026-10-22
 
 - zenodo release, now with a DOI: 10.5281/zenodo.23570096
