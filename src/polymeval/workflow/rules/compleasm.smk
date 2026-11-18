@@ -71,5 +71,5 @@ rule reformat_compleasm:
         "logs/reformat_compleasm/{asm_id}.log"
     shell:
         """
-        cat {input.summary} | sed -e 's/:/\t/g' -e 's/%, /\t/g' | head -n6 | tail -n5 > {output} 2> {log}
+        grep -E '^[SDFIM]:' {input.summary} | head -n5 | sed -e 's/:/\t/g' -e 's/%, /\t/g' > {output} 2> {log}
         """
