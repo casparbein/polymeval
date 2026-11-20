@@ -1,4 +1,5 @@
 [![DOI](https://zenodo.org/badge/1094934323.svg)](https://doi.org/10.5281/zenodo.23570096)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/polymeval/README.html)
 # polymeval
 POLYMerase EVALuation (**polymeval**) is: <br/><br/>
 **(1)** A [Snakemake](https://snakemake.readthedocs.io/en/stable/) pipeline to evaluate polymerase-amplified HiFi read sets for any organism. <br/><br/>
@@ -18,7 +19,7 @@ polymeval -h
 ```
 
 ### Using bioconda
-```
+```bash
 conda create -n polymeval -c conda-forge -c bioconda polymeval
 conda activate polymeval
 
