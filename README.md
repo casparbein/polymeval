@@ -17,6 +17,16 @@ python -m pip install .
 polymeval -h
 ```
 
+### Using bioconda
+```
+conda create -n polymeval -c conda-forge -c bioconda polymeval
+conda activate polymeval
+
+## or with mamba
+mamba create -n polymeval -c conda-forge -c bioconda polymeval
+mamba activate polymeval
+```
+
 Polymeval uses the snakemake pipeline language to string together different tools. Snakemake will take care of installing all necessary dependencies through conda or mamba.
 Polymeval is implemented with the slurm scheduling system. If you do not use slurm, you can run the pipeline locally using `--local_run`, but some of the jobs create large files and need cosiderable amounts of both RAM and storage space.
 
